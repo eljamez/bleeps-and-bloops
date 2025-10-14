@@ -1,22 +1,5 @@
+import { games } from "@/data";
 import Link from "next/link";
-
-const games = [
-  {
-    slug: "tic-tac-toe",
-    title: "Tic Tac Toe",
-    description: "Classic game of X's and O's",
-  },
-  {
-    slug: "memory-match",
-    title: "Memory Match",
-    description: "Test your memory with card matching",
-  },
-  {
-    slug: "snake",
-    title: "Snake Game",
-    description: "Guide the snake to eat and grow",
-  },
-];
 
 export default function GamesPage() {
   return (
