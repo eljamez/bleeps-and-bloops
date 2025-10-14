@@ -1,8 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bleeps and Bloops
 
-## Getting Started
+A modern web showcase featuring games, tools, and experiments built with Next.js 15, TypeScript, and Tailwind CSS v4.
 
-First, run the development server:
+## 🎮 What's Inside
+
+This project is a collection of interactive experiences organized into three main categories:
+
+- **Games** - Classic and modern web games
+- **Tools** - Useful utilities and converters
+- **Experiments** - Creative coding projects and demos
+
+## 🚀 Tech Stack
+
+- **Framework**: [Next.js 15](https://nextjs.org) with App Router
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Development**: Turbopack for fast builds
+
+## 🛠️ Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm, yarn, pnpm, or bun
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone <repository-url>
+cd bleeps-and-bloops-com
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+3. Run the development server:
 
 ```bash
 npm run dev
@@ -14,23 +56,86 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── games/[slug]/      # Individual game pages
+│   ├── tools/[slug]/      # Individual tool pages
+│   ├── experiments/[slug]/ # Individual experiment pages
+│   ├── about/             # About page
+│   ├── contact/           # Contact page
+│   └── layout.tsx         # Root layout
+├── components/            # Reusable React components
+│   └── games/            # Game-specific components
+│       ├── game-container.tsx
+│       ├── pong/         # Pong game implementation
+│       └── chess-locator/ # Chess locator game
+└── data.ts               # Sample data for games, tools, and experiments
+```
 
-## Learn More
+## 🎯 Current Features
 
-To learn more about Next.js, take a look at the following resources:
+### Games
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Pong** - Classic arcade game built with GitHub Copilot
+- **Memory Match** - Card matching memory game
+- **Snake Game** - Classic snake gameplay
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Tools
 
-## Deploy on Vercel
+- **Color Picker** - Generate and explore color palettes
+- **JSON Formatter** - Format and validate JSON data
+- **Base64 Encoder** - Encode and decode Base64 strings
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Experiments
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Particle System** - Interactive particle physics
+- **Wave Generator** - Create mesmerizing wave patterns
+- **Fractal Explorer** - Explore mathematical fractals
+
+## 🎨 Design System
+
+The project uses a consistent design system with:
+
+- Custom fonts: Orbitron (headings), Space Grotesk (body), Space Mono (mono)
+- Color scheme with CSS custom properties
+- Dark/light mode support
+- Responsive design patterns
+
+## 🚀 Available Scripts
+
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build for production with Turbopack
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+
+## 📝 Development Guidelines
+
+- Use TypeScript for all new files
+- Follow the established component patterns
+- Keep components small and focused
+- Use Tailwind CSS classes for styling
+- Implement proper TypeScript interfaces
+- Support both light and dark themes
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is private and proprietary.
+
+## 🔗 Links
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs)

@@ -1,0 +1,204 @@
+# Bleeps and Bloops - Next.js Project Rules
+
+## Project Overview
+
+This is a Next.js 15 project showcasing games, tools, and experiments. The site uses TypeScript, Tailwind CSS v4, and modern React patterns.
+
+## Tech Stack
+
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v4 with custom CSS variables
+- **Fonts**: Orbitron (headings), Space Grotesk (body), Space Mono (mono)
+- **Icons**: Lucide React
+- **Build**: Turbopack for development
+
+## Code Style & Patterns
+
+### File Structure
+
+- Use the App Router pattern (`src/app/`)
+- Components go in `src/components/`
+- Shared data in `src/data.ts`
+- Use TypeScript for all files
+
+### Component Guidelines
+
+- **Prefer function components** over class components
+- Use TypeScript interfaces for props
+- Keep components small and focused
+- Use proper TypeScript types, avoid `any`
+
+### Styling Rules
+
+- Use Tailwind CSS classes for styling
+- Leverage CSS custom properties defined in `globals.css`
+- Use the established color scheme:
+  - Primary: `#3b82f6` (blue)
+  - Secondary: `#f97316` (orange)
+  - Support dark mode with `dark:` prefixes
+- Use semantic class names and avoid custom CSS when possible
+
+### Font Usage
+
+- Headings: `font-heading` (Orbitron)
+- Body text: `font-body` (Space Grotesk)
+- Code/mono: `font-mono` (Space Mono)
+
+### Navigation & Routing
+
+- Use Next.js `Link` component for navigation
+- Follow the established pattern: `/games/[slug]`, `/tools/[slug]`, `/experiments/[slug]`
+- Use dynamic routes for individual items
+
+### Data Management
+
+- Keep sample data in `src/data.ts`
+- Use consistent data structure with `slug`, `title`, `description`
+- Consider moving to a database later
+
+### Performance
+
+- Use Next.js Image component for images
+- Implement proper loading states
+- Use React.memo() for expensive components when needed
+- Leverage Next.js built-in optimizations
+
+## Code Patterns to Follow
+
+### Page Components
+
+```typescript
+// Use this pattern for page components
+export default function PageName() {
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Content */}
+    </div>
+  );
+}
+```
+
+### Card Components
+
+```typescript
+// Use this pattern for card components
+interface CardProps {
+  title: string;
+  description: string;
+  href: string;
+}
+
+function Card({ title, description, href }: CardProps) {
+  return (
+    <Link
+      href={href}
+      className="block p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-primary transition-colors group"
+    >
+      <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
+        {title}
+      </h3>
+      <p className="text-gray-600 dark:text-gray-400">{description}</p>
+    </Link>
+  );
+}
+```
+
+### Game/Component Structure
+
+- Place game components in `src/components/games/[game-name]/`
+- Use the `GameContainer` wrapper for consistent styling
+- Implement proper TypeScript interfaces
+
+## Avoid Code Repetition
+
+### Reusable Components
+
+- Create shared components for common patterns
+- Use the existing `Card` component pattern
+- Extract common layouts into reusable components
+
+### Utility Functions
+
+- Create utility functions for repeated logic
+- Use TypeScript for better type safety
+- Keep utilities in appropriate files
+
+### Styling Consistency
+
+- Use the established Tailwind classes
+- Leverage CSS custom properties for theming
+- Follow the existing responsive design patterns
+
+## Development Guidelines
+
+### TypeScript
+
+- Always use proper TypeScript types
+- Define interfaces for component props
+- Use type inference where appropriate
+- Avoid `any` type usage
+
+### React Best Practices
+
+- Use functional components with hooks
+- Implement proper error boundaries
+- Use React.memo() for performance optimization
+- Follow React naming conventions
+
+### Next.js Features
+
+- Use App Router patterns
+- Implement proper metadata
+- Use Next.js Image optimization
+- Leverage built-in performance features
+
+### Code Organization
+
+- Keep related files together
+- Use descriptive file and component names
+- Follow the established folder structure
+- Maintain consistent import ordering
+
+## Game Development
+
+- Use Canvas API for graphics-heavy games
+- Implement proper game loops with requestAnimationFrame
+- Handle keyboard/mouse events appropriately
+- Consider mobile responsiveness
+- Use the established game container pattern
+
+## Tools Development
+
+- Focus on utility and functionality
+- Implement proper input validation
+- Handle edge cases appropriately
+- Provide clear user feedback
+- Use appropriate form controls
+
+## Experiments
+
+- Encourage creative and experimental code
+- Document interesting findings
+- Use modern web APIs when appropriate
+- Consider performance implications
+
+## Quality Standards
+
+- Write clean, readable code
+- Use meaningful variable and function names
+- Add comments for complex logic
+- Follow established patterns
+- Test functionality thoroughly
+- Ensure responsive design
+- Support both light and dark themes
+
+## Performance Considerations
+
+- Optimize images and assets
+- Use proper loading states
+- Implement lazy loading where appropriate
+- Monitor bundle size
+- Use Next.js built-in optimizations
+
+Remember: This is a creative project showcasing games, tools, and experiments. Focus on functionality, user experience, and clean code while maintaining the established patterns and avoiding repetition.
