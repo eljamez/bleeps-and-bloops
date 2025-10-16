@@ -41,7 +41,7 @@ export default function RootLayout({
             <div className="flex items-center justify-between">
               <Link
                 href="/"
-                className="text-2xl font-bold text-primary hover:text-primary-hover transition-colors"
+                className="text-2xl font-bold text-primary hover:text-primary-hover transition-colors font-heading"
               >
                 Bleeps and Bloops
               </Link>
@@ -53,11 +53,17 @@ export default function RootLayout({
                   About
                 </Link>
                 <Link
+                  href="/experience"
+                  className="hover:text-primary transition-colors"
+                >
+                  Experience
+                </Link>
+                {/* <Link
                   href="/contact"
                   className="hover:text-primary transition-colors"
                 >
                   Contact
-                </Link>
+                </Link> */}
               </div>
             </div>
           </nav>
