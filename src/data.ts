@@ -1,6 +1,36 @@
 // Sample data - you can move this to a separate file or database later
 
-export const games = [
+export type Game = {
+  slug: string;
+  title: string;
+  description: string;
+};
+
+export type Tool = {
+  slug: string;
+  title: string;
+  description: string;
+};
+
+export type Experiment = {
+  slug: string;
+  title: string;
+  description: string;
+};
+
+export type CodepenItem = {
+  slug: string;
+  title: string;
+  user: string;
+};
+
+export type Experience = {
+  slug: string;
+  title: string;
+  description: string;
+};
+
+export const games: Game[] = [
   //   {
   //     slug: "pong",
   //     title: "Pong",
@@ -18,7 +48,7 @@ export const games = [
   //   },
 ];
 
-export const tools = [
+export const tools: Tool[] = [
   //   {
   //     slug: "color-picker",
   //     title: "Color Picker",
@@ -36,7 +66,7 @@ export const tools = [
   //   },
 ];
 
-export const experiments = [
+export const experiments: Experiment[] = [
   //   {
   //     slug: "particle-system",
   //     title: "Particle System",
@@ -54,7 +84,7 @@ export const experiments = [
   //   },
 ];
 
-export const codepenItems = [
+export const codepenItems: CodepenItem[] = [
   {
     slug: "ZEbjWdx",
     title: "Super Mario CSS Grid Fader",
@@ -67,7 +97,7 @@ export const codepenItems = [
   },
 ];
 
-export const work = [
+export const experience: Experience[] = [
   {
     slug: "",
     title: "Work",

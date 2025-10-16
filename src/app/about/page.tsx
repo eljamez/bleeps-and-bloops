@@ -25,14 +25,14 @@ export default function AboutPage() {
           <Image
             src="/images/avatar.png"
             alt="James Augustus Hall"
-            width={80}
-            height={80}
+            width={100}
+            height={100}
             className="rounded-full"
             priority
           />
-          <div className="flex flex-col flex-1 gap-2 justify-center">
-            <h3 className="text-3xl font-semibold">James Augustus Hall</h3>
-            <p className="text-lg">
+          <div className="flex flex-col flex-1 text-center md:text-left justify-center">
+            <h3 className="text-3xl font-semibold mb-4">James Augustus Hall</h3>
+            <p className="text-lg mb-6">
               Senior Software Engineer based in Ojai, California
             </p>
           </div>
@@ -54,7 +54,7 @@ export default function AboutPage() {
           experience. My work spans:
         </p>
         <ul className="list-disc list-inside mb-6 space-y-2">
-          <li>Music software development and audio / video processing</li>
+          <li>Music software development and audio /video processing</li>
           <li>Game design and interactive web applications</li>
           <li>Front-end architecture with modern frameworks</li>
           <li>Creative coding and visual experiments</li>

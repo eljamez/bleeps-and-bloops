@@ -1,4 +1,5 @@
 import GameContainer from "@/components/games/game-container";
+import type { Game } from "@/data";
 import { games } from "@/data";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,14 +9,14 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  return Object.keys(games).map((slug) => ({
-    slug,
+  return games.map((game: Game) => ({
+    slug: game.slug,
   }));
 }
 
 export default async function GamePage({ params }: PageProps) {
   const { slug } = await params;
-  const game = games.find((game) => game.slug === slug);
+  const game = games.find((game: Game) => game.slug === slug);
 
   if (!game) {
     notFound();
