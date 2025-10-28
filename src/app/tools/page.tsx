@@ -2,9 +2,9 @@ import Link from "next/link";
 
 const tools = [
   {
-    slug: "color-picker",
-    title: "Color Picker",
-    description: "Generate and explore color palettes",
+    slug: "countdown-timer",
+    title: "Countdown Timer",
+    description: "Create a countdown timer",
   },
   {
     slug: "json-formatter",

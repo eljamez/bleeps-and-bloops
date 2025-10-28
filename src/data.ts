@@ -1,5 +1,7 @@
 // Sample data - you can move this to a separate file or database later
 
+import CountdownTimer from "./components/tools/countdown-timer/page";
+
 export type Game = {
   slug: string;
   title: string;
@@ -10,6 +12,7 @@ export type Tool = {
   slug: string;
   title: string;
   description: string;
+  component: React.ComponentType;
 };
 
 export type Experiment = {
@@ -49,11 +52,12 @@ export const games: Game[] = [
 ];
 
 export const tools: Tool[] = [
-  //   {
-  //     slug: "color-picker",
-  //     title: "Color Picker",
-  //     description: "Generate and explore color palettes",
-  //   },
+  {
+    slug: "countdown-timer",
+    title: "Countdown Timer",
+    description: "Create a countdown timer",
+    component: CountdownTimer,
+  },
   //   {
   //     slug: "json-formatter",
   //     title: "JSON Formatter",
