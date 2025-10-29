@@ -15,7 +15,7 @@ export default function CountdownTimer() {
   } = useCountdown();
 
   return (
-    <div className="flex flex-col items-center justify-center bg-gradient-to-br from-cyan-900 to-pink-900 py-12">
+    <>
       <div className="flex justify-between items-center gap-4">
         <input
           type="number"
@@ -57,6 +57,6 @@ export default function CountdownTimer() {
           </button>
         </div>
       )}
-    </div>
+    </>
   );
 }

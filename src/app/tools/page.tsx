@@ -1,22 +1,5 @@
+import { tools } from "@/data";
 import Link from "next/link";
-
-const tools = [
-  {
-    slug: "countdown-timer",
-    title: "Countdown Timer",
-    description: "Create a countdown timer",
-  },
-  {
-    slug: "json-formatter",
-    title: "JSON Formatter",
-    description: "Format and validate JSON data",
-  },
-  {
-    slug: "base64-encoder",
-    title: "Base64 Encoder",
-    description: "Encode and decode Base64 strings",
-  },
-];
 
 export default function ToolsPage() {
   return (

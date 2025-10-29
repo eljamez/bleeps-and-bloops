@@ -1,19 +1,18 @@
 // Sample data - you can move this to a separate file or database later
 
+import ChessLocator from "./components/games/chess-locator/page";
 import CountdownTimer from "./components/tools/countdown-timer/page";
 
-export type Game = {
-  slug: string;
-  title: string;
-  description: string;
-};
-
-export type Tool = {
+export type Project = {
   slug: string;
   title: string;
   description: string;
   component: React.ComponentType;
 };
+
+export type Game = Project;
+
+export type Tool = Project;
 
 export type Experiment = {
   slug: string;
@@ -34,16 +33,12 @@ export type Experience = {
 };
 
 export const games: Game[] = [
-  //   {
-  //     slug: "pong",
-  //     title: "Pong",
-  //     description: "Classic game of Pong, I made this with github copilot",
-  //   },
-  //   {
-  //     slug: "memory-match",
-  //     title: "Memory Match",
-  //     description: "Test your memory with card matching",
-  //   },
+  {
+    slug: "chess-locator",
+    title: "Chess Locator",
+    description: "Locate the chess pieces on the board",
+    component: ChessLocator,
+  },
   //   {
   //     slug: "snake",
   //     title: "Snake Game",
@@ -58,6 +53,7 @@ export const tools: Tool[] = [
     description: "Create a countdown timer",
     component: CountdownTimer,
   },
+
   //   {
   //     slug: "json-formatter",
   //     title: "JSON Formatter",
