@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>Bleeps and Bloops</title>
+  <rect width="32" height="32" fill="#f3eee4"/>
+  <rect x="5" y="7" width="9" height="9" fill="#8a3418"/>
+  <circle cx="22" cy="21" r="6" fill="#1f4f52"/>
+</svg>
