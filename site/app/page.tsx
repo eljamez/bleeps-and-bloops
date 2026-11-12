@@ -270,7 +270,13 @@ export default function HomePage() {
       </a>
 
       <header className="border-b border-line">
-        <div className={wrap}>
+        <div className={`${wrap} site-bar`}>
+          <a href="/" className="brand">
+            <img src="/brand/mark.svg" alt="" width={704} height={264} />
+            <span className="brand-name">
+              bleeps <span className="amp">&amp;</span> bloops
+            </span>
+          </a>
           <nav className="site-nav" aria-label="On this page">
             <ul>
               <li>

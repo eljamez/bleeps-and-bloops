@@ -3,6 +3,7 @@
 Plan for Bleeps, the system behind the Bleeps and Bloops brand. A shipped pull request or feature is a bloop.
 
 - [Vision](vision.md)
+- [Brand](brand.md)
 - [Architecture](architecture.md)
 - [Flow](flow.md)
 - [Roadmap](roadmap.md)
