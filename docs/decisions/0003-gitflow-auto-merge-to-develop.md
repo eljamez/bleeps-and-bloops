@@ -22,4 +22,5 @@ Only the owner (James) merges `develop` into `main`. Agents never touch `main`.
 
 - This resolves the merge-policy conflict with the old pack, which never merged.
 - It refines the earlier label-gated auto-merge idea. Label rules can still restrict which tickets auto-merge.
-- Promotion from `develop` to `main` stays a human step, done by James.
+- Promotion from `develop` to `main` stays a human step, done by James. A PR that merges to `develop` is a bloop.
+- **Revisit if:** auto-merge to `develop` lands a bloop the gates should have stopped, or James wants agents to promote `main`.

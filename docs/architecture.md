@@ -1,6 +1,6 @@
 # Architecture
 
-- One shared Claude Code setup / `orca.yaml` for the factory (not per-project). Shared slash command, review rules, and merge policy.
+- One shared Claude Code setup / `orca.yaml` for Bleeps. Shared slash command, review rules, and merge policy. See [0001](decisions/0001-shared-factory-config.md).
 - Project-specific overrides in a second smaller file.
 - Grok Bot on the side for long-running watches (PR queue, failing CI, review nudges).
 - Layered reviewers: CodeRabbit (style + obvious bugs), Devin (end-to-end), Claude Code (architecture fit).
