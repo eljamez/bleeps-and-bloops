@@ -1,6 +1,6 @@
 # Flow
 
-Ticket-to-merge pipeline for the factory. Merge rules are in [0003: Gitflow auto-merge to develop](decisions/0003-gitflow-auto-merge-to-develop.md).
+Ticket-to-merge pipeline for Bleeps. A pull request that merges is a bloop. Merge rules are in [0003: Gitflow auto-merge to develop](decisions/0003-gitflow-auto-merge-to-develop.md). Building blocks are in [primitives](primitives.md).
 
 ## Steps
 

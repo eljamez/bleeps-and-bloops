@@ -1,15 +1,15 @@
-# 0002: Rebuild the factory clean
+# 0002: Rebuild Bleeps clean
 
 - **Status:** accepted
 - **Date:** 2026-11-12
 
 ## Context
 
-The owner already had a Software Factory context pack: Claude Code plugins `bb` and `spec-driven-workflow`, plus four standalone skills. That pack is a snapshot of an earlier workflow, not the factory to ship.
+The owner already had a Software Factory context pack: Claude Code plugins `bb` and `spec-driven-workflow`, plus four standalone skills. That pack is a snapshot of an earlier workflow. It is not Bleeps.
 
 ## Decision
 
-Keep the prior pack as read-only reference at [docs/reference/context-pack-2026-11-11](../reference/context-pack-2026-11-11/README.md). Rebuild the factory clean.
+Keep the prior pack as read-only reference at [docs/reference/context-pack-2026-11-11](../reference/context-pack-2026-11-11/README.md). Rebuild Bleeps clean.
 
 ## Consequences
 
@@ -24,3 +24,5 @@ These design ideas carry forward:
 Write these known pack gaps fresh: the missing `spec-driven-loop` skill, and the `spec-implementer` and test/ux/backend reviewer agents.
 
 The core `orca.yaml` and the ticket slash command are also built fresh, using the pack as reference. See [Phase 1](../roadmap.md).
+
+**Revisit if:** a behavior we still need exists only in the pack, and rewriting it would lose that behavior.
