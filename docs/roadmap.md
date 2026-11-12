@@ -22,9 +22,11 @@ The core `orca.yaml` and the ticket slash command are built fresh, using the [20
 
 ## Phase 3 – Merge policy
 
-- [ ] Auto-merge off by default.
-- [ ] Enable per ticket label (tests/docs first; DB/auth stay manual).
-- [ ] Enforce in `orca.yaml`.
+Gitflow, per [0003: Gitflow auto-merge to develop](decisions/0003-gitflow-auto-merge-to-develop.md) and [flow](flow.md). Feature PRs target `develop` and may auto-merge when verified safe. Only James merges `develop` into `main`. Agents never touch `main`. Label rules can still restrict which tickets auto-merge.
+
+- [ ] Create the `develop` branch.
+- [ ] Branch protection on `main`, restricted to the owner.
+- [ ] Auto-merge enabled on `develop`, with required checks.
 
 ## Phase 4 – Onboard existing projects
 
