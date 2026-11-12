@@ -8,6 +8,7 @@ Open the page that owns the task:
 - [Architecture](docs/architecture.md)
 - [Decisions](docs/decisions/README.md) — veto list; read it before proposing a new primitive
 - [Primitives](docs/primitives.md)
+- [Using Bleeps](docs/using-bleeps.md)
 - [Friction log](docs/friction-log.md)
 - [Ship a PR](docs/ship-pr.md)
 - [Control CLI](docs/control-cli.md)

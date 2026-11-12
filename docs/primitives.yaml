@@ -1,8 +1,14 @@
 # Bleeps primitives. The machine-readable catalog.
 #
 # Human page, diagram, invariants, and recap rule: docs/primitives.md
+# Adoption guide: docs/using-bleeps.md
+#
 # Update this file when a PR adds, removes, or reshapes a primitive
 # (id, name, group, or meaning). Leave summary alone for ordinary work.
+#
+# `group` is the kind: the sort of block it is.
+# `status` is planned (specified, not runnable) or built (a person or
+# an agent can invoke it).
 #
 # Recap classes used in PR descriptions:
 #   composes - wires existing primitives, no contract change
@@ -12,67 +18,214 @@
 # `adrs` lists the decision records that shape the primitive.
 # Add a `code` list of ownership roots when the primitive has a directory.
 
-version: 1
+version: 2
 
 groups:
-  - id: intake
-    name: Intake
-  - id: build
-    name: Build
-  - id: review
-    name: Review
-  - id: ship
-    name: Ship
+  - id: command
+    name: Slash command
+  - id: skill
+    name: Skill
+  - id: agent
+    name: Agent role
+  - id: script
+    name: Script or CLI
+  - id: hook
+    name: Hook
+  - id: gate
+    name: Gate or check
+  - id: artifact
+    name: Artifact
 
 primitives:
   - id: kick-off
-    group: intake
+    group: command
     name: Kick-off command
     summary: Slash command that takes a GitHub issue number and starts the ticket.
+    inputs:
+      - A GitHub issue number
+    outputs:
+      - The ticket run, starting with the spec folder
+    invoked_by: A person
+    when: Flow step 1, once a GitHub issue exists.
+    status: planned
+    lives: >
+      Planned for the shared orca.yaml. Not in this repo.
+      The 2026-11-11 context pack command is reference only.
     docs:
       - docs/flow.md
       - docs/roadmap.md
     adrs:
       - docs/decisions/0002-rebuild-factory-clean.md
 
-  - id: spec-folder
-    group: intake
-    name: Spec folder
-    summary: >
-      specs/<issue>-<slug>/ holds ticket.md, spec.md (draft or approved),
-      optional design.md, tasks.md, and verify.md.
-    docs:
-      - docs/flow.md
-    adrs:
-      - docs/decisions/0002-rebuild-factory-clean.md
-
-  - id: tasks
-    group: intake
-    name: Tasks
-    summary: tasks.md is the checklist the build loop works through.
-    docs:
-      - docs/flow.md
-    adrs:
-      - docs/decisions/0002-rebuild-factory-clean.md
-
   - id: build-fix-loop
-    group: build
+    group: skill
     name: Build / fix loop
     summary: >
-      Build, test, and fix in an isolated Orca worktree, with a round limit.
-      Pause when a change touches a guardrail area.
+      Build, test, and fix in an isolated Orca worktree, with a round limit,
+      and pause when a change touches a guardrail area.
+    inputs:
+      - tasks.md
+      - The repo, in an isolated Orca worktree
+    outputs:
+      - The change on a feature branch
+      - A pause when the change touches a guardrail area
+    invoked_by: The agent on the ticket, inside the worktree
+    when: Flow step 4. The number of rounds is not chosen yet.
+    status: planned
+    lives: >
+      Not written. It runs in an isolated Orca worktree.
+      0002 says to write the loop fresh.
     docs:
       - docs/flow.md
     adrs:
       - docs/decisions/0002-rebuild-factory-clean.md
       - docs/decisions/0003-gitflow-auto-merge-to-develop.md
 
+  - id: habit-skills
+    group: skill
+    name: Habit skills
+    summary: >
+      explore-first, delegate-cheap-work, verify-before-ship, and
+      decompose-hotspot. Carried forward from the context pack and rewritten clean.
+    inputs:
+      - explore-first takes a search that would take three or more lookups
+      - delegate-cheap-work takes a task whose success fits in one sentence
+      - verify-before-ship takes a UI change
+      - decompose-hotspot takes a file that keeps attracting changes
+    outputs:
+      - explore-first returns a short synthesis
+      - delegate-cheap-work returns a diff to skim
+      - verify-before-ship looks at about 390px and 1280px and reads the console
+      - decompose-hotspot proposes a split of three to five files and waits
+    invoked_by: Whichever agent is doing the work
+    when: During the build, and on any task where the habit applies.
+    status: planned
+    lives: >
+      Not rewritten into Bleeps yet. Reference copies sit in the context pack.
+      Those copies are not this primitive.
+    docs:
+      - docs/decisions/0002-rebuild-factory-clean.md
+    adrs:
+      - docs/decisions/0002-rebuild-factory-clean.md
+
+  - id: ship-pr
+    group: skill
+    name: Ship PR
+    summary: >
+      Thin skill for judgment (risk tier, what to fix, when to stop).
+      A script will run tick, act, tick for CI, reviews, memory, merge, and health.
+    inputs:
+      - Pull request URL
+      - Risk tier low, medium, or high
+    outputs:
+      - A merge into develop, or the pull request parked
+      - waiting-for-james when the risk is high
+      - A health check after a real merge, once bleeps health exists
+      - A reminder to file leftover papercuts
+    invoked_by: The agent shepherding the pull request
+    when: After the pull request is open, through layered review, the gates, and the health check.
+    status: planned
+    lives: Design in docs/ship-pr.md. No skill file and no script yet.
+    docs:
+      - docs/ship-pr.md
+    adrs:
+      - docs/decisions/0003-gitflow-auto-merge-to-develop.md
+      - docs/decisions/0005-adopt-kody-inspired-practices.md
+
+  - id: verify-reviewer
+    group: agent
+    name: Verify reviewer
+    summary: >
+      Independent read-only reviewer. It does not share the implementer's
+      context. It writes verify.md. Only "Ready to ship" proceeds.
+    inputs:
+      - The spec folder and the change, without the implementer's context
+    outputs:
+      - specs/<issue>-<slug>/verify.md
+      - A verdict. Only "Ready to ship" proceeds.
+    invoked_by: Its own read-only agent, not the implementer
+    when: Flow step 5, after the build loop.
+    status: planned
+    lives: Not written. The verdict file lives in the spec folder.
+    docs:
+      - docs/flow.md
+    adrs:
+      - docs/decisions/0002-rebuild-factory-clean.md
+      - docs/decisions/0003-gitflow-auto-merge-to-develop.md
+
+  - id: grok-bot
+    group: agent
+    name: Grok Bot watcher
+    summary: >
+      Long-running watch for the PR queue, failing CI, and review nudges.
+      Later, the daily friction sweep can live here.
+    inputs:
+      - The pull request queue, CI results, and review state
+      - Later, open issues labeled friction
+    outputs:
+      - Nudges on the queue, failing CI, and reviews
+      - Later, one list of friction issues handed to an agent
+    invoked_by: Nobody starts it per ticket. It runs as a watch.
+    when: >
+      Beside flow step 7. The friction sweep starts after the review layer
+      is in place.
+    status: planned
+    lives: Described in docs/architecture.md. No bot is running.
+    docs:
+      - docs/architecture.md
+      - docs/friction-log.md
+    adrs: []
+
+  - id: bleeps
+    group: script
+    name: bleeps CLI
+    summary: >
+      One CLI agents use to prove a change with tests, typecheck, preview,
+      and the deployed SHA. A green check is not evidence.
+    inputs:
+      - The project
+      - health takes a commit SHA, and optionally waits
+    outputs:
+      - doctor, test, and typecheck results
+      - A preview URL
+      - A health pass only when the deployed SHA matches
+    invoked_by: >
+      Agents. The Orca verification hook will call test and typecheck.
+      ship-pr will call health after a merge.
+    when: >
+      test and typecheck during verification (Phase 1).
+      preview and health after the merge work exists (Phase 3).
+    status: planned
+    lives: >
+      Design in docs/control-cli.md. It will live in this repo.
+      Projects symlink it the same way they symlink the shared orca.yaml.
+      The command is not implemented.
+    docs:
+      - docs/control-cli.md
+      - docs/ship-pr.md
+      - docs/roadmap.md
+    adrs:
+      - docs/decisions/0001-shared-factory-config.md
+      - docs/decisions/0005-adopt-kody-inspired-practices.md
+
   - id: orca-hooks
-    group: build
+    group: hook
     name: Orca worktree hooks
     summary: >
       Shared orca.yaml. Setup hook installs deps on worktree create.
       Verification hook runs tests and typecheck and blocks the PR on failure.
+    inputs:
+      - A new worktree, for the setup hook
+      - The change under test, for the verification hook
+    outputs:
+      - Dependencies installed in the worktree
+      - A test and typecheck result that blocks the pull request on failure
+    invoked_by: Orca, not a person
+    when: Setup runs when a worktree is created. Verification runs before a pull request can pass.
+    status: planned
+    lives: >
+      The shared orca.yaml, which is not written yet.
+      A smaller per-project file overrides it.
     docs:
       - docs/architecture.md
       - docs/roadmap.md
@@ -80,73 +233,91 @@ primitives:
       - docs/decisions/0001-shared-factory-config.md
       - docs/decisions/0002-rebuild-factory-clean.md
 
-  - id: habit-skills
-    group: build
-    name: Habit skills
-    summary: >
-      explore-first, delegate-cheap-work, verify-before-ship, and
-      decompose-hotspot. Carried forward from the context pack and rewritten clean.
-    docs:
-      - docs/decisions/0002-rebuild-factory-clean.md
-    adrs:
-      - docs/decisions/0002-rebuild-factory-clean.md
-
-  - id: verify-reviewer
-    group: review
-    name: Verify reviewer
-    summary: >
-      Independent read-only reviewer. It does not share the implementer's
-      context. It writes verify.md. Only "Ready to ship" proceeds.
-    docs:
-      - docs/flow.md
-    adrs:
-      - docs/decisions/0002-rebuild-factory-clean.md
-      - docs/decisions/0003-gitflow-auto-merge-to-develop.md
-
   - id: guardrails
-    group: review
+    group: gate
     name: Guardrails
     summary: >
       Auth, billing, payments, data deletion, and migrations wait for James.
       A touch without his sign-off does not auto-merge.
+    inputs:
+      - The diff, checked for auth, billing, payments, data deletion, and migrations
+    outputs:
+      - A pause in the build until James signs off
+      - A refused auto-merge when a guardrail was touched without that sign-off
+    invoked_by: The build loop pauses. The merge gates check. James signs off.
+    when: During the build loop, and again at merge.
+    status: planned
+    lives: >
+      The list is settled in 0003 and 0005.
+      No hook or script enforces it yet.
     docs:
       - docs/flow.md
-      - docs/ship-pr.md
-    adrs:
-      - docs/decisions/0003-gitflow-auto-merge-to-develop.md
-      - docs/decisions/0005-adopt-kody-inspired-practices.md
-
-  - id: ship-pr
-    group: ship
-    name: Ship PR
-    summary: >
-      Thin skill for judgment (risk tier, what to fix, when to stop).
-      A script will run tick, act, tick for CI, reviews, memory, merge, and health.
-    docs:
       - docs/ship-pr.md
     adrs:
       - docs/decisions/0003-gitflow-auto-merge-to-develop.md
       - docs/decisions/0005-adopt-kody-inspired-practices.md
 
   - id: merge-gates
-    group: ship
+    group: gate
     name: Merge gates
     summary: >
       Auto-merge to develop when checks are green, verify says Ready to ship,
       layered reviews have no blocking findings, and guardrails are signed off.
       James promotes develop to main. Agents never touch main.
+    inputs:
+      - Required checks green
+      - Verify verdict "Ready to ship"
+      - Layered reviews with no blocking findings
+      - Guardrail sign-off when a guardrail area was touched
+    outputs:
+      - A merge into develop, or the pull request stays open
+      - develop promoted to main only by James
+    invoked_by: The ship-pr script, once it exists
+    when: Flow step 8. James's promotion to main is the step after, and agents do not run it.
+    status: planned
+    lives: >
+      The rule is in 0003 and docs/flow.md.
+      Branch protection and auto-merge are Phase 3, and are not turned on.
     docs:
       - docs/flow.md
     adrs:
       - docs/decisions/0003-gitflow-auto-merge-to-develop.md
 
-  - id: grok-bot
-    group: ship
-    name: Grok Bot watcher
+  - id: spec-folder
+    group: artifact
+    name: Spec folder
     summary: >
-      Long-running watch for the PR queue, failing CI, and review nudges.
-      Later, the daily friction sweep can live here.
+      specs/<issue>-<slug>/ holds ticket.md, spec.md (draft or approved),
+      optional design.md, tasks.md, and verify.md.
+    inputs:
+      - The GitHub issue
+    outputs:
+      - ticket.md
+      - spec.md, with status draft or approved
+      - design.md, only if the approach is risky
+      - tasks.md and verify.md, written by their own steps
+    invoked_by: The agent running kick-off
+    when: Flow step 2. The folder stays through verify.
+    status: planned
+    lives: specs/<issue>-<slug>/ in the project repo, created per ticket.
     docs:
-      - docs/architecture.md
-      - docs/friction-log.md
-    adrs: []
+      - docs/flow.md
+    adrs:
+      - docs/decisions/0002-rebuild-factory-clean.md
+
+  - id: tasks
+    group: artifact
+    name: Tasks
+    summary: tasks.md is the checklist the build loop works through.
+    inputs:
+      - The spec folder, including spec.md and design.md when it exists
+    outputs:
+      - specs/<issue>-<slug>/tasks.md
+    invoked_by: The agent running kick-off, after the spec
+    when: Flow step 3. The build loop reads it in step 4.
+    status: planned
+    lives: specs/<issue>-<slug>/tasks.md
+    docs:
+      - docs/flow.md
+    adrs:
+      - docs/decisions/0002-rebuild-factory-clean.md
