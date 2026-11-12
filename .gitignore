@@ -11,6 +11,11 @@ Desktop.ini
 # Dependencies
 node_modules/
 
+# Next.js
+.next/
+out/
+*.tsbuildinfo
+
 # Environment
 .env
 .env.*
