@@ -6,6 +6,8 @@ Pinned for later. The draft core `orca.yaml` is still open. Ready to resume.
 
 ## Phase 1 – Foundations
 
+The core `orca.yaml` and the ticket slash command are built fresh, using the [2026-11-11 context pack](reference/context-pack-2026-11-11/README.md) as reference. See [0002: Rebuild the factory clean](decisions/0002-rebuild-factory-clean.md).
+
 - [ ] Install Orca on the home server.
 - [ ] SSH in.
 - [ ] Get Claude Code running in one worktree on a throwaway repo.

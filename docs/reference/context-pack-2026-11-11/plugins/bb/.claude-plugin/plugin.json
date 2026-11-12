@@ -1,0 +1,9 @@
+{
+  "name": "bb",
+  "version": "0.2.0",
+  "description": "Bleeps and Bloops — slash commands for solo spec-driven development (SDD), wrapping the spec-driven-workflow plugin with quick GitHub-issue-driven shortcuts.",
+  "author": {
+    "name": "James"
+  },
+  "keywords": ["spec-driven-development", "sdd", "github", "workflow"]
+}

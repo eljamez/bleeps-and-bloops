@@ -1,0 +1,9 @@
+{
+  "name": "spec-driven-workflow",
+  "version": "0.1.0",
+  "description": "Point Claude at a GitHub issue and it runs the full spec-driven pipeline inside your repo: spec, design, tasks, a bounded self-correcting implementation loop, an independent verify pass, and a PR that's ready for human review. GitHub-only v1.",
+  "author": {
+    "name": "James Hall"
+  },
+  "keywords": ["spec-driven-development", "agentic-workflow", "github", "pull-requests"]
+}

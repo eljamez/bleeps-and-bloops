@@ -1,5 +1,10 @@
 # References
 
+## Context pack
+
+- [Context pack, 2026-11-11](reference/context-pack-2026-11-11/README.md) — read-only reference. The factory is rebuilt clean.
+- [0002: Rebuild the factory clean](decisions/0002-rebuild-factory-clean.md)
+
 ## Kent C. Dodds / Kody patterns
 
 - Decisions directory
