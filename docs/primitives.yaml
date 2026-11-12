@@ -1,0 +1,152 @@
+# Bleeps primitives. The machine-readable catalog.
+#
+# Human page, diagram, invariants, and recap rule: docs/primitives.md
+# Update this file when a PR adds, removes, or reshapes a primitive
+# (id, name, group, or meaning). Leave summary alone for ordinary work.
+#
+# Recap classes used in PR descriptions:
+#   composes - wires existing primitives, no contract change
+#   extends  - changes a primitive's behavior or contract
+#   adds     - introduces a primitive; update this file in that PR
+#
+# `adrs` lists the decision records that shape the primitive.
+# Add a `code` list of ownership roots when the primitive has a directory.
+
+version: 1
+
+groups:
+  - id: intake
+    name: Intake
+  - id: build
+    name: Build
+  - id: review
+    name: Review
+  - id: ship
+    name: Ship
+
+primitives:
+  - id: kick-off
+    group: intake
+    name: Kick-off command
+    summary: Slash command that takes a GitHub issue number and starts the ticket.
+    docs:
+      - docs/flow.md
+      - docs/roadmap.md
+    adrs:
+      - docs/decisions/0002-rebuild-factory-clean.md
+
+  - id: spec-folder
+    group: intake
+    name: Spec folder
+    summary: >
+      specs/<issue>-<slug>/ holds ticket.md, spec.md (draft or approved),
+      optional design.md, tasks.md, and verify.md.
+    docs:
+      - docs/flow.md
+    adrs:
+      - docs/decisions/0002-rebuild-factory-clean.md
+
+  - id: tasks
+    group: intake
+    name: Tasks
+    summary: tasks.md is the checklist the build loop works through.
+    docs:
+      - docs/flow.md
+    adrs:
+      - docs/decisions/0002-rebuild-factory-clean.md
+
+  - id: build-fix-loop
+    group: build
+    name: Build / fix loop
+    summary: >
+      Build, test, and fix in an isolated Orca worktree, with a round limit.
+      Pause when a change touches a guardrail area.
+    docs:
+      - docs/flow.md
+    adrs:
+      - docs/decisions/0002-rebuild-factory-clean.md
+      - docs/decisions/0003-gitflow-auto-merge-to-develop.md
+
+  - id: orca-hooks
+    group: build
+    name: Orca worktree hooks
+    summary: >
+      Shared orca.yaml. Setup hook installs deps on worktree create.
+      Verification hook runs tests and typecheck and blocks the PR on failure.
+    docs:
+      - docs/architecture.md
+      - docs/roadmap.md
+    adrs:
+      - docs/decisions/0001-shared-factory-config.md
+      - docs/decisions/0002-rebuild-factory-clean.md
+
+  - id: habit-skills
+    group: build
+    name: Habit skills
+    summary: >
+      explore-first, delegate-cheap-work, verify-before-ship, and
+      decompose-hotspot. Carried forward from the context pack and rewritten clean.
+    docs:
+      - docs/decisions/0002-rebuild-factory-clean.md
+    adrs:
+      - docs/decisions/0002-rebuild-factory-clean.md
+
+  - id: verify-reviewer
+    group: review
+    name: Verify reviewer
+    summary: >
+      Independent read-only reviewer. It does not share the implementer's
+      context. It writes verify.md. Only "Ready to ship" proceeds.
+    docs:
+      - docs/flow.md
+    adrs:
+      - docs/decisions/0002-rebuild-factory-clean.md
+      - docs/decisions/0003-gitflow-auto-merge-to-develop.md
+
+  - id: guardrails
+    group: review
+    name: Guardrails
+    summary: >
+      Auth, billing, payments, data deletion, and migrations wait for James.
+      A touch without his sign-off does not auto-merge.
+    docs:
+      - docs/flow.md
+      - docs/ship-pr.md
+    adrs:
+      - docs/decisions/0003-gitflow-auto-merge-to-develop.md
+      - docs/decisions/0005-adopt-kody-inspired-practices.md
+
+  - id: ship-pr
+    group: ship
+    name: Ship PR
+    summary: >
+      Thin skill for judgment (risk tier, what to fix, when to stop).
+      A script will run tick, act, tick for CI, reviews, memory, merge, and health.
+    docs:
+      - docs/ship-pr.md
+    adrs:
+      - docs/decisions/0003-gitflow-auto-merge-to-develop.md
+      - docs/decisions/0005-adopt-kody-inspired-practices.md
+
+  - id: merge-gates
+    group: ship
+    name: Merge gates
+    summary: >
+      Auto-merge to develop when checks are green, verify says Ready to ship,
+      layered reviews have no blocking findings, and guardrails are signed off.
+      James promotes develop to main. Agents never touch main.
+    docs:
+      - docs/flow.md
+    adrs:
+      - docs/decisions/0003-gitflow-auto-merge-to-develop.md
+
+  - id: grok-bot
+    group: ship
+    name: Grok Bot watcher
+    summary: >
+      Long-running watch for the PR queue, failing CI, and review nudges.
+      Later, the daily friction sweep can live here.
+    docs:
+      - docs/architecture.md
+      - docs/friction-log.md
+    adrs: []
