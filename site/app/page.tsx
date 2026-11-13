@@ -9,6 +9,10 @@ const ROADMAP =
   "https://github.com/eljamez/bleeps-and-bloops/blob/develop/docs/roadmap.md";
 const MERGE =
   "https://github.com/eljamez/bleeps-and-bloops/blob/develop/docs/decisions/0003-gitflow-auto-merge-to-develop.md";
+const PRIMITIVES =
+  "https://github.com/eljamez/bleeps-and-bloops/blob/develop/docs/primitives.md";
+const USING =
+  "https://github.com/eljamez/bleeps-and-bloops/blob/develop/docs/using-bleeps.md";
 
 const plate = [
   ["Brand", "Bleeps and Bloops"],
@@ -287,6 +291,12 @@ export default function HomePage() {
               </li>
               <li>
                 <a href="#setup">Setup</a>
+              </li>
+              <li>
+                <a href="#primitives">Primitives</a>
+              </li>
+              <li>
+                <a href="#adopt">Your project</a>
               </li>
               <li>
                 <a href="#roadmap">Roadmap</a>
@@ -610,7 +620,44 @@ export default function HomePage() {
           </div>
         </Section>
 
-        <Section id="roadmap" index="06" title="Roadmap">
+        <Section id="primitives" index="06" title="Primitives">
+          <div className="stack">
+            <p>
+              A primitive is the smallest block a person or an agent can pick
+              up and use again. A slash command, a skill, a role, a script, a
+              hook, a gate, a file such as <code>spec.md</code>, or the shared{" "}
+              <code>orca.yaml</code>.
+            </p>
+            <p>
+              The catalog names each one, says who runs it, and marks it
+              planned or built. The blocks on the list are planned. This page
+              describes the line. Nothing on it is running yet.
+            </p>
+            <p>
+              <a href={PRIMITIVES}>Read the primitives catalog</a>.
+            </p>
+          </div>
+        </Section>
+
+        <Section id="adopt" index="07" title="Use it on your project">
+          <div className="stack">
+            <p>
+              Bleeps is meant to run on a repository you already have. You keep
+              a <code>develop</code> branch, write a short <code>AGENTS.md</code>,
+              and add the pull-request recap. A human promotes <code>main</code>.
+            </p>
+            <p>
+              The shared <code>orca.yaml</code>, the kick-off command, and
+              auto-merge are still ahead on the roadmap. You can shape the
+              repo today. The commands that would take a ticket are planned.
+            </p>
+            <p>
+              <a href={USING}>Read how to adopt Bleeps</a>.
+            </p>
+          </div>
+        </Section>
+
+        <Section id="roadmap" index="08" title="Roadmap">
           <blockquote className="roadmap-quote">
             <p>
               Pinned for later. The draft core <code>orca.yaml</code> is still
