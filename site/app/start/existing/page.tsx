@@ -46,7 +46,8 @@ export default function StartExistingPage() {
             <p>
               Protect <code>main</code> so the owner is the person who can
               merge into it. Keep the protection you already have, and keep
-              agents off <code>main</code>. Leave auto-merge off until Phase 3.
+              agents off <code>main</code>. GitHub auto-merge is still an open
+              question. <code>scripts/merge-pr</code> does not turn it on.
               Required checks you already run stay. They are one gate. The
               verify verdict and the deployed SHA are gates of their own, and
               those checks are planned.

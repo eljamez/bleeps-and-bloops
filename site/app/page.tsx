@@ -56,7 +56,7 @@ const stations: {
   {
     kind: "step",
     title: "6. Merge to develop",
-    body: "When the gates pass, Bloops merges the pull request into develop through a script, then studies the run. The script in the repo refuses to merge today.",
+    body: "When the gates pass, Bloops reports the merge through scripts/merge-pr, then studies the run. The script does not turn on GitHub auto-merge. That setting is still an open question.",
   },
   {
     kind: "step",
@@ -198,8 +198,8 @@ export default function HomePage() {
         <p className="status">
           <strong>Phase 1.</strong> The shared <code>orca.yaml</code> is in the
           repo. The home server is not running the factory yet.{" "}
-          <code>scripts/ship-pr</code> refuses to merge, so auto-merge stays
-          off.
+          <code>scripts/merge-pr</code> checks the gates and does not turn on
+          GitHub auto-merge. That setting is still an open question.
         </p>
       </header>
 

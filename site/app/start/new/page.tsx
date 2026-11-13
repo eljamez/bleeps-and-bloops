@@ -38,8 +38,9 @@ export default function StartNewPage() {
             <p>
               Create a <code>develop</code> branch. Protect <code>main</code>{" "}
               so you, the owner, are the person who can merge into it. Agent
-              pull requests target <code>develop</code>. Leave auto-merge off.{" "}
-              <code>scripts/ship-pr</code> refuses to merge today.
+              pull requests target <code>develop</code>. GitHub auto-merge is
+              still an open question. Bloops uses <code>scripts/merge-pr</code>,
+              which does not turn that setting on.
             </p>
           </Step>
           <Step title="Add a short AGENTS.md">

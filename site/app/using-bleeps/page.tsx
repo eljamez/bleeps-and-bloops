@@ -58,7 +58,7 @@ export default function UsingBleepsPage() {
 
       <Section id="crew" index="01" title="The crew">
         <div className="stack">
-          {/* TODO: Role files exist for Blip only. Beep, Buzz, Echo, Chip, and Bloops are named here. Do not invent skill directories. Chip's runner is scripts/bleeps-scout. Bloops's merge script is scripts/ship-pr, which refuses to merge. */}
+          {/* TODO: Keep these jobs aligned with the role files under agents/. Do not invent extra commands. */}
           <p>
             Bleeps is the doer. Bleeps runs this crew and gets the work done.
           </p>
@@ -72,9 +72,12 @@ export default function UsingBleepsPage() {
           </dl>
           <p>
             Scripts first: common work gets a script so nobody does it by hand
-            or from scratch. The merge is <code>scripts/ship-pr</code>. The
-            scout schedule is <code>scripts/bleeps-scout</code>. Tests run
-            through <code>bleeps test</code>.
+            or from scratch. Beep runs <code>scripts/kick-off</code>. Echo
+            writes the verdict with <code>scripts/verify</code>. Bloops merges
+            with <code>scripts/merge-pr</code> and reflects with{" "}
+            <code>scripts/bloops-reflect</code>. Chip runs{" "}
+            <code>scripts/bleeps-scout</code>. Tests run through{" "}
+            <code>bleeps test</code>.
           </p>
         </div>
       </Section>
@@ -159,22 +162,24 @@ export default function UsingBleepsPage() {
       <Section id="merge" index="07" title="Bloops merges">
         <div className="stack">
           <p>
-            Bloops merges the pull request into <code>develop</code> through{" "}
-            <code>scripts/ship-pr</code> when every gate passes. Tests are
-            green, the other required checks are green, Echo says “Ready to
-            ship”, layered reviews have no blocking findings, and no guardrail
-            was touched without your sign-off. Label rules can still keep a
-            ticket from merging.
+            Bloops merges into <code>develop</code> through{" "}
+            <code>scripts/merge-pr</code>. The gates are green tests, Echo’s
+            “Ready to ship”, reviews with no blocking findings, and your
+            sign-off when a guardrail was touched. The target is{" "}
+            <code>develop</code>. Never <code>main</code>. Label rules can
+            still keep a ticket from merging.
           </p>
           <p>
-            After the merge, Bloops studies how the run went and improves every
-            agent&apos;s skills. That is the self-reflective part of the job.
+            After a run, Bloops runs <code>scripts/bloops-reflect</code> and
+            proposes improvements to skills, scripts, and <code>AGENTS.md</code>.
+            Those proposals are issues or pull requests. Bloops does not edit
+            those files in place.
           </p>
           <p>
-            <code>scripts/ship-pr</code> is in the repo and it refuses to merge
-            today. Leave GitHub auto-merge off until that procedure implements
-            the gates. Low and medium risk may merge once it does. High risk
-            waits.
+            <code>scripts/merge-pr</code> reports whether the gates passed. It
+            does not turn on GitHub auto-merge. Whether that setting is on is
+            still an open question. <code>--apply</code> does not merge. High
+            risk waits for you.
           </p>
           <p>
             After a real merge, the script asks <code>bleeps health</code> for
@@ -207,9 +212,9 @@ export default function UsingBleepsPage() {
           <li>Migrations</li>
         </ul>
         <p className="mt-8">
-          <code>scripts/guardrails</code> reports a matching path and exits 2.
-          It does not block a merge by itself. Bloops&apos;s script is what
-          will refuse, and that script refuses every merge today.
+          <code>scripts/guardrails</code> reports a matching path. Bloops&apos;s
+          merge script refuses <code>develop</code> when a guardrail was
+          touched without your sign-off.
         </p>
       </Section>
 
