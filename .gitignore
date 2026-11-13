@@ -11,6 +11,20 @@ Desktop.ini
 # Dependencies
 node_modules/
 
+# Python
+__pycache__/
+*.pyc
+
+# Next.js
+.next/
+out/
+*.tsbuildinfo
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
 # Environment
 .env
 .env.*

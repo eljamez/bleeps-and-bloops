@@ -1,0 +1,226 @@
+#!/usr/bin/env python3
+"""bleeps control CLI. Orca's setup hook calls `install`. Verify calls test and typecheck.
+
+Project commands come from orca.project.yaml in the worktree. Orca does not
+read that file. Keys: install, test, typecheck, health_url, preview,
+proactive, scout_schedule, scout_time, scout_cap, scout_scans,
+scout_provider, error_tracking.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+KEYS = (
+    "install",
+    "test",
+    "typecheck",
+    "health_url",
+    "preview",
+    "proactive",
+    "scout_schedule",
+    "scout_time",
+    "scout_cap",
+    "scout_scans",
+    "scout_provider",
+    "error_tracking",
+    "test_unit",
+    "test_integration",
+    "test_e2e",
+)
+PROJECT_FILE = "orca.project.yaml"
+
+
+def fail(message: str, fix: str | None = None) -> None:
+    print(message, file=sys.stderr)
+    if fix:
+        print(fix, file=sys.stderr)
+    raise SystemExit(1)
+
+
+def load_project(root: Path) -> dict[str, str]:
+    path = root / PROJECT_FILE
+    if not path.exists():
+        return {}
+    data: dict[str, str] = {}
+    for lineno, line in enumerate(path.read_text().splitlines(), 1):
+        raw = line.split("#", 1)[0].rstrip()
+        if not raw.strip():
+            continue
+        if raw[:1].isspace():
+            fail(f"{path}:{lineno}: only flat key: value lines are supported")
+        if ":" not in raw:
+            fail(f"{path}:{lineno}: expected key: value")
+        key, value = raw.split(":", 1)
+        key = key.strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        if key not in KEYS:
+            fail(f"{path}:{lineno}: unknown key {key!r}. Expected one of {', '.join(KEYS)}.")
+        if key in data:
+            fail(f"{path}:{lineno}: duplicate key {key}")
+        if value:
+            data[key] = value
+    return data
+
+
+def package_scripts(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text()).get("scripts") or {}
+    except json.JSONDecodeError as error:
+        fail(f"{path} is not valid JSON: {error}")
+        return {}
+
+
+def autodetect_install(root: Path) -> str | None:
+    if (root / "package-lock.json").exists():
+        return "npm ci"
+    if (root / "pnpm-lock.yaml").exists():
+        return "pnpm install --frozen-lockfile"
+    if (root / "yarn.lock").exists():
+        return "yarn install --frozen-lockfile"
+    if (root / "site" / "package-lock.json").exists():
+        return "npm ci --prefix site"
+    return None
+
+
+def autodetect_script(root: Path, name: str) -> str | None:
+    if name in package_scripts(root / "package.json"):
+        return "npm test" if name == "test" else f"npm run {name}"
+    if name in package_scripts(root / "site" / "package.json"):
+        return "npm --prefix site test" if name == "test" else f"npm --prefix site run {name}"
+    return None
+
+
+def resolve(root: Path, name: str) -> str | None:
+    project = load_project(root)
+    if project.get(name):
+        return project[name]
+    if name == "install":
+        return autodetect_install(root)
+    if name in ("test", "typecheck"):
+        return autodetect_script(root, name)
+    return None
+
+
+def run(command: str) -> int:
+    print(f"+ {command}", flush=True)
+    return subprocess.call(["sh", "-c", command])
+
+
+def cmd_install(root: Path) -> int:
+    command = resolve(root, "install")
+    if not command:
+        print("skipped: no install command")
+        return 0
+    return run(command)
+
+
+def test_commands(root: Path) -> list[str]:
+    project = load_project(root)
+    layers = [project[key] for key in ("test_unit", "test_integration", "test_e2e") if project.get(key)]
+    if layers:
+        return layers
+    one = resolve(root, "test")
+    return [one] if one else []
+
+
+def cmd_check(root: Path, name: str) -> int:
+    if name == "test":
+        commands = test_commands(root)
+        if not commands:
+            print("no test command", file=sys.stderr)
+            return 1
+        for command in commands:
+            code = run(command)
+            if code != 0:
+                return code
+        return 0
+    command = resolve(root, name)
+    if not command:
+        print(f"skipped: no {name} command")
+        return 0
+    return run(command)
+
+
+def cmd_doctor(root: Path) -> int:
+    project = load_project(root)
+    install = project.get("install") or autodetect_install(root)
+    if install:
+        tool = install.split()[0]
+        if tool in {"npm", "pnpm", "yarn", "node"} and shutil.which(tool) is None:
+            fail(
+                f"{tool} is not on PATH, and install runs: {install}",
+                "Install Node.js, then re-run: bleeps doctor",
+            )
+    url = project.get("health_url")
+    if url:
+        try:
+            with urllib.request.urlopen(url, timeout=5) as response:
+                print(f"health URL answered {response.status}")
+        except (urllib.error.URLError, TimeoutError) as error:
+            fail(f"health URL did not answer: {url} ({error})", f"curl -fsS {url}")
+    print("ok")
+    return 0
+
+
+def cmd_preview() -> int:
+    print("preview is not implemented yet", file=sys.stderr)
+    return 1
+
+
+def cmd_health(root: Path) -> int:
+    url = load_project(root).get("health_url")
+    if not url:
+        print("no health URL", file=sys.stderr)
+        return 1
+    # ponytail: presence of a URL is not a deployed-SHA check. Phase 3 adds the GET
+    # and the merge-base comparison. Until then a configured URL must not pass.
+    print("health is not implemented yet", file=sys.stderr)
+    return 1
+
+
+def main(argv: list[str]) -> int:
+    if not argv or argv[0] in {"-h", "--help"}:
+        print(
+            "usage: bleeps install|doctor|test|typecheck|preview|health|scout|kick-off|verify|merge|reflect ...",
+            file=sys.stderr,
+        )
+        return 0 if argv and argv[0] in {"-h", "--help"} else 2
+    command, root = argv[0], Path.cwd()
+    if command == "install":
+        return cmd_install(root)
+    if command == "doctor":
+        return cmd_doctor(root)
+    if command in {"test", "typecheck"}:
+        return cmd_check(root, command)
+    if command == "preview":
+        return cmd_preview()
+    if command == "health":
+        return cmd_health(root)
+    scripts = {
+        "scout": "bleeps-scout",
+        "kick-off": "kick-off",
+        "verify": "verify",
+        "merge": "merge-pr",
+        "reflect": "bloops-reflect",
+    }
+    if command in scripts:
+        script = str(Path(__file__).resolve().parent / scripts[command])
+        os.execv(sys.executable, [sys.executable, script, *argv[1:]])
+    print(f"unknown command {command}", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

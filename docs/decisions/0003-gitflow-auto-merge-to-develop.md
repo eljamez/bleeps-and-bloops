@@ -1,6 +1,7 @@
 # 0003: Gitflow auto-merge to develop
 
 - **Status:** accepted
+- **Note:** [0010](0010-bleeps-runs-the-crew-bloops-reflects.md) retires the word bloop for a merged pull request. The merge rules below stand. GitHub's auto-merge setting is still an open question.
 - **Date:** 2026-11-12
 
 ## Context
@@ -22,4 +23,5 @@ Only the owner (James) merges `develop` into `main`. Agents never touch `main`.
 
 - This resolves the merge-policy conflict with the old pack, which never merged.
 - It refines the earlier label-gated auto-merge idea. Label rules can still restrict which tickets auto-merge.
-- Promotion from `develop` to `main` stays a human step, done by James.
+- Promotion from `develop` to `main` stays a human step, done by James. A PR that merges to `develop` is a bloop.
+- **Revisit if:** auto-merge to `develop` lands a bloop the gates should have stopped, or James wants agents to promote `main`.

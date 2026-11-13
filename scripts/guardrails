@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""List changed paths that look like a guardrail area.
+
+Exit 0 when nothing matches. Exit 2 when something matches.
+The build loop treats 2 as "stop and wait for James".
+
+ponytail: path segments only, not file contents. A deletion inside users.ts
+is invisible. Upgrade path: the ship-pr script, which still has a person
+judge the diff. Segments: auth, billing, payment, payments, stripe,
+migration, migrations, data-deletion, account-deletion, purge-user.
+"""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+from pathlib import Path
+
+SEGMENTS = {
+    "auth",
+    "billing",
+    "payment",
+    "payments",
+    "stripe",
+    "migration",
+    "migrations",
+    "data-deletion",
+    "account-deletion",
+    "purge-user",
+}
+
+
+def git_names(args: list[str]) -> list[str]:
+    result = subprocess.run(
+        ["git", *args],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return []
+    return [line for line in result.stdout.splitlines() if line]
+
+
+def changed_paths(root: Path) -> list[str]:
+    names: list[str] = []
+    has_develop = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", "develop"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+    ).returncode == 0
+    if has_develop:
+        names.extend(git_names(["diff", "--name-only", "develop...HEAD"]))
+    names.extend(git_names(["diff", "--name-only"]))
+    names.extend(git_names(["diff", "--name-only", "--cached"]))
+    names.extend(git_names(["ls-files", "--others", "--exclude-standard"]))
+    seen: list[str] = []
+    for name in names:
+        if name not in seen:
+            seen.append(name)
+    return seen
+
+
+def matches(path: str) -> list[str]:
+    parts = {part.lower() for part in Path(path).parts}
+    return sorted(parts & SEGMENTS)
+
+
+def main() -> int:
+    root = Path.cwd()
+    if subprocess.run(
+        ["git", "rev-parse", "--is-inside-work-tree"],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    ).stdout.strip() != "true":
+        print("guardrails: not a git worktree", file=sys.stderr)
+        return 1
+    hits: list[str] = []
+    for path in changed_paths(root):
+        found = matches(path)
+        if found:
+            hits.append(f"{path} ({', '.join(found)})")
+    if not hits:
+        print("guardrails: no matching paths")
+        return 0
+    print("guardrails: stop and wait for James")
+    for hit in hits:
+        print(hit)
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

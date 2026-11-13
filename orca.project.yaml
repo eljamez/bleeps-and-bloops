@@ -1,0 +1,10 @@
+# This repository. Orca does not read this file. scripts/bleeps does.
+# See examples/orca.project.yaml for the key list.
+
+install: npm ci --prefix site
+test: python3 scripts/check-orca
+proactive: on
+scout_cap: 2
+scout_schedule: daily
+scout_time: "09:00"
+scout_scans: tests, ci, lint, advisories, debt, friction, coverage

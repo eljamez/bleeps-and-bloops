@@ -1,14 +1,15 @@
 # Flow
 
-Ticket-to-merge pipeline for the factory. Merge rules are in [0003: Gitflow auto-merge to develop](decisions/0003-gitflow-auto-merge-to-develop.md).
+Ticket-to-merge pipeline. Bleeps runs the crew. Bloops merges and reflects. Merge rules are in [0003: Gitflow auto-merge to develop](decisions/0003-gitflow-auto-merge-to-develop.md). The crew is [0010](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md). Building blocks are in [primitives](primitives.md).
 
 ## Steps
 
-1. A GitHub issue is filed. The kick-off slash command takes the issue number.
+0. On a schedule, Chip scans the project and files a GitHub issue labelled `bleeps:found` for each new finding. Open `friction` issues join that queue and are not filed again. Each one then enters step 1. See [0008](decisions/0008-bleeps-is-proactive.md).
+1. A GitHub issue is filed, by a person or by Chip. Orca's `issueCommand` takes the issue (`{{issue}}` and `{{artifact_url}}`) when a workspace launches from it. Beep plans with `scripts/kick-off`.
 2. Write `spec.md` in `specs/<issue>-<slug>/`. Write `design.md` only if the approach is risky.
-3. Write `tasks.md` as a checklist.
-4. Build, test, and fix in an isolated Orca worktree, with a round limit. Pause for human approval when a change touches a guardrail area: auth, billing, payments, data deletion, or migrations.
-5. An independent read-only reviewer writes `verify.md`. Only a "Ready to ship" verdict proceeds.
+3. Write `tasks.md` as a checklist. Test tasks are included. Blip owns them. See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md).
+4. Build, test, and fix in an isolated Orca worktree, with a round limit. Blip writes or extends the tests. Pause for human approval when a change touches a guardrail area: auth, billing, payments, data deletion, or migrations.
+5. An independent read-only reviewer writes `verify.md`. It records unit, integration, and end-to-end. End-to-end is not applicable only when the project is not a web app. Only a "Ready to ship" verdict proceeds, and only when those layers are green. A missing test command is not green.
 6. Open a PR against `develop` and comment on the issue.
 7. Layered review: CodeRabbit, optionally Devin, and Claude Code for architecture fit. Grok Bot watches the PR queue, failing CI, and review nudges.
 8. Auto-merge into `develop` when all gates pass: required checks green, verify verdict "Ready to ship", layered reviews passed with no blocking findings, and no guardrail area touched without human sign-off.
@@ -22,7 +23,8 @@ Whether there is a grooming or prioritization step before kick-off.
 
 ```mermaid
 flowchart TD
-  s1["1. GitHub issue filed. Kick-off slash command with the issue number"]
+  s0["0. Scout files bleeps:found issues. Friction issues join the queue"]
+  s1["1. GitHub issue filed. Orca issueCommand starts the ticket"]
   s2["2. spec.md in specs/issue-slug. design.md only if risky"]
   s3["3. tasks.md checklist"]
   s4["4. Build, test, and fix in an isolated Orca worktree, with a round limit. Pause for human approval on guardrail areas"]
@@ -35,7 +37,7 @@ flowchart TD
   s8["8. Auto-merge into develop"]
   s9["9. James promotes develop to main"]
 
-  s1 --> s2 --> s3 --> s4 --> s5 --> ready
+  s0 --> s1 --> s2 --> s3 --> s4 --> s5 --> ready
   ready -->|No| hold
   ready -->|Yes| s6 --> s7 --> gates
   gates -->|No| hold

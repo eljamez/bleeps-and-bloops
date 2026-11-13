@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 264" role="img" aria-labelledby="title">
+  <title id="title">Bleeps and Bloops</title>
+  <path d="M32 230 H96 L160 126 L224 230 H268 C352 230 326 48 495 33 C526 33 642 40 672 220" fill="none" stroke="#F47428" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="451" cy="144" r="16.5" fill="#F47428"/>
+  <circle cx="536" cy="144" r="16.5" fill="#F47428"/>
+</svg>
