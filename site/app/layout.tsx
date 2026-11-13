@@ -26,14 +26,17 @@ const nunito = Nunito({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://bleepsandbloops.com"),
-  title: "Bleeps and Bloops",
+  title: {
+    default: "Bleeps and Bloops",
+    template: "%s · Bleeps and Bloops",
+  },
   description:
-    "James Hall’s agentic software factory. Bleeps runs the crew. Bloops merges and reflects. Being built now.",
+    "Bleeps runs the crew and gets the work done, on the Orca agent harness. Bloops merges pull requests and studies each run. Start a new project or add it to one you have.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "Bleeps and Bloops",
     description:
-      "Bleeps runs the crew. Bloops merges and reflects. James Hall’s ticket-to-merge factory, being built now.",
+      "Bleeps runs the crew and gets the work done, on the Orca agent harness. Bloops merges pull requests and studies each run.",
     url: "https://bleepsandbloops.com",
     siteName: "Bleeps and Bloops",
     type: "website",

@@ -10,7 +10,7 @@ npm install
 npm run dev
 ```
 
-`npm run build` runs in `site/` as well.
+`npm run build` runs in `site/` as well. `npm run test:e2e` builds the site and runs the Playwright smoke test.
 
 It is being rebuilt from scratch. The previous website code lives on the `legacy` branch.
 

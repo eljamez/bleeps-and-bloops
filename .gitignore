@@ -20,6 +20,11 @@ __pycache__/
 out/
 *.tsbuildinfo
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
 # Environment
 .env
 .env.*

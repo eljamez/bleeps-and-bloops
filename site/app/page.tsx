@@ -1,239 +1,69 @@
-import type { ReactNode } from "react";
+import { REPO, Section, SiteShell, wrap } from "./shell";
 
 export const dynamic = "force-static";
 
-const wrap = "mx-auto w-full max-w-6xl px-5 sm:px-8";
-
-const DOCS = "https://github.com/eljamez/bleeps-and-bloops/tree/develop/docs";
-const ROADMAP =
-  "https://github.com/eljamez/bleeps-and-bloops/blob/develop/docs/roadmap.md";
-const MERGE =
-  "https://github.com/eljamez/bleeps-and-bloops/blob/develop/docs/decisions/0003-gitflow-auto-merge-to-develop.md";
-const PRIMITIVES =
-  "https://github.com/eljamez/bleeps-and-bloops/blob/develop/docs/primitives.md";
-const USING =
-  "https://github.com/eljamez/bleeps-and-bloops/blob/develop/docs/using-bleeps.md";
-
 const plate = [
-  ["Brand", "Bleeps and Bloops"],
-  ["System", "Bleeps"],
-  ["Reflects", "Bloops"],
-  ["Owner", "James Hall"],
-  ["Steers", "A human"],
+  ["Doer", "Bleeps"],
+  ["Merges", "Bloops"],
+  ["Harness", "Orca"],
   ["Lands on", "develop"],
-  ["Main", "James only"],
-  ["Status", "Phase 1, not running"],
+  ["Main", "You promote it"],
 ] as const;
 
-type Station = {
+const stations: {
   kind: "step" | "gate";
   title: string;
-  body: ReactNode;
-  hold?: ReactNode;
-};
-
-const stations: Station[] = [
+  body: string;
+  hold?: string;
+}[] = [
   {
     kind: "step",
-    title: "1. Issue, then kick-off",
-    body: (
-      <>
-        A person files a GitHub issue. Orca sends <code>issueCommand</code>{" "}
-        from the shared <code>orca.yaml</code>, and Bleeps starts.
-      </>
-    ),
+    title: "1. A GitHub issue",
+    body: "You file an issue, or Chip files one. That issue is the ticket.",
   },
   {
     kind: "step",
-    title: "2. Spec",
-    body: (
-      <>
-        Bleeps writes <code>spec.md</code> in{" "}
-        <code>specs/&lt;issue&gt;-&lt;slug&gt;/</code>. It writes{" "}
-        <code>design.md</code> only when the approach is the risky part.
-      </>
-    ),
+    title: "2. Spec and tasks",
+    body: "Beep writes spec.md in specs/<issue>-<slug>/, and design.md only when the approach is the risky part. tasks.md is the checklist, and it includes the tests.",
   },
   {
     kind: "step",
-    title: "3. Tasks",
-    body: (
-      <>
-        Bleeps writes <code>tasks.md</code>, a checklist of the work.
-      </>
-    ),
+    title: "3. Build in an Orca worktree",
+    body: "Buzz builds, tests, and fixes in an isolated worktree, with a round limit. Blip writes the tests. A guardrail change waits for you.",
   },
   {
     kind: "step",
-    title: "4. Build, test, fix",
-    body: (
-      <>
-        Bleeps builds, tests, and fixes in an isolated Orca worktree, with a
-        round limit. The plan does not pick the number of rounds yet. If a
-        change touches a guardrail, Bleeps stops and waits for a human.
-      </>
-    ),
-  },
-  {
-    kind: "step",
-    title: "5. Independent verify",
-    body: (
-      <>
-        A separate reviewer reads the work and writes <code>verify.md</code>.
-        The reviewer is read-only: no editing, and no shared context with the
-        implementer. It is a second look, not the same run grading its own
-        homework.
-      </>
-    ),
+    title: "4. Independent verify",
+    body: "Echo reads the work and writes verify.md. Echo is read-only, does not share the builder's context, and does not edit.",
   },
   {
     kind: "gate",
     title: "Gate: Ready to ship?",
-    body: (
-      <>
-        The verdict in <code>verify.md</code> has to be “Ready to ship”. That
-        is the only verdict that continues.
-      </>
-    ),
-    hold: <>Anything else stops the line. No pull request.</>,
+    body: "The verdict has to be “Ready to ship”. That is the verdict that opens a pull request.",
+    hold: "Any other verdict stops the line before a pull request.",
   },
   {
     kind: "step",
-    title: "6. Pull request",
-    body: (
-      <>
-        Bleeps opens a pull request against <code>develop</code> and comments
-        on the issue.
-      </>
-    ),
-  },
-  {
-    kind: "step",
-    title: "7. Layered review",
-    body: (
-      <>
-        Three reviewers are planned. CodeRabbit takes style and obvious bugs.
-        Devin, optionally, takes an end-to-end pass after its noise is
-        calibrated. Claude Code checks architecture fit. Grok Bot watches the
-        pull-request queue, failing CI, and review nudges. None of this layer
-        is installed yet. CodeRabbit and Devin are Phase 2.
-      </>
-    ),
+    title: "5. Pull request and review",
+    body: "The pull request targets develop. CodeRabbit, optionally Devin, and Claude Code review it. Grok Bot watches the queue, failing CI, and review nudges.",
   },
   {
     kind: "gate",
     title: "Gate: All clear?",
-    body: (
-      <>
-        A pull request lands on <code>develop</code> only when every gate passes:
-        required checks are green, the verify verdict is “Ready to ship”,
-        layered reviews passed with no blocking findings, and no guardrail was
-        touched without a human sign-off. Label rules can still keep a ticket
-        from auto-merging.
-      </>
-    ),
-    hold: <>If a gate fails, the work stays on the branch. It does not land.</>,
+    body: "Tests and the other required checks are green, verify says Ready to ship, reviews have no blocking findings, and a guardrail change has your sign-off.",
+    hold: "A failed gate leaves the work on the branch.",
   },
   {
     kind: "step",
-    title: "8. Auto-merge to develop",
-    body: (
-      <>
-        When every gate passes, the pull request merges into{" "}
-        <code>develop</code>. That is the factory’s idea of shipped.
-      </>
-    ),
+    title: "6. Merge to develop",
+    body: "When the gates pass, Bloops merges the pull request into develop through a script, then studies the run. The script in the repo refuses to merge today.",
   },
   {
     kind: "step",
-    title: "9. James promotes to main",
-    body: (
-      <>
-        James merges <code>develop</code> into <code>main</code>. Bleeps never
-        touches <code>main</code>.
-      </>
-    ),
+    title: "7. You promote main",
+    body: "You merge develop into main. Bleeps never touches main.",
   },
 ];
-
-const phases: {
-  title: string;
-  current?: boolean;
-  intro: ReactNode;
-  items: string[];
-}[] = [
-  {
-    title: "Phase 1. Foundations",
-    current: true,
-    intro:
-      "The shared orca.yaml is in the repo. Kick-off is Orca's issueCommand. These are still open.",
-    items: [
-      "Install Orca on the home server.",
-      "SSH in.",
-      "Run one agent in an Orca worktree on a throwaway repo.",
-      "Turn on a required check that runs scripts/orca-verify, so a failed test blocks the pull request. Orca has no verification key.",
-      "Build the ship-pr procedure. The command in the repo refuses to merge.",
-    ],
-  },
-  {
-    title: "Phase 2. Review layer",
-    intro: "Not started.",
-    items: [
-      "Install CodeRabbit Essentials.",
-      "Optionally add Devin Pro after calibrating noise.",
-      "Map controller buttons while living in terminal sessions.",
-    ],
-  },
-  {
-    title: "Phase 3. Merge policy",
-    intro: (
-      <>
-        Not started.{" "}
-        <a href={MERGE}>The merge decision</a> already chose the policy. These
-        GitHub settings are still open in the plan.
-      </>
-    ),
-    items: [
-      "Create the develop branch.",
-      "Branch protection on main, restricted to the owner.",
-      "Auto-merge enabled on develop, with required checks.",
-    ],
-  },
-  {
-    title: "Phase 4. Onboard existing projects",
-    intro: "Not started.",
-    items: [
-      "Symlink the shared orca.yaml and the project-specific override.",
-      "Run the setup hook once per repo to confirm dependencies.",
-    ],
-  },
-];
-
-function Section({
-  id,
-  index,
-  title,
-  children,
-  band = false,
-}: {
-  id: string;
-  index: string;
-  title: string;
-  children: ReactNode;
-  band?: boolean;
-}) {
-  return (
-    <section id={id} className={band ? "band" : undefined}>
-      <div className={`${wrap} block py-16 md:py-24`}>
-        <p className="index" aria-hidden="true">
-          {index}
-        </p>
-        <h2>{title}</h2>
-        <div className="mt-8">{children}</div>
-      </div>
-    </section>
-  );
-}
 
 function SquareWave() {
   return (
@@ -266,460 +96,178 @@ function RoundWave() {
 
 export default function HomePage() {
   return (
-    <>
-      <a
-        href="#content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-20 focus:bg-amber focus:px-3 focus:py-2 focus:font-bold focus:text-ink hover:text-ink"
-      >
-        Skip to content
-      </a>
-
-      <header className="border-b border-line">
-        <div className={`${wrap} site-bar`}>
-          <a href="/" className="brand">
-            <img src="/brand/mark.svg" alt="" width={704} height={264} />
-            <span className="brand-name">
-              bleeps <span className="amp">&amp;</span> bloops
-            </span>
-          </a>
-          <nav className="site-nav" aria-label="On this page">
-            <ul>
-              <li>
-                <a href="#factory">Factory</a>
-              </li>
-              <li>
-                <a href="#line">Line</a>
-              </li>
-              <li>
-                <a href="#guardrails">Guardrails</a>
-              </li>
-              <li>
-                <a href="#habits">Habits</a>
-              </li>
-              <li>
-                <a href="#setup">Setup</a>
-              </li>
-              <li>
-                <a href="#primitives">Primitives</a>
-              </li>
-              <li>
-                <a href="#adopt">Your project</a>
-              </li>
-              <li>
-                <a href="#roadmap">Roadmap</a>
-              </li>
-            </ul>
-          </nav>
-        </div>
-      </header>
-
-      <main id="content" tabIndex={-1}>
-        <header className={`${wrap} hero pt-10 pb-14 md:pt-16 md:pb-20`}>
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(16rem,0.8fr)] lg:items-start lg:gap-14">
-            <div>
-              <h1>
-                Bleeps
-                <span className="and">and Bloops</span>
-              </h1>
-              <p className="tagline">
-                Bleeps does the work.
-                <span className="out">Bloops reflects and merges.</span>
-              </p>
-              <p className="lede">
-                James Hall’s ticket-to-merge factory for web and mobile apps. A
-                person files the issue and steers. Only James promotes{" "}
-                <code>develop</code> to <code>main</code>.
-              </p>
-              <figure className="waves">
-                <div>
-                  <SquareWave />
-                  <p>
-                    <strong>Bleeps</strong>, the system
-                  </p>
-                </div>
-                <div>
-                  <RoundWave />
-                  <p>
-                    <strong>Bloops</strong>, reflects
-                  </p>
-                </div>
-              </figure>
-            </div>
-
-            <div className="plate lg:mt-6">
-              <p className="plate-kicker">In short</p>
-              <dl>
-                {plate.map(([term, detail]) => (
-                  <div key={term}>
-                    <dt>{term}</dt>
-                    <dd>{detail}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          </div>
-
-          <ol className="beats" aria-label="From a ticket to a merge">
-            <li>
-              <span className="beat-kicker">In</span>
-              <strong className="beat-name">A ticket</strong>
-              <span className="beat-note">A GitHub issue.</span>
-            </li>
-            <li>
-              <span className="beat-kicker">System</span>
-              <strong className="beat-name">Bleeps</strong>
-              <span className="beat-note">
-                Does the work. A human steers.
-              </span>
-            </li>
-            <li>
-              <span className="beat-kicker">Reflects</span>
-              <strong className="beat-name">Bloops</strong>
-              <span className="beat-note">
-                Merges when the gates pass, then looks back.
-              </span>
-            </li>
-          </ol>
-
-          <p className="status">
-            <strong>Being built now.</strong> The shared <code>orca.yaml</code>{" "}
-            is in the repo. The home server is not running the factory yet.
-            This page is the public front door, and it is new.
-          </p>
-        </header>
-
-        <Section id="factory" index="01" title="The factory">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(16rem,0.75fr)] lg:gap-16">
-            <div className="stack">
-              <p>
-                Bleeps and Bloops is the brand. The system is called Bleeps,
-                short for Bleeps and Bloops, the way Kent C. Dodds’ assistant
-                is called Kody. Bleeps runs the crew. Bloops merges and
-                reflects. A shipped pull request does not need its own name.
-              </p>
-              <p>
-                On this line, shipped means the pull request merged to{" "}
-                <code>develop</code>. Moving <code>develop</code> to{" "}
-                <code>main</code> is James, afterward. Bleeps never touches{" "}
-                <code>main</code>.
-              </p>
-              <p>
-                Bleeps is built for Orca, and it goes looking. A scout files
-                issues and runs them through the same line. One shared{" "}
-                <code>orca.yaml</code> is the factory config.{" "}
-                <code>issueCommand</code> is the front door. Blip owns the
-                tests, and green tests are a gate. Each project adds{" "}
-                <code>orca.project.yaml</code> for install, test, and whether
-                the scout is on. Orca runs Claude Code, Grok, and the others,
-                each in its own worktree.
-              </p>
-              <p>
-                <a href={DOCS}>Read the factory plan on GitHub</a>.
-              </p>
-            </div>
-            <aside className="note">
-              <h3>Rebuilt clean</h3>
-              <div className="stack">
+    <SiteShell>
+      <header className={`${wrap} hero pt-10 pb-14 md:pt-16 md:pb-20`}>
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(16rem,0.8fr)] lg:items-start lg:gap-14">
+          <div>
+            <h1>
+              Bleeps <span className="and">and Bloops</span>
+            </h1>
+            <p className="tagline">
+              Bleeps runs the crew.
+              <span className="out">Bloops merges, then learns.</span>
+            </p>
+            <p className="lede">
+              Bleeps is the doer, built for the Orca agent harness. Bleeps runs
+              the crew and gets the work done. Bloops is the agent that merges
+              pull requests through a script and studies each run so every
+              agent&apos;s skills improve. You use it on your own projects. You
+              file the issue and steer, and you promote <code>develop</code> to{" "}
+              <code>main</code>.
+            </p>
+            <figure className="waves">
+              <div>
+                <SquareWave />
                 <p>
-                  A snapshot from 2026-11-11 is reference only. Its front door
-                  was <code>/bb:kick-off</code>, a Claude Code command. Bleeps
-                  uses Orca&apos;s <code>issueCommand</code> for that job. The
-                  pack stays reference.
-                </p>
-                <p>
-                  Pieces the snapshot was missing, including the build loop and
-                  the extra reviewers, get written fresh too. The core{" "}
-                  <code>orca.yaml</code> is in the repo. Installing Orca on the
-                  home server is still open.
+                  <strong>Bleeps</strong>, runs the crew
                 </p>
               </div>
-            </aside>
+              <div>
+                <RoundWave />
+                <p>
+                  <strong>Bloops</strong>, merges and improves
+                </p>
+              </div>
+            </figure>
           </div>
-        </Section>
 
-        <Section id="line" index="02" title="How the crew ships">
-          <p>
-            Nothing here is running yet. This is the line the plan describes.
-          </p>
-          <p className="legend mt-5">
-            <span className="key">
-              <span className="swatch" aria-hidden="true" /> Step
+          <div className="plate lg:mt-6">
+            <p className="plate-kicker">In short</p>
+            <dl>
+              {plate.map(([term, detail]) => (
+                <div key={term}>
+                  <dt>{term}</dt>
+                  <dd>{detail}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+
+        <h2 className="ways-title">Two ways in</h2>
+        <ul className="paths">
+          <li>
+            <a className="path-card" href="/start/new">
+              <span className="index">New</span>
+              <strong>Start a new project</strong>
+              <span>
+                Create the repository, the branches, and the files the line
+                expects.
+              </span>
+              <span className="go">Start</span>
+            </a>
+          </li>
+          <li>
+            <a className="path-card" href="/start/existing">
+              <span className="index">Existing</span>
+              <strong>Add Bleeps to an existing project</strong>
+              <span>
+                Keep the repository you have. Add develop, the router, and the
+                gates.
+              </span>
+              <span className="go">Start</span>
+            </a>
+          </li>
+        </ul>
+        <p className="mt-6">
+          <a href={REPO}>Bleeps and Bloops on GitHub</a>
+        </p>
+
+        <ol className="beats" aria-label="From a ticket to a merge">
+          <li>
+            <span className="beat-kicker">In</span>
+            <strong className="beat-name">A ticket</strong>
+            <span className="beat-note">
+              A GitHub issue, from you or from Chip.
             </span>
-            <span className="key">
-              <span className="swatch diamond" aria-hidden="true" /> Gate
+          </li>
+          <li>
+            <span className="beat-kicker">Crew</span>
+            <strong className="beat-name">Bleeps</strong>
+            <span className="beat-note">Runs the crew. You steer.</span>
+          </li>
+          <li>
+            <span className="beat-kicker">Merge</span>
+            <strong className="beat-name">Bloops</strong>
+            <span className="beat-note">
+              Merges to develop, then studies the run.
             </span>
-            <span className="key">
-              <span className="swatch dashed" aria-hidden="true" /> Holds
-            </span>
-          </p>
-          <ol className="flow" aria-label="Ticket to merge">
-            {stations.map((station) => (
-              <li key={station.title} className={station.kind}>
-                <h3>{station.title}</h3>
-                <p>{station.body}</p>
-                {station.hold ? (
-                  <p className="hold">
-                    <strong>Holds.</strong> {station.hold}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-          <p className="mt-8">
-            Still open: whether someone grooms or prioritizes an issue before
-            kick-off.
-          </p>
-        </Section>
+          </li>
+        </ol>
 
-        <Section
-          id="guardrails"
-          index="03"
-          title="Bleeps stops and asks"
-          band
-        >
-          <div className="stack">
-            <p>
-              These five are already decided. Bleeps pauses for a human before
-              it changes any of them. Automatic merge also stays shut if one
-              was touched and nobody signed off.
-            </p>
-          </div>
-          <ul className="guards">
-            <li>Auth</li>
-            <li>Billing</li>
-            <li>Payments</li>
-            <li>Data deletion</li>
-            <li>Migrations</li>
-          </ul>
-          <p className="mt-8">
-            The list is short on purpose. Everything else can move once the
-            gates pass. These five wait.
-          </p>
-        </Section>
+        <p className="status">
+          <strong>Phase 1.</strong> The shared <code>orca.yaml</code> is in the
+          repo. The home server is not running the factory yet.{" "}
+          <code>scripts/ship-pr</code> refuses to merge, so auto-merge stays
+          off.
+        </p>
+      </header>
 
-        <Section id="habits" index="04" title="Habits Bleeps keeps">
-          <p>
-            Four working habits carry forward from the earlier workflow into
-            the rebuild. They are part of the plan. They are not a claim that
-            a live run follows them today.
-          </p>
-          <dl className="habits mt-8">
-            <div className="habit">
-              <dt>explore-first</dt>
-              <dd>
-                If understanding the code would take three or more searches,
-                Bleeps asks an Explore subagent for a short synthesis and keeps
-                the raw dumps out of the main context. One lookup it already
-                expects can stay put.
-              </dd>
-            </div>
-            <div className="habit">
-              <dt>delegate-cheap-work</dt>
-              <dd>
-                If success fits in one sentence (a rename, a docstring,
-                boilerplate), Bleeps hands it to a cheaper model and skims the
-                diff. Judgment stays on the main thread.
-              </dd>
-            </div>
-            <div className="habit">
-              <dt>verify-before-ship</dt>
-              <dd>
-                For a UI change, Bleeps looks at it in a browser at about 390px
-                and 1280px and reads the console. Done means both widths look
-                right and the console is clean. If there is no browser, Bleeps
-                says the change is unverified.
-              </dd>
-            </div>
-            <div className="habit">
-              <dt>decompose-hotspot</dt>
-              <dd>
-                Before editing a file that keeps attracting changes, Bleeps
-                proposes a split into three to five focused files and waits.
-                Once the split is approved, it lands in its own commit.
-              </dd>
-            </div>
-          </dl>
-        </Section>
-
-        <Section id="setup" index="05" title="Where Bleeps runs">
-          <p>
-            CodeRabbit, Devin, and Claude Code are the reviewers on the line,
-            in step 7. CodeRabbit and Devin are Phase 2 and are not installed.
-            The desk, the harness, and the watcher are below. None of them are
-            switched on yet.
-          </p>
-
-          <div className="shop-block">
-            <h3>Orca on a home server</h3>
-            <div className="stack">
-              <p>
-                Orca is the harness Bleeps is built for. It is MIT-licensed
-                and free. It runs Claude Code, Grok, and others in isolated
-                worktrees, so one ticket does not trample another. The shared{" "}
-                <code>orca.yaml</code> is the factory config. A project commits{" "}
-                <code>orca.project.yaml</code> for its own install and test
-                commands.
-              </p>
-              <p>
-                The machine is an older computer. James reaches it by SSH from
-                a Mac. 8&nbsp;GB of RAM is the floor. 16&nbsp;GB is comfortable.
-                Installing Orca there is the first unchecked item in Phase 1.
-              </p>
-            </div>
-          </div>
-
-          <div className="shop-block">
-            <h3>Grok Bot, the watcher</h3>
-            <div className="stack">
-              <p>
-                Grok Bot sits beside Bleeps. Its job, once the line is running,
-                is the pull-request queue, failing CI, and review nudges. It
-                does not merge, and it does not touch <code>main</code>.
-              </p>
-              <p>It is not a live bot yet.</p>
-            </div>
-          </div>
-
-          <div className="shop-block">
-            <h3>A game controller for the terminal</h3>
-            <div className="stack">
-              <p>
-                The planned desk is a USB game controller, remapped with
-                Karabiner-Elements, so a terminal session can be driven without
-                living on the number row. Mapping the buttons is Phase 2, done
-                while actually living in those sessions. Nothing is mapped yet.
-              </p>
-            </div>
-            <div className="table-wrap">
-              <table>
-                <caption>
-                  Planned actions. Which physical button does which job is not
-                  decided. Mapping them is Phase 2.
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Action</th>
-                    <th scope="col">Mapping</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th scope="row">Text-to-speech toggle</th>
-                    <td>Controller button</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Enter</th>
-                    <td>Controller button</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Tab</th>
-                    <td>Controller button</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Escape</th>
-                    <td>Controller button</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Arrow keys</th>
-                    <td>D-pad</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Number keys</th>
-                    <td>Left unmapped</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </Section>
-
-        <Section id="primitives" index="06" title="Primitives">
-          <div className="stack">
-            <p>
-              A primitive is the smallest block a person or an agent can pick
-              up and use again. An Orca issue command, a skill, a role, a
-              script, a hook, a gate, a file such as <code>spec.md</code>, or
-              the shared <code>orca.yaml</code>.
-            </p>
-            <p>
-              The catalog names each one, says who runs it, and marks it
-              planned or built. Kick-off and the setup hook are in the repo.
-              The home server is not running them yet.
-            </p>
-            <p>
-              <a href={PRIMITIVES}>Read the primitives catalog</a>.
-            </p>
-          </div>
-        </Section>
-
-        <Section id="adopt" index="07" title="Use it on your project">
-          <div className="stack">
-            <p>
-              Bleeps is meant to run on a repository you already have. You keep
-              a <code>develop</code> branch, write a short <code>AGENTS.md</code>,
-              and add the pull-request recap. A human promotes <code>main</code>.
-            </p>
-            <p>
-              The shared <code>orca.yaml</code> is in the Bleeps repo. A
-              project symlinks it and adds <code>orca.project.yaml</code>.
-              Auto-merge is still ahead on the roadmap.
-            </p>
-            <p>
-              <a href={USING}>Read how to adopt Bleeps</a>.
-            </p>
-          </div>
-        </Section>
-
-        <Section id="roadmap" index="08" title="Roadmap">
-          <blockquote className="roadmap-quote">
-            <p>
-              The shared <code>orca.yaml</code> is in the repo. Orca is not
-              installed on the home server yet. Ready to resume there.
-            </p>
-          </blockquote>
-          <p className="mt-4">
-            That is the current note on the{" "}
-            <a href={ROADMAP}>roadmap on GitHub</a>. The current phase is Phase
-            1,
-            Foundations.
-          </p>
-          {phases.map((phase) => (
-            <article
-              key={phase.title}
-              className={phase.current ? "phase current" : "phase"}
-            >
-              {phase.current ? (
-                <p className="flag">Current phase</p>
-              ) : (
-                <p className="later">Later</p>
-              )}
-              <h3>{phase.title}</h3>
-              <p className="mt-3">{phase.intro}</p>
-              <ul className="tasks">
-                {phase.items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </article>
+      <Section id="line" index="01" title="From an issue to develop">
+        <p>
+          This is the line, from a GitHub issue to a merge on{" "}
+          <code>develop</code>. The{" "}
+          <a href="/using-bleeps">day-to-day page</a> walks each step.
+        </p>
+        <p className="legend mt-5">
+          <span className="key">
+            <span className="swatch" aria-hidden="true" /> Step
+          </span>
+          <span className="key">
+            <span className="swatch diamond" aria-hidden="true" /> Gate
+          </span>
+          <span className="key">
+            <span className="swatch dashed" aria-hidden="true" /> Holds
+          </span>
+        </p>
+        <ol className="flow" aria-label="Issue to merge">
+          {stations.map((station) => (
+            <li key={station.title} className={station.kind}>
+              <h3>{station.title}</h3>
+              <p>{station.body}</p>
+              {station.hold ? (
+                <p className="hold">
+                  <strong>Holds.</strong> {station.hold}
+                </p>
+              ) : null}
+            </li>
           ))}
-        </Section>
-      </main>
+        </ol>
+      </Section>
 
-      <footer className="site-footer">
-        <div className={`${wrap} stack py-12`}>
+      <Section id="patrol" index="02" title="It also goes looking">
+        <div className="stack">
           <p>
-            Bleeps and Bloops is James Hall’s factory. Bleeps runs the crew.
-            Bloops merges and reflects.
+            Chip patrols the project on a schedule: failing tests, CI breaks,
+            lint and type errors, dependency advisories, and friction-log
+            items. Chip files an issue and the same crew takes it through the
+            line, with the same sign-off on guardrails.
           </p>
           <p>
-            Being built now. This page does not invent customers, uptime, or a
-            finished product.
-          </p>
-          <p>
-            <a href={DOCS}>Read the factory plan on GitHub</a>
+            A project turns the patrol on or off in{" "}
+            <code>orca.project.yaml</code>.{" "}
+            <a href="/using-bleeps#crew">Meet the crew</a>, including how the
+            switch works.
           </p>
         </div>
-      </footer>
-    </>
+      </Section>
+
+      <Section id="guardrails" index="03" title="Bleeps stops and asks" band>
+        <p>
+          Five areas wait for you before they change, and again before they
+          merge. Everything else can move once the gates pass.
+        </p>
+        <ul className="guards">
+          <li>Auth</li>
+          <li>Billing</li>
+          <li>Payments</li>
+          <li>Data deletion</li>
+          <li>Migrations</li>
+        </ul>
+        <p className="mt-8">
+          <a href="/using-bleeps#guardrails">How sign-off works</a>
+        </p>
+      </Section>
+    </SiteShell>
   );
 }
