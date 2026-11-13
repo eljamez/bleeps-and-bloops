@@ -11,6 +11,7 @@
   --color-teal: #1f4f52;
   --color-amber: #f0c14a;
   --color-focus: #8a4b00;
+  --color-brand: #f47428;
 }
 
 @layer base {
@@ -554,6 +555,47 @@ th {
 
 .tasks li + li {
   margin-top: 0.35rem;
+}
+
+.site-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 1.5rem;
+  row-gap: 0.15rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.brand img {
+  display: block;
+  height: 2rem;
+  width: auto;
+}
+
+.brand-name {
+  font-family: var(--font-nunito), "Trebuchet MS", sans-serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.brand .amp {
+  color: var(--color-brand);
 }
 
 .site-nav ul {

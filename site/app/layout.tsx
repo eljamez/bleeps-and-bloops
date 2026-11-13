@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Atkinson_Hyperlegible, Fraunces } from "next/font/google";
+import { Atkinson_Hyperlegible, Fraunces, Nunito } from "next/font/google";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -15,6 +15,13 @@ const atkinson = Atkinson_Hyperlegible({
   weight: ["400", "700"],
   display: "swap",
   variable: "--font-atkinson",
+});
+
+const nunito = Nunito({
+  subsets: ["latin"],
+  weight: "700",
+  display: "swap",
+  variable: "--font-nunito",
 });
 
 export const metadata: Metadata = {
@@ -42,7 +49,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${atkinson.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${atkinson.variable} ${nunito.variable}`}>
       <body>{children}</body>
     </html>
   );
