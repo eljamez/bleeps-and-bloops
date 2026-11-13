@@ -1,6 +1,6 @@
 # Brand
 
-The mark is one thick stroke with round caps and joins. It runs along a flat baseline, jumps into a small point, and comes back down. That point is the bleep. It then rises into a round bump with two dot eyes. That bump is the bloop, a little creature peeking up. The choice not to use a robot is [0006](decisions/0006-waveform-creature-not-a-robot.md).
+The mark is one thick stroke with round caps and joins. It runs along a flat baseline, jumps into a small point, and comes back down. That point is the bleep. It then rises into a round bump with two dot eyes, a little creature peeking up. The choice not to use a robot is [0006](decisions/0006-waveform-creature-not-a-robot.md). The word Bloops names the reflective agent, not this drawing and not a shipped change. See [0010](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md).
 
 ## Files
 

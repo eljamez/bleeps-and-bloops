@@ -1,6 +1,6 @@
 # Ship a PR
 
-The judgment is the text below. [`scripts/ship-pr`](../scripts/ship-pr) is a stub: `tick` prints the step and does not merge, including with `--dry-run`. The procedure on this page is what that command will do.
+Bloops owns this. The thin skill is [agents/bloops/skills/merge/SKILL.md](../agents/bloops/skills/merge/SKILL.md). [`scripts/merge-pr`](../scripts/merge-pr) checks the gates. [`scripts/ship-pr`](../scripts/ship-pr) calls it. The script does not turn on GitHub auto-merge. That setting is still an open question. The procedure below is what the gates mean.
 
 Shipping splits in two. The skill is judgment, about 150 words. A script does the procedure the same way on every call. A long prose skill gets a fresh interpretation each session. See [0005](decisions/0005-adopt-kody-inspired-practices.md).
 

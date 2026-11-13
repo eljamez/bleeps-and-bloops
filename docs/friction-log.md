@@ -34,8 +34,8 @@ No secrets, tokens, or private data.
 
 ## Daily sweep
 
-The scout is the sweep. See [0008](decisions/0008-bleeps-is-proactive.md). It runs on the Orca automation schedule, daily at 09:00 unless the project file says otherwise.
+Chip is the sweep. See [0008](decisions/0008-bleeps-is-proactive.md). Chip runs on the Orca automation schedule, daily at 09:00 unless the project file says otherwise.
 
-Eligible issues are open, labeled `friction`, and not labeled `friction-skipped`. The scout does not open a second issue for the same gap. It starts the normal pipeline for them, under the same cap as `bleeps:found` issues.
+Eligible issues are open, labeled `friction`, and not labeled `friction-skipped`. Chip does not open a second issue for the same gap. Chip starts the normal pipeline for them, under the same cap as `bleeps:found` issues.
 
 The agent fixes what it can in a pull request into `develop`, and uses [ship-pr](ship-pr.md). When an issue needs James, the agent comments and adds `friction-skipped` instead of guessing. The sweep does not merge to `main`.

@@ -1,6 +1,6 @@
 # Using Bleeps
 
-Bleeps is the system that turns a ticket into a merged pull request. A shipped pull request or feature is a bloop. Bleeps and Bloops is the brand. Kent C. Dodds names his system Kody. Bleeps is that kind of name: one word for the thing that does the work.
+Bleeps runs the crew. Bloops merges and reflects. Bleeps and Bloops is the brand. Outputs do not need a name. Kent C. Dodds names his system Kody. Bleeps is that kind of name for the orchestrator.
 
 This page is how you adopt Bleeps on a repository of your own.
 
@@ -41,7 +41,7 @@ The scout is on by default. Set `proactive: off` to keep it from filing issues. 
 
 ### AGENTS.md
 
-Put a short router at the root. A few lines and links. Name Bleeps, say a bloop is a shipped pull request or feature, and point at the pages an agent should open: the flow, the architecture, the decisions, the primitives, ship-pr, the friction log, and the control CLI. Detail lives in the linked page.
+Put a short router at the root. A few lines and links. Name Bleeps as the orchestrator and Bloops as the agent who merges and reflects. Point at the crew, the flow, the decisions, the primitives, and the scripts. Detail lives in the linked page. Scripts first: [0011](decisions/0011-scripts-first.md).
 
 This repository's [AGENTS.md](../AGENTS.md) is the pattern. You can link these docs, or keep a copy in the project when you need one. The shared behavior comes from `orca.yaml`.
 

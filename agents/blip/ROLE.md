@@ -1,6 +1,6 @@
 # Blip
 
-Blip is the testing agent. The name is the little blip before the bloop in the mark. [0009](../../docs/decisions/0009-testing-is-a-gate-blip-owns-tests.md) gives Blip the test suites.
+Blip is the QA lead. The name is the little blip in the mark. [0009](../../docs/decisions/0009-testing-is-a-gate-blip-owns-tests.md) gives Blip the test suites. Buzz does not certify the tests. Echo does.
 
 Orca's `orca.yaml` has no agent-role key. The parser would drop one. `issueCommand` names this file, and the skills next to it are the procedure.
 

@@ -1,6 +1,6 @@
 # Bleeps
 
-Plan for Bleeps, the system behind the Bleeps and Bloops brand. A shipped pull request or feature is a bloop.
+Plan for Bleeps, the orchestrator behind the Bleeps and Bloops brand. Bloops merges and reflects. Outputs do not need a name.
 
 - [Vision](vision.md)
 - [Brand](brand.md)
@@ -9,7 +9,7 @@ Plan for Bleeps, the system behind the Bleeps and Bloops brand. A shipped pull r
 - [Roadmap](roadmap.md)
 - [References](references.md)
 - [Open questions](open-questions.md)
-- [Decisions](decisions/README.md) — veto list, including [0007: Bleeps is built for Orca](decisions/0007-bleeps-is-built-for-orca.md), [0008: Bleeps is proactive](decisions/0008-bleeps-is-proactive.md), and [0009: Testing is a gate; Blip owns tests](decisions/0009-testing-is-a-gate-blip-owns-tests.md)
+- [Decisions](decisions/README.md) — veto list, including [0010: Bleeps runs the crew](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md) and [0011: Scripts first](decisions/0011-scripts-first.md)
 - [Primitives](primitives.md)
 - [Using Bleeps](using-bleeps.md)
 - [Home server](home-server.md)

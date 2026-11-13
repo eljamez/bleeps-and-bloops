@@ -215,12 +215,12 @@ primitives:
     adrs:
       - docs/decisions/0009-testing-is-a-gate-blip-owns-tests.md
 
-  - id: scout
+  - id: chip
     group: script
-    name: Scout
+    name: Chip
     summary: >
-      Scheduled scan that files bleeps:found issues and starts the normal
-      pipeline, capped so it cannot flood pull requests.
+      The scout. A scheduled patrol that files bleeps:found issues and starts
+      the normal pipeline, capped so it cannot flood pull requests.
     inputs:
       - orca.project.yaml proactive, scans, schedule, and cap
       - The worktree and, when gh is available, CI, advisories, and friction issues

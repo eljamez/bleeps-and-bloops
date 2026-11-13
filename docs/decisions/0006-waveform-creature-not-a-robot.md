@@ -1,6 +1,7 @@
 # 0006: A waveform creature, not a robot
 
 - **Status:** accepted
+- **Note:** [0010](0010-bleeps-runs-the-crew-bloops-reflects.md) keeps this mark. The word Bloops is the agent, not the round bump.
 - **Date:** 2026-11-12
 
 ## Context

@@ -1,6 +1,6 @@
 # Bleeps and Bloops
 
-This repository is the home of Bleeps, the system behind [bleepsandbloops.com](https://bleepsandbloops.com). Bleeps turns a ticket into a merged pull request. What it ships is a bloop.
+This repository is the home of Bleeps, the orchestrator behind [bleepsandbloops.com](https://bleepsandbloops.com). Bleeps runs the crew. Bloops merges and reflects. Outputs do not need a name.
 
 The public site lives in [`site/`](site/). It is a Next.js app. On Vercel, set the project **Root Directory** to `site/`.
 
