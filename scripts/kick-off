@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Beep's scaffold. Creates the spec folder. Does not write product code."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+TICKET = """# Ticket
+
+Issue: {issue}
+
+Fill this from the GitHub issue. Beep writes it. Buzz does not start here.
+"""
+
+SPEC = """# Spec
+
+status: draft
+
+## Problem
+
+## Acceptance
+
+Beep fills this. Status becomes approved when this is the spec to build.
+"""
+
+TASKS = """# Tasks
+
+- [ ] Implement the spec
+- [ ] Blip covers the change with tests
+
+Beep owns this checklist. Buzz implements it.
+"""
+
+DESIGN = """# Design
+
+The approach is the risky part. Beep writes the approach here. Buzz follows it.
+"""
+
+
+def main(argv: list[str]) -> int:
+    args = [arg for arg in argv if arg != "--design"]
+    design = "--design" in argv
+    if len(args) != 2 or not args[0].isdigit() or not args[1]:
+        print("usage: kick-off <issue-number> <slug> [--design]", file=sys.stderr)
+        return 2
+    folder = Path("specs") / f"{args[0]}-{args[1]}"
+    folder.mkdir(parents=True, exist_ok=True)
+    files = {
+        "ticket.md": TICKET.format(issue=args[0]),
+        "spec.md": SPEC,
+        "tasks.md": TASKS,
+    }
+    if design:
+        files["design.md"] = DESIGN
+    for name, body in files.items():
+        path = folder / name
+        if path.exists():
+            print(f"exists {path}")
+            continue
+        path.write_text(body)
+        print(f"wrote {path}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

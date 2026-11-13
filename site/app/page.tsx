@@ -17,7 +17,7 @@ const USING =
 const plate = [
   ["Brand", "Bleeps and Bloops"],
   ["System", "Bleeps"],
-  ["Results", "Bloops"],
+  ["Reflects", "Bloops"],
   ["Owner", "James Hall"],
   ["Steers", "A human"],
   ["Lands on", "develop"],
@@ -125,7 +125,7 @@ const stations: Station[] = [
     title: "Gate: All clear?",
     body: (
       <>
-        A bloop lands on <code>develop</code> only when every gate passes:
+        A pull request lands on <code>develop</code> only when every gate passes:
         required checks are green, the verify verdict is “Ready to ship”,
         layered reviews passed with no blocking findings, and no guardrail was
         touched without a human sign-off. Label rules can still keep a ticket
@@ -323,7 +323,7 @@ export default function HomePage() {
               </h1>
               <p className="tagline">
                 Bleeps does the work.
-                <span className="out">Bloops are what come out.</span>
+                <span className="out">Bloops reflects and merges.</span>
               </p>
               <p className="lede">
                 James Hall’s ticket-to-merge factory for web and mobile apps. A
@@ -340,7 +340,7 @@ export default function HomePage() {
                 <div>
                   <RoundWave />
                   <p>
-                    <strong>A bloop</strong>, the result
+                    <strong>Bloops</strong>, reflects
                   </p>
                 </div>
               </figure>
@@ -359,7 +359,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <ol className="beats" aria-label="From a ticket to a bloop">
+          <ol className="beats" aria-label="From a ticket to a merge">
             <li>
               <span className="beat-kicker">In</span>
               <strong className="beat-name">A ticket</strong>
@@ -373,10 +373,10 @@ export default function HomePage() {
               </span>
             </li>
             <li>
-              <span className="beat-kicker">Out</span>
-              <strong className="beat-name">A bloop</strong>
+              <span className="beat-kicker">Reflects</span>
+              <strong className="beat-name">Bloops</strong>
               <span className="beat-note">
-                A shipped pull request, a feature, an output.
+                Merges when the gates pass, then looks back.
               </span>
             </li>
           </ol>
@@ -394,8 +394,8 @@ export default function HomePage() {
               <p>
                 Bleeps and Bloops is the brand. The system is called Bleeps,
                 short for Bleeps and Bloops, the way Kent C. Dodds’ assistant
-                is called Kody. Bleeps does the work. A bloop is a result it
-                produces: a shipped pull request, a feature, an output.
+                is called Kody. Bleeps runs the crew. Bloops merges and
+                reflects. A shipped pull request does not need its own name.
               </p>
               <p>
                 On this line, shipped means the pull request merged to{" "}
@@ -437,7 +437,7 @@ export default function HomePage() {
           </div>
         </Section>
 
-        <Section id="line" index="02" title="How a bloop gets made">
+        <Section id="line" index="02" title="How the crew ships">
           <p>
             Nothing here is running yet. This is the line the plan describes.
           </p>
@@ -708,8 +708,8 @@ export default function HomePage() {
       <footer className="site-footer">
         <div className={`${wrap} stack py-12`}>
           <p>
-            Bleeps and Bloops is James Hall’s factory. Bleeps does the work.
-            Bloops are what come out.
+            Bleeps and Bloops is James Hall’s factory. Bleeps runs the crew.
+            Bloops merges and reflects.
           </p>
           <p>
             Being built now. This page does not invent customers, uptime, or a

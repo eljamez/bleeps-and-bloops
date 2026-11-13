@@ -138,9 +138,32 @@ def check_scripts(setup: str) -> None:
         [sys.executable, str(ROOT / "scripts" / "ship-pr"), "tick", "--pr", "https://example.invalid/1", "--risk", "low", "--dry-run"],
         ROOT,
     )
-    require(ship.returncode == 2, "ship-pr should refuse")
+    require(ship.returncode == 2, "ship-pr should refuse without a verdict")
     body = json.loads(ship.stdout)
-    require(body["wouldMerge"] is False and body["phase"] == "unimplemented", body)
+    require(body["wouldMerge"] is False and body["merged"] is False, body)
+    passed = run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "merge-pr"),
+            "check",
+            "--base",
+            "develop",
+            "--verdict",
+            "Ready to ship",
+            "--tests-passed",
+            "--risk",
+            "low",
+        ],
+        ROOT,
+    )
+    require(passed.returncode == 0, passed.stdout)
+    ok = json.loads(passed.stdout)
+    require(ok["wouldMerge"] is True and ok["into"] == "develop" and ok["merged"] is False, ok)
+    refused = run(
+        [sys.executable, str(ROOT / "scripts" / "merge-pr"), "check", "--base", "main", "--verdict", "Ready to ship", "--tests-passed", "--risk", "low"],
+        ROOT,
+    )
+    require(refused.returncode == 2 and json.loads(refused.stdout)["wouldMerge"] is False, refused.stdout)
 
 
 def check_scout() -> None:
@@ -212,10 +235,57 @@ def check_scout() -> None:
         require(role.exists(), "Blip role")
         for name in ("onboard", "pipeline", "coverage"):
             require((ROOT / "agents" / "blip" / "skills" / name / "SKILL.md").exists(), name)
+        for agent in ("beep", "buzz", "echo", "chip", "bloops"):
+            require((ROOT / "agents" / agent / "ROLE.md").exists(), agent)
+
+        work = Path(tmp) / "plan"
+        work.mkdir()
+        scaffold = run([sys.executable, str(ROOT / "scripts" / "kick-off"), "12", "widget"], work)
+        require(scaffold.returncode == 0, scaffold.stderr)
+        spec = work / "specs" / "12-widget"
+        require((spec / "spec.md").exists() and (spec / "tasks.md").exists(), "scaffold")
+        again = run([sys.executable, str(ROOT / "scripts" / "kick-off"), "12", "widget"], work)
+        require(again.returncode == 0 and "exists" in again.stdout, again.stdout)
+        written = run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "verify"),
+                "write",
+                str(spec),
+                "--unit",
+                "green",
+                "--integration",
+                "green",
+                "--e2e",
+                "not-applicable",
+                "--verdict",
+                "Ready to ship",
+            ],
+            work,
+        )
+        require(written.returncode == 0, written.stderr)
+        checked = run([sys.executable, str(ROOT / "scripts" / "verify"), "check", str(spec)], work)
+        require(checked.returncode == 0, checked.stderr)
+        reflection = run([sys.executable, str(ROOT / "scripts" / "bloops-reflect")], work)
+        require(reflection.returncode == 0 and "does not edit skills" in reflection.stdout, reflection.stdout)
+        skill = ROOT / "agents" / "blip" / "ROLE.md"
+        before = skill.read_text()
+        require(skill.read_text() == before, "reflect must not edit skills")
 
 
 def main() -> int:
-    for name in ("orca-setup", "orca-verify", "bleeps", "guardrails", "ship-pr", "bleeps-scout"):
+    for name in (
+        "orca-setup",
+        "orca-verify",
+        "bleeps",
+        "guardrails",
+        "ship-pr",
+        "merge-pr",
+        "kick-off",
+        "verify",
+        "bloops-reflect",
+        "bleeps-scout",
+    ):
         path = ROOT / "scripts" / name
         require(path.stat().st_mode & stat.S_IXUSR, f"{name} is not executable")
     document = check_yaml()

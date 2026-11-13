@@ -1,11 +1,11 @@
 # Flow
 
-Ticket-to-merge pipeline for Bleeps. A pull request that merges is a bloop. Merge rules are in [0003: Gitflow auto-merge to develop](decisions/0003-gitflow-auto-merge-to-develop.md). Building blocks are in [primitives](primitives.md).
+Ticket-to-merge pipeline. Bleeps runs the crew. Bloops merges and reflects. Merge rules are in [0003: Gitflow auto-merge to develop](decisions/0003-gitflow-auto-merge-to-develop.md). The crew is [0010](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md). Building blocks are in [primitives](primitives.md).
 
 ## Steps
 
-0. On a schedule, the scout scans the project and files a GitHub issue labelled `bleeps:found` for each new finding. Open `friction` issues join that queue and are not filed again. Each one then enters step 1. See [0008](decisions/0008-bleeps-is-proactive.md).
-1. A GitHub issue is filed, by a person or by the scout. Orca's `issueCommand` takes the issue (`{{issue}}` and `{{artifact_url}}`) when a workspace launches from it.
+0. On a schedule, Chip scans the project and files a GitHub issue labelled `bleeps:found` for each new finding. Open `friction` issues join that queue and are not filed again. Each one then enters step 1. See [0008](decisions/0008-bleeps-is-proactive.md).
+1. A GitHub issue is filed, by a person or by Chip. Orca's `issueCommand` takes the issue (`{{issue}}` and `{{artifact_url}}`) when a workspace launches from it. Beep plans with `scripts/kick-off`.
 2. Write `spec.md` in `specs/<issue>-<slug>/`. Write `design.md` only if the approach is risky.
 3. Write `tasks.md` as a checklist. Test tasks are included. Blip owns them. See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md).
 4. Build, test, and fix in an isolated Orca worktree, with a round limit. Blip writes or extends the tests. Pause for human approval when a change touches a guardrail area: auth, billing, payments, data deletion, or migrations.

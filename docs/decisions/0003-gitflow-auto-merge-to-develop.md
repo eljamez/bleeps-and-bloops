@@ -1,6 +1,7 @@
 # 0003: Gitflow auto-merge to develop
 
 - **Status:** accepted
+- **Note:** [0010](0010-bleeps-runs-the-crew-bloops-reflects.md) retires the word bloop for a merged pull request. The merge rules below stand. GitHub's auto-merge setting is still an open question.
 - **Date:** 2026-11-12
 
 ## Context

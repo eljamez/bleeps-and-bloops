@@ -42,7 +42,7 @@ Test work is delegated to Blip: [agents/blip/ROLE.md](../agents/blip/ROLE.md). `
 
 Launch a workspace from a GitHub issue. Orca substitutes `{{issue}}` and `{{artifact_url}}` into `issueCommand`. That prompt is the kick-off. It writes the spec folder, builds in the worktree, asks for a fresh `verify.md`, and opens a pull request against `develop`.
 
-`scripts/ship-pr` is a stub. It does not merge. Leave GitHub auto-merge off until that script implements the gates in [ship-pr](ship-pr.md).
+Bloops checks gates with `scripts/merge-pr`. Leave GitHub's auto-merge setting off. That setting is still an open question. See [ship-pr](ship-pr.md).
 
 ## Plug in another project
 
@@ -66,7 +66,7 @@ Optional: `ln -s /path/to/bleeps-and-bloops/scripts/bleeps bleeps` so the CLI na
 ## What is still open
 
 - The home server itself is not set up by this repo.
-- `scripts/ship-pr` refuses to merge.
+- `scripts/merge-pr` reports the gates and does not turn on GitHub auto-merge.
 - `bleeps preview` refuses. `bleeps health` prints `no health URL` when `health_url` is unset, and refuses when one is set, until the deployed-SHA check exists.
 - A project with no test command prints `skipped: no test command` and exits 0. Say if a missing command should fail instead.
 - CodeRabbit, Devin, and Grok Bot are not started by `orca.yaml`.

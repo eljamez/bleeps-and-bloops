@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""Bloops' merge gate. develop only. Never calls GitHub's auto-merge setting.
+
+--apply is refused on purpose. Turning on GitHub auto-merge is still an open
+question. The script reports whether the gates passed.
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+
+VERDICT_OK = "Ready to ship"
+
+
+def parse_flags(argv: list[str]) -> dict[str, str]:
+    flags: dict[str, str] = {}
+    index = 0
+    while index < len(argv):
+        token = argv[index]
+        if token == "--tests-passed":
+            flags["tests-passed"] = "yes"
+            index += 1
+            continue
+        if token == "--dry-run":
+            flags["dry-run"] = "yes"
+            index += 1
+            continue
+        if token == "--apply":
+            flags["apply"] = "yes"
+            index += 1
+            continue
+        if token.startswith("--") and index + 1 < len(argv):
+            flags[token[2:]] = argv[index + 1]
+            index += 2
+            continue
+        index += 1
+    return flags
+
+
+def evaluate(flags: dict[str, str]) -> tuple[dict, int]:
+    base = flags.get("base", "develop")
+    risk = flags.get("risk", "low")
+    verdict = flags.get("verdict", "")
+    body: dict = {
+        "phase": "gates",
+        "wouldMerge": False,
+        "merged": False,
+        "into": base,
+        "reason": "",
+    }
+    if flags.get("apply") == "yes":
+        body["reason"] = "GitHub auto-merge is an open question. --apply does not merge."
+        return body, 2
+    if base == "main":
+        body["reason"] = "refuses main"
+        return body, 2
+    if base != "develop":
+        body["reason"] = "merge target must be develop"
+        return body, 2
+    if risk == "high":
+        body["reason"] = "waiting-for-james"
+        return body, 2
+    if risk not in {"low", "medium"}:
+        body["reason"] = "risk must be low, medium, or high"
+        return body, 2
+    if verdict != VERDICT_OK:
+        body["reason"] = "verdict is not Ready to ship"
+        return body, 2
+    if flags.get("tests-passed") != "yes":
+        body["reason"] = "tests did not pass"
+        return body, 2
+    body["wouldMerge"] = True
+    body["into"] = "develop"
+    body["reason"] = "gates passed; GitHub auto-merge stays an open question"
+    return body, 0
+
+
+def main(argv: list[str]) -> int:
+    if not argv or argv[0] in {"-h", "--help"}:
+        print(
+            "usage: merge-pr check --base develop --verdict 'Ready to ship' "
+            "--tests-passed --risk low|medium|high [--dry-run]",
+            file=sys.stderr,
+        )
+        return 0 if argv and argv[0] in {"-h", "--help"} else 2
+    command = argv[0]
+    if command not in {"check", "tick"}:
+        print("merge-pr: use check or tick", file=sys.stderr)
+        return 2
+    flags = parse_flags(argv[1:])
+    body, code = evaluate(flags)
+    json.dump(body, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return code
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

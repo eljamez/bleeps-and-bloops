@@ -28,12 +28,12 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://bleepsandbloops.com"),
   title: "Bleeps and Bloops",
   description:
-    "James Hall’s agentic software factory. Bleeps does the work. Bloops are the shipped pull requests, features, and outputs that come out. Being built now.",
+    "James Hall’s agentic software factory. Bleeps runs the crew. Bloops merges and reflects. Being built now.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "Bleeps and Bloops",
     description:
-      "Bleeps does the work. Bloops are what come out. James Hall’s ticket-to-merge factory, being built now.",
+      "Bleeps runs the crew. Bloops merges and reflects. James Hall’s ticket-to-merge factory, being built now.",
     url: "https://bleepsandbloops.com",
     siteName: "Bleeps and Bloops",
     type: "website",

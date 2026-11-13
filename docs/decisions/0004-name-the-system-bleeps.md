@@ -1,6 +1,6 @@
 # 0004: Name the system Bleeps
 
-- **Status:** accepted
+- **Status:** superseded by [0010](0010-bleeps-runs-the-crew-bloops-reflects.md)
 - **Date:** 2026-11-12
 
 ## Context

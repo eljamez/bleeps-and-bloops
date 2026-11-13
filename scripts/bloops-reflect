@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+"""Bloops' run report. Prints counts. Does not edit skills, scripts, or AGENTS.md."""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+from pathlib import Path
+
+
+def git_count(args: list[str]) -> str:
+    result = subprocess.run(["git", *args], text=True, capture_output=True)
+    if result.returncode != 0:
+        return "unavailable"
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    return str(len(lines))
+
+
+def verify_failures(root: Path) -> str:
+    specs = root / "specs"
+    if not specs.exists():
+        return "0"
+    failures = 0
+    for path in specs.glob("*/verify.md"):
+        text = path.read_text(errors="ignore")
+        if "Ready to ship" not in text:
+            failures += 1
+    return str(failures)
+
+
+def main() -> int:
+    root = Path.cwd()
+    print("Bloops reflection")
+    print("cycle time: not measured yet (no run clock in the repo)")
+    print(f"review rounds: {git_count(['log', '--oneline', '-20'])} recent commits on this checkout")
+    print(f"test failures recorded in verify.md: {verify_failures(root)}")
+    print("friction-log entries: count open issues labeled friction with gh; this script does not file them")
+    print(f"reverts: {git_count(['log', '--oneline', '--grep=Revert', '-50'])}")
+    print("scout findings: count open issues labeled bleeps:found with gh")
+    print("proposals: file an issue or a pull request. this script does not edit skills")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

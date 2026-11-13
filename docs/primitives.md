@@ -1,6 +1,6 @@
 # Primitives
 
-A primitive is the smallest reusable building block a person or an agent invokes in Bleeps. Bleeps is the system that turns a ticket into a merged pull request. A shipped pull request or feature is a bloop. Bleeps and Bloops is the brand.
+A primitive is the smallest reusable building block a person or an agent invokes. Bleeps runs the crew. Bloops merges and reflects. Bleeps and Bloops is the brand. Outputs do not need a name.
 
 A primitive is one of these kinds:
 
@@ -15,7 +15,7 @@ A primitive is one of these kinds:
 
 The shared [`orca.yaml`](../orca.yaml) is the config those pieces live in. Kick-off is `issueCommand`. Setup is `scripts.setup`. Review rules and merge policy stay their own rows, because Orca has no keys for them. A project commits `orca.project.yaml` for install, test, and typecheck. Orca does not merge that file. See [0001](decisions/0001-shared-factory-config.md) and [0007](decisions/0007-bleeps-is-built-for-orca.md).
 
-`status: planned` means the block is specified and nobody can run it yet. `status: built` means a person or an agent can invoke it. Kick-off, the setup hook, `bleeps test` / `bleeps typecheck`, the scout, and Blip are built. The home server is not running Orca yet. The [roadmap](roadmap.md) is the list that moves.
+`status: planned` means the block is specified and nobody can run it yet. `status: built` means a person or an agent can invoke it. Kick-off, the setup hook, `bleeps test` / `bleeps typecheck`, Chip, and Blip are built. The home server is not running Orca yet. The [roadmap](roadmap.md) is the list that moves.
 
 The machine-readable list is [primitives.yaml](primitives.yaml). Update that file when a primitive is added, removed, or reshaped. Leave its `summary` alone for ordinary feature work. To put this on a repo of your own, read [Using Bleeps](using-bleeps.md).
 
@@ -27,7 +27,7 @@ The diagram follows the ticket. Side arrows are primitives that join that step. 
 
 ```mermaid
 flowchart TD
-  scout[scout] --> kickOff[kick-off]
+  chip[Chip] --> kickOff[kick-off]
   kickOff --> specFolder[spec folder]
   specFolder --> tasks[tasks]
   tasks --> loop[build-fix loop]
@@ -180,11 +180,11 @@ flowchart TD
 
 ## Script or CLI
 
-### Scout
+### Chip
 
 **Kind.** Script.
 
-**Purpose.** On a schedule, scan the project, file a `bleeps:found` issue per new finding, and start the normal pipeline up to a cap.
+**Purpose.** Chip's patrol. On a schedule, scan the project, file a `bleeps:found` issue per new finding, and start the normal pipeline up to a cap.
 
 **Inputs.** `proactive`, scans, schedule, and cap in `orca.project.yaml`. The worktree. GitHub, when `gh` is available.
 
@@ -343,10 +343,10 @@ The risk tier is separate. `high` means the diff touches a guardrail area (auth,
 ## Invariants
 
 - Agents merge only to `develop`, and only through the gates. James merges `develop` into `main`.
-- A bloop needs verify verdict "Ready to ship".
+- A merge needs verify verdict "Ready to ship".
 - Guardrail areas wait for James: auth, billing, payments, data deletion, migrations.
 - The verify reviewer is read-only and does not share the implementer's context.
 - One shared `orca.yaml`. Projects override in a smaller file.
 - A PR recap names `composes`, `extends`, or `adds`. An `adds` updates the catalog in that PR.
-- The ship-pr skill judges. The script, once it exists, performs the procedure.
+- Bloops judges the merge. `scripts/merge-pr` performs the gate check. GitHub auto-merge stays an open question.
 - A green check is not deployed proof. `bleeps health --sha` is, once that command is implemented. Today it refuses.

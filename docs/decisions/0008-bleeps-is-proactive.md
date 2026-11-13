@@ -1,6 +1,7 @@
 # 0008: Bleeps is proactive
 
 - **Status:** accepted
+- **Narrowed by:** [0010](0010-bleeps-runs-the-crew-bloops-reflects.md) — the scout is Chip.
 - **Date:** 2026-11-13
 
 ## Context

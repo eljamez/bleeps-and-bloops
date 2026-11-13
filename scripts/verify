@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""Echo's verify.md writer and gate. Read-only on product code."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+LAYERS = ("unit", "integration", "e2e")
+OK = {"green", "not applicable"}
+
+
+def usage() -> int:
+    print(
+        "usage: verify write <spec-dir> --unit green --integration green "
+        "--e2e green|not-applicable --verdict 'Ready to ship'|'Needs work'",
+        file=sys.stderr,
+    )
+    print("       verify check <spec-dir>", file=sys.stderr)
+    return 2
+
+
+def parse_flags(argv: list[str]) -> dict[str, str]:
+    flags: dict[str, str] = {}
+    index = 0
+    while index < len(argv):
+        token = argv[index]
+        if token.startswith("--") and index + 1 < len(argv):
+            flags[token[2:]] = argv[index + 1]
+            index += 2
+            continue
+        index += 1
+    return flags
+
+
+def layer_line(name: str, value: str) -> str:
+    label = "End-to-end" if name == "e2e" else name.capitalize()
+    shown = "not applicable" if value in {"na", "not-applicable", "not applicable"} else value
+    return f"- {label}: {shown}"
+
+
+def write(folder: Path, flags: dict[str, str]) -> int:
+    missing = [name for name in ("unit", "integration", "e2e", "verdict") if name not in flags]
+    if missing:
+        print(f"missing --{missing[0]}", file=sys.stderr)
+        return 2
+    verdict = flags["verdict"]
+    if verdict not in {"Ready to ship", "Needs work"}:
+        print("verdict must be 'Ready to ship' or 'Needs work'", file=sys.stderr)
+        return 2
+    lines = ["# Verify", "", "## Layers", ""]
+    for name in LAYERS:
+        lines.append(layer_line(name, flags[name]))
+    lines.extend(["", "## Verdict", "", verdict, ""])
+    path = folder / "verify.md"
+    path.write_text("\n".join(lines))
+    print(f"wrote {path}")
+    return 0
+
+
+def read_layers(text: str) -> dict[str, str]:
+    found: dict[str, str] = {}
+    for line in text.splitlines():
+        if line.startswith("- Unit:"):
+            found["unit"] = line.split(":", 1)[1].strip().lower()
+        elif line.startswith("- Integration:"):
+            found["integration"] = line.split(":", 1)[1].strip().lower()
+        elif line.startswith("- End-to-end:"):
+            found["e2e"] = line.split(":", 1)[1].strip().lower()
+    return found
+
+
+def check(folder: Path) -> int:
+    path = folder / "verify.md"
+    if not path.exists():
+        print("verify.md is missing", file=sys.stderr)
+        return 2
+    text = path.read_text()
+    layers = read_layers(text)
+    for name in LAYERS:
+        value = layers.get(name, "")
+        if value not in OK:
+            print(f"{name} is not green", file=sys.stderr)
+            return 2
+    if "Ready to ship" not in text.split("## Verdict", 1)[-1]:
+        print("verdict is not Ready to ship", file=sys.stderr)
+        return 2
+    print("Ready to ship")
+    return 0
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) < 2:
+        return usage()
+    command, folder = argv[0], Path(argv[1])
+    if command == "write":
+        folder.mkdir(parents=True, exist_ok=True)
+        return write(folder, parse_flags(argv[2:]))
+    if command == "check":
+        return check(folder)
+    return usage()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
