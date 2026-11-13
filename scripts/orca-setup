@@ -1,0 +1,6 @@
+#!/bin/sh
+# Orca setup hook. orca.yaml execs this after resolving the factory directory.
+set -eu
+cd "${ORCA_WORKTREE_PATH:-.}"
+root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec "$root/bleeps" install

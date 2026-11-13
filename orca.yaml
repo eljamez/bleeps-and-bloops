@@ -1,0 +1,127 @@
+# Bleeps factory config. Orca reads this file from the repository root.
+#
+# Decision: docs/decisions/0007-bleeps-is-built-for-orca.md
+# How to run it: docs/home-server.md
+#
+# Parser, pinned so we do not invent keys:
+# https://github.com/stablyai/orca/blob/aa736b6650fd13a0256a7ba0b3b1c7741fb933ee/src/shared/orca-yaml.ts
+#
+# Keys that parser keeps:
+#   scripts.setup              shell, after a worktree is created
+#   scripts.archive            shell, before a worktree is archived
+#   setupAgentStartupPolicy    start-immediately | wait-for-setup
+#   issueCommand               prompt, not a shell script
+#   defaultTabs                terminal tabs for a new worktree
+#   environmentRecipes         ephemeral VM recipes
+#   worktree.sharedDirectories gitignored directories shared across worktrees
+#
+# Anything else is dropped. This file sets none of the keys it does not need.
+# There is no verification key and no merge key. scripts/orca-verify runs the
+# checks. A required GitHub check is what can block a pull request.
+# Conditional hooks, which this file cannot express:
+# https://github.com/stablyai/orca/issues/6917
+#
+# Setup environment from Orca (src/main/workspace-hooks/setup-hook-env-vars.ts
+# at the same commit): ORCA_ROOT_PATH, ORCA_WORKTREE_PATH, ORCA_WORKSPACE_NAME,
+# and ORCA_WORKTREE_ID / ORCA_WORKSPACE_ID when the workspace id exists.
+# CLI creates run this hook with --run-hooks, or when the repo setup policy says run.
+#
+# issueCommand placeholders Orca substitutes: {{issue}} and {{artifact_url}}.
+# A file at .orca/issue-command replaces this prompt for that checkout.
+#
+# Per-project install, test, typecheck, and the scout are not Orca keys.
+# The setup script reads orca.project.yaml. Example: examples/orca.project.yaml.
+#
+# The scout is an Orca automation (orca automations create), not a key in
+# this file. Orca's parser has no schedule field. See
+# docs/decisions/0008-bleeps-is-proactive.md and scripts/bleeps-scout.
+
+# The agent terminal waits until setup exits, so it starts with dependencies installed.
+setupAgentStartupPolicy: wait-for-setup
+
+scripts:
+  # archive is omitted. There is nothing to clean up, and an empty command
+  # would still be a hook Orca asks you to trust.
+  setup: |
+    set -eu
+    # Follow one symlink. A project links this file; the scripts sit beside the real one.
+    # ponytail: one level, no nested links. Upgrade path: realpath or readlink -f.
+    yaml="orca.yaml"
+    if [ -L "$yaml" ]; then
+      target=$(readlink "$yaml") || exit 1
+      case "$target" in
+        /*) ;;
+        *) target="$(pwd)/$target" ;;
+      esac
+    else
+      target="$(pwd)/$yaml"
+    fi
+    factory=$(CDPATH= cd -- "$(dirname -- "$target")" && pwd)
+    cd "${ORCA_WORKTREE_PATH:-.}"
+    exec "$factory/scripts/orca-setup"
+
+issueCommand: |
+  You are Bleeps, running inside Orca, on issue {{issue}} ({{artifact_url}}).
+  The factory config is this orca.yaml. Do not look for a Claude plugin.
+
+  If orca.yaml is a symlink, the Bleeps docs and scripts are in the directory
+  of the real file. Otherwise they are in this worktree. Call that directory
+  the factory.
+
+  Work only in this worktree. Open pull requests against develop. Do not push
+  to main, and do not open a pull request against main.
+
+  1. Write specs/<issue>-<slug>/ticket.md from the issue, and spec.md with
+     status draft, then approved once that spec is the one you will build.
+     Write design.md only when the approach is the risky part: new
+     architecture, API or data design, or a change that crosses modules.
+     Otherwise skip design.md and say so in one line.
+  2. Write tasks.md as a checklist.
+  3. Build, test, and fix. Tests are Blip's job. Read
+     <factory>/agents/blip/ROLE.md and its skills. tasks.md includes the
+     tests. Blip writes or extends unit, integration, and, on a web app,
+     end-to-end tests for the change. The round limit's number is not
+     chosen yet. Stop and ask James before a third pass on the same
+     finding. If the change touches auth, billing, payments, data
+     deletion, or migrations, stop and wait for James. Run
+     <factory>/scripts/guardrails. Exit 2 means stop.
+  4. A second pass writes verify.md. It has to be a fresh read-only look,
+     with no memory of the implementation session, and no memory of Blip's
+     session. Record unit, integration, and end-to-end as green, or
+     end-to-end as not applicable when this is not a web app. The only
+     verdict that continues is a line that says Ready to ship. Anything
+     else stops before a pull request.
+  5. Run <factory>/scripts/orca-verify. It runs tests and typecheck. A
+     missing test command fails. A missing typecheck command prints
+     skipped: no typecheck command. Fix failures. Green tests are a hard
+     gate.
+  6. Open a pull request against develop and comment on the issue. Use the
+     repository pull request template, including the primitives recap.
+  7. Run <factory>/scripts/ship-pr tick with the pull request URL and a risk
+     you picked (low, medium, or high). High means a guardrail area. Read
+     <factory>/docs/ship-pr.md before any merge. If the script says it is
+     not implemented, do not merge.
+  8. File leftover papercuts as GitHub issues labeled friction. Search open
+     friction issues first.
+
+  While you work, use the four habits: explore-first, delegate-cheap-work,
+  verify-before-ship, decompose-hotspot. The copies in
+  docs/reference/context-pack-2026-11-11 are reference, not the runtime.
+  The short form is on the primitives page in the factory.
+
+  An issue labelled bleeps:found was filed by the scout. Use the same steps.
+  If the issue body says Risk: high, it touches a guardrail. Wait for James
+  and do not merge.
+
+  CodeRabbit, Devin, and the architecture-fit review are not started by
+  this file. Do not claim a review ran unless it did. Grok Bot is not
+  running. James promotes develop to main.
+
+worktree:
+  # Orca shares these across worktrees of the same repo when the directory
+  # exists and is gitignored. A missing path is skipped. It does not fail
+  # worktree creation. A project that must not share them copies this file
+  # instead of symlinking it.
+  sharedDirectories:
+    - node_modules
+    - site/node_modules

@@ -1,0 +1,32 @@
+# Copy to the project root as orca.project.yaml and commit it.
+#
+# Orca does not parse this file. scripts/bleeps does, and the setup hook
+# calls that script. These keys are Bleeps script inputs, not Orca keys.
+#
+# One flat line per key: key: value
+# A # starts a comment. The value is the rest of the line after the first colon.
+#
+# install     runs on worktree setup
+# test        bleeps test, and scripts/orca-verify
+# typecheck   bleeps typecheck, and scripts/orca-verify
+# health_url  read by bleeps health. The check itself is not implemented yet.
+# preview     recorded for later. bleeps preview does not run it yet.
+
+install: npm ci
+test: npm test
+# Optional layers. When any of these is set, bleeps test runs them
+# instead of the single test command.
+# test_unit: npm run test:unit
+# test_integration: npm run test:integration
+# test_e2e: npm run test:e2e
+typecheck: npm run typecheck
+health_url: https://example.invalid/health
+preview: npm run dev
+# proactive defaults to on when this key is omitted. off skips the scout.
+proactive: on
+scout_cap: 2
+scout_schedule: daily
+scout_time: "09:00"
+scout_scans: tests, ci, lint, advisories, debt, friction, coverage
+# scout_provider: claude
+# error_tracking: a command that prints findings. Unset means that scan is skipped.

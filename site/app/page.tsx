@@ -38,8 +38,8 @@ const stations: Station[] = [
     title: "1. Issue, then kick-off",
     body: (
       <>
-        A person files a GitHub issue. The kick-off command takes the issue
-        number, and Bleeps starts.
+        A person files a GitHub issue. Orca sends <code>issueCommand</code>{" "}
+        from the shared <code>orca.yaml</code>, and Bleeps starts.
       </>
     ),
   },
@@ -165,13 +165,14 @@ const phases: {
   {
     title: "Phase 1. Foundations",
     current: true,
-    intro: "None of this is done yet.",
+    intro:
+      "The shared orca.yaml is in the repo. Kick-off is Orca's issueCommand. These are still open.",
     items: [
       "Install Orca on the home server.",
       "SSH in.",
-      "Get Claude Code running in one worktree on a throwaway repo.",
-      "Write the core orca.yaml (setup hook for deps, verification hook for tests and typecheck that blocks the pull request on failure, ship-PR skill).",
-      "Add the ticket slash command as the front door.",
+      "Run one agent in an Orca worktree on a throwaway repo.",
+      "Turn on a required check that runs scripts/orca-verify, so a failed test blocks the pull request. Orca has no verification key.",
+      "Build the ship-pr procedure. The command in the repo refuses to merge.",
     ],
   },
   {
@@ -381,9 +382,9 @@ export default function HomePage() {
           </ol>
 
           <p className="status">
-            <strong>Being built now.</strong> The factory plan is pinned at
-            Phase 1, ready to resume. The shared <code>orca.yaml</code> is
-            still a draft. This page is the public front door, and it is new.
+            <strong>Being built now.</strong> The shared <code>orca.yaml</code>{" "}
+            is in the repo. The home server is not running the factory yet.
+            This page is the public front door, and it is new.
           </p>
         </header>
 
@@ -403,10 +404,14 @@ export default function HomePage() {
                 <code>main</code>.
               </p>
               <p>
-                One shared <code>orca.yaml</code> holds the slash command, the
-                review rules, and the merge policy. Each project adds a smaller
-                override. Orca, the MIT-licensed harness, is what runs Claude
-                Code, Grok, and the others, each in its own worktree.
+                Bleeps is built for Orca, and it goes looking. A scout files
+                issues and runs them through the same line. One shared{" "}
+                <code>orca.yaml</code> is the factory config.{" "}
+                <code>issueCommand</code> is the front door. Blip owns the
+                tests, and green tests are a gate. Each project adds{" "}
+                <code>orca.project.yaml</code> for install, test, and whether
+                the scout is on. Orca runs Claude Code, Grok, and the others,
+                each in its own worktree.
               </p>
               <p>
                 <a href={DOCS}>Read the factory plan on GitHub</a>.
@@ -416,15 +421,16 @@ export default function HomePage() {
               <h3>Rebuilt clean</h3>
               <div className="stack">
                 <p>
-                  A snapshot from 2026-11-11 is reference only. The factory is
-                  being rebuilt clean from it. The old front door was{" "}
-                  <code>/bb:kick-off</code> on an issue number. The new command
-                  is that same job, written fresh.
+                  A snapshot from 2026-11-11 is reference only. Its front door
+                  was <code>/bb:kick-off</code>, a Claude Code command. Bleeps
+                  uses Orca&apos;s <code>issueCommand</code> for that job. The
+                  pack stays reference.
                 </p>
                 <p>
                   Pieces the snapshot was missing, including the build loop and
                   the extra reviewers, get written fresh too. The core{" "}
-                  <code>orca.yaml</code> is still a draft.
+                  <code>orca.yaml</code> is in the repo. Installing Orca on the
+                  home server is still open.
                 </p>
               </div>
             </aside>
@@ -547,11 +553,12 @@ export default function HomePage() {
             <h3>Orca on a home server</h3>
             <div className="stack">
               <p>
-                Orca is the harness. It is MIT-licensed and free. It runs
-                Claude Code, Grok, and others in isolated worktrees, so one
-                ticket does not trample another. The shared{" "}
-                <code>orca.yaml</code> is the factory config. A second, smaller
-                file overrides it per project.
+                Orca is the harness Bleeps is built for. It is MIT-licensed
+                and free. It runs Claude Code, Grok, and others in isolated
+                worktrees, so one ticket does not trample another. The shared{" "}
+                <code>orca.yaml</code> is the factory config. A project commits{" "}
+                <code>orca.project.yaml</code> for its own install and test
+                commands.
               </p>
               <p>
                 The machine is an older computer. James reaches it by SSH from
@@ -630,14 +637,14 @@ export default function HomePage() {
           <div className="stack">
             <p>
               A primitive is the smallest block a person or an agent can pick
-              up and use again. A slash command, a skill, a role, a script, a
-              hook, a gate, a file such as <code>spec.md</code>, or the shared{" "}
-              <code>orca.yaml</code>.
+              up and use again. An Orca issue command, a skill, a role, a
+              script, a hook, a gate, a file such as <code>spec.md</code>, or
+              the shared <code>orca.yaml</code>.
             </p>
             <p>
               The catalog names each one, says who runs it, and marks it
-              planned or built. The blocks on the list are planned. This page
-              describes the line. Nothing on it is running yet.
+              planned or built. Kick-off and the setup hook are in the repo.
+              The home server is not running them yet.
             </p>
             <p>
               <a href={PRIMITIVES}>Read the primitives catalog</a>.
@@ -653,9 +660,9 @@ export default function HomePage() {
               and add the pull-request recap. A human promotes <code>main</code>.
             </p>
             <p>
-              The shared <code>orca.yaml</code>, the kick-off command, and
-              auto-merge are still ahead on the roadmap. You can shape the
-              repo today. The commands that would take a ticket are planned.
+              The shared <code>orca.yaml</code> is in the Bleeps repo. A
+              project symlinks it and adds <code>orca.project.yaml</code>.
+              Auto-merge is still ahead on the roadmap.
             </p>
             <p>
               <a href={USING}>Read how to adopt Bleeps</a>.
@@ -666,8 +673,8 @@ export default function HomePage() {
         <Section id="roadmap" index="08" title="Roadmap">
           <blockquote className="roadmap-quote">
             <p>
-              Pinned for later. The draft core <code>orca.yaml</code> is still
-              open. Ready to resume.
+              The shared <code>orca.yaml</code> is in the repo. Orca is not
+              installed on the home server yet. Ready to resume there.
             </p>
           </blockquote>
           <p className="mt-4">

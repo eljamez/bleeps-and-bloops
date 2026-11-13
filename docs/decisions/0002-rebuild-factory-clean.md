@@ -23,6 +23,6 @@ These design ideas carry forward:
 
 Write these known pack gaps fresh: the missing `spec-driven-loop` skill, and the `spec-implementer` and test/ux/backend reviewer agents.
 
-The core `orca.yaml` and the ticket slash command are also built fresh, using the pack as reference. See [Phase 1](../roadmap.md).
+The core `orca.yaml` and the ticket front door are also built fresh, using the pack as reference. See [Phase 1](../roadmap.md). [0007](0007-bleeps-is-built-for-orca.md) settles that front door: Orca's `issueCommand`, and the pack stays reference.
 
 **Revisit if:** a behavior we still need exists only in the pack, and rewriting it would lose that behavior.

@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""One check for the factory config. Fails if orca.yaml drifts or the scripts break."""
+
+from __future__ import annotations
+
+import importlib.machinery
+import importlib.util
+import json
+import os
+import stat
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+try:
+    import yaml
+except ImportError:
+    print("python3 -m pip install pyyaml", file=sys.stderr)
+    raise SystemExit(1)
+
+ROOT = Path(__file__).resolve().parent.parent
+ALLOWED = {
+    "scripts",
+    "setupAgentStartupPolicy",
+    "issueCommand",
+    "defaultTabs",
+    "environmentRecipes",
+    "worktree",
+}
+
+
+def run(args: list[str], cwd: Path, env: dict | None = None) -> subprocess.CompletedProcess[str]:
+    merged = os.environ.copy()
+    if env:
+        merged.update(env)
+    return subprocess.run(args, cwd=cwd, env=merged, text=True, capture_output=True)
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise SystemExit(message)
+
+
+def check_yaml() -> dict:
+    document = yaml.safe_load((ROOT / "orca.yaml").read_text())
+    require(isinstance(document, dict), "orca.yaml root must be a mapping")
+    extra = set(document) - ALLOWED
+    require(not extra, f"orca.yaml has keys Orca's parser drops: {sorted(extra)}")
+    require(document.get("setupAgentStartupPolicy") == "wait-for-setup", "setup policy")
+    scripts = document.get("scripts") or {}
+    require("setup" in scripts and "orca-setup" in scripts["setup"], "setup must exec orca-setup")
+    require("archive" not in scripts, "archive is intentionally omitted")
+    prompt = document.get("issueCommand") or ""
+    for needle in (
+        "{{issue}}",
+        "{{artifact_url}}",
+        "develop",
+        "main",
+        "Ready to ship",
+        "scripts/orca-verify",
+        "scripts/ship-pr",
+        "bleeps:found",
+        "Blip",
+    ):
+        require(needle in prompt, f"issueCommand missing {needle}")
+    require("scout" not in document, "schedule is an Orca automation, not an orca.yaml key")
+    shared = (document.get("worktree") or {}).get("sharedDirectories") or []
+    require("node_modules" in shared, "sharedDirectories should include node_modules")
+    example = (ROOT / "examples" / "orca.project.yaml").read_text()
+    require("install:" in example and "health_url:" in example, "example override")
+    return document
+
+
+def git(cwd: Path, *args: str) -> None:
+    result = subprocess.run(["git", *args], cwd=cwd, check=False, capture_output=True, text=True)
+    require(result.returncode == 0, f"git {args[0]} failed: {result.stderr}")
+
+
+def check_scripts(setup: str) -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        project = Path(tmp)
+        link = project / "orca.yaml"
+        link.symlink_to(ROOT / "orca.yaml")
+        (project / "orca.project.yaml").write_text(
+            "install: mkdir -p .ok && echo installed > .ok/install\n"
+            "test: echo tested > .ok/test\n"
+            "typecheck: echo typed > .ok/typecheck\n"
+        )
+        result = run(["sh", "-c", setup], project, {"ORCA_WORKTREE_PATH": str(project)})
+        require(result.returncode == 0, f"setup failed\n{result.stdout}\n{result.stderr}")
+        require((project / ".ok" / "install").read_text().strip() == "installed", "install did not run")
+
+        verify = run([str(ROOT / "scripts" / "orca-verify")], project, {"ORCA_WORKTREE_PATH": str(project)})
+        require(verify.returncode == 0, f"verify failed\n{verify.stdout}\n{verify.stderr}")
+        require((project / ".ok" / "test").exists() and (project / ".ok" / "typecheck").exists(), "verify outputs")
+
+        (project / "orca.project.yaml").write_text("test: true\ntypecheck: false\n")
+        failed = run([str(ROOT / "scripts" / "orca-verify")], project, {"ORCA_WORKTREE_PATH": str(project)})
+        require(failed.returncode != 0, "verify should fail when typecheck fails")
+
+        (project / "orca.project.yaml").write_text("nope: true\n")
+        bad = run([sys.executable, str(ROOT / "scripts" / "bleeps"), "test"], project)
+        require(bad.returncode != 0, "unknown project key should fail")
+
+        empty = Path(tmp) / "empty"
+        empty.mkdir()
+        health = run([sys.executable, str(ROOT / "scripts" / "bleeps"), "health"], empty)
+        require(health.returncode != 0 and "no health URL" in (health.stderr + health.stdout), "health without URL")
+
+        skip = Path(tmp) / "skip"
+        skip.mkdir()
+        skipped = run([sys.executable, str(ROOT / "scripts" / "bleeps"), "test"], skip)
+        require(skipped.returncode != 0 and "no test command" in skipped.stderr, "missing test command fails")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp)
+        git(repo, "init", "-q")
+        git(repo, "config", "user.email", "check@example.com")
+        git(repo, "config", "user.name", "check")
+        (repo / "README").write_text("ok\n")
+        git(repo, "add", "README")
+        git(repo, "commit", "-q", "-m", "init")
+        git(repo, "branch", "-M", "develop")
+        clean = run([sys.executable, str(ROOT / "scripts" / "guardrails")], repo)
+        require(clean.returncode == 0, f"guardrails clean failed\n{clean.stdout}\n{clean.stderr}")
+        git(repo, "checkout", "-q", "-b", "feature")
+        auth = repo / "auth"
+        auth.mkdir()
+        (auth / "session.ts").write_text("export {}\n")
+        git(repo, "add", "auth/session.ts")
+        git(repo, "commit", "-q", "-m", "touch auth")
+        hit = run([sys.executable, str(ROOT / "scripts" / "guardrails")], repo)
+        require(hit.returncode == 2, f"guardrails should exit 2\n{hit.stdout}")
+        require("auth/session.ts" in hit.stdout, hit.stdout)
+
+    ship = run(
+        [sys.executable, str(ROOT / "scripts" / "ship-pr"), "tick", "--pr", "https://example.invalid/1", "--risk", "low", "--dry-run"],
+        ROOT,
+    )
+    require(ship.returncode == 2, "ship-pr should refuse")
+    body = json.loads(ship.stdout)
+    require(body["wouldMerge"] is False and body["phase"] == "unimplemented", body)
+
+
+def check_scout() -> None:
+    scout = ROOT / "scripts" / "bleeps-scout"
+    loader = importlib.machinery.SourceFileLoader("bleeps_scout", str(scout))
+    spec = importlib.util.spec_from_loader("bleeps_scout", loader)
+    require(spec is not None, "scout import")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["bleeps_scout"] = module
+    loader.exec_module(module)
+    kept = module.drop_known(
+        [module.Finding(key="tests:fail", title="tests failing", evidence="", risk="low")],
+        ["Finding: tests:fail\n"],
+    )
+    require(kept == [], "open bleeps:found issue should dedupe")
+    chosen = module.choose([7, 8], [module.Finding("debt:todo", "TODO/FIXME debt", "", "low")], 2, 1)
+    require(len(chosen) == 1 and chosen[0] == ("friction", 7), chosen)
+    require(module.scout_cap({}) == 2, "default cap")
+    require(module.scout_cap({"scout_cap": "2"}) == 2, "cap 2")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        project = Path(tmp)
+        (project / "orca.project.yaml").write_text("proactive: off\n")
+        precheck = run([sys.executable, str(scout), "precheck"], project)
+        require(precheck.returncode == 1, "precheck should skip when proactive is off")
+        stopped = run([sys.executable, str(scout)], project)
+        require(stopped.returncode == 0 and "proactive is off" in stopped.stdout, stopped.stdout)
+
+        (project / "orca.project.yaml").write_text(
+            "proactive: on\n"
+            "scout_cap: 1\n"
+            "scout_scans: tests, debt\n"
+            "test: test -f .once && exit 0 || (touch .once && exit 1)\n"
+        )
+        auth = project / "auth"
+        auth.mkdir()
+        (auth / "session.ts").write_text("FIXME sign-off\n")
+        scanned = run([sys.executable, str(scout), "--dry-run"], project)
+        require(scanned.returncode == 0, f"scout failed\n{scanned.stdout}\n{scanned.stderr}")
+        require("finding tests:flaky" in scanned.stdout, scanned.stdout)
+        require("finding debt:todo risk=high" in scanned.stdout, scanned.stdout)
+        require("would start 1 of cap 1" in scanned.stdout, scanned.stdout)
+        require("gh issue create" not in scanned.stdout, "dry-run must not file")
+
+        (project / "orca.project.yaml").write_text("proactive: on\nscout_cap: 99\n")
+        huge = run([sys.executable, str(scout), "--dry-run"], project)
+        require(huge.returncode != 0, "cap above 20 should fail")
+
+        scheduled = run([sys.executable, str(scout), "schedule"], project)
+        require(scheduled.returncode == 0, scheduled.stderr)
+        require("orca automations create" in scheduled.stdout, scheduled.stdout)
+        require("--trigger daily" in scheduled.stdout, scheduled.stdout)
+        require("--precheck" in scheduled.stdout, scheduled.stdout)
+        installed = run([sys.executable, str(scout), "schedule", "--install"], project)
+        require(installed.returncode == 2, "install without a provider should fail")
+
+        gap = Path(tmp) / "web"
+        gap.mkdir()
+        (gap / "site").mkdir()
+        (gap / "site" / "package.json").write_text('{"dependencies":{"next":"1"}}\n')
+        (gap / "orca.project.yaml").write_text(
+            "proactive: on\nscout_scans: coverage\ntest: true\n"
+        )
+        covered = run([sys.executable, str(scout), "--dry-run"], gap)
+        require(covered.returncode == 0, covered.stderr)
+        require("finding coverage:e2e" in covered.stdout, covered.stdout)
+        require("coverage:none" not in covered.stdout, covered.stdout)
+        role = ROOT / "agents" / "blip" / "ROLE.md"
+        require(role.exists(), "Blip role")
+        for name in ("onboard", "pipeline", "coverage"):
+            require((ROOT / "agents" / "blip" / "skills" / name / "SKILL.md").exists(), name)
+
+
+def main() -> int:
+    for name in ("orca-setup", "orca-verify", "bleeps", "guardrails", "ship-pr", "bleeps-scout"):
+        path = ROOT / "scripts" / name
+        require(path.stat().st_mode & stat.S_IXUSR, f"{name} is not executable")
+    document = check_yaml()
+    check_scripts(document["scripts"]["setup"])
+    check_scout()
+    print("ok")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

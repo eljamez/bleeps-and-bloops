@@ -34,10 +34,8 @@ No secrets, tokens, or private data.
 
 ## Daily sweep
 
-A Grok Bot routine, or a scheduled job if the bot is the wrong place, runs once a day. This starts after the review layer is in place. See [roadmap](roadmap.md).
+The scout is the sweep. See [0008](decisions/0008-bleeps-is-proactive.md). It runs on the Orca automation schedule, daily at 09:00 unless the project file says otherwise.
 
-Eligible issues are open, labeled `friction`, and not labeled `friction-skipped`.
+Eligible issues are open, labeled `friction`, and not labeled `friction-skipped`. The scout does not open a second issue for the same gap. It starts the normal pipeline for them, under the same cap as `bleeps:found` issues.
 
-The sweep hands that list to one agent. The agent fixes what it can in a normal PR into `develop`, and uses [ship-pr](ship-pr.md) once that script exists. When an issue needs James, the agent comments and adds `friction-skipped` instead of guessing.
-
-The sweep does not open a second issue for the same gap, and it does not merge to `main`.
+The agent fixes what it can in a pull request into `develop`, and uses [ship-pr](ship-pr.md). When an issue needs James, the agent comments and adds `friction-skipped` instead of guessing. The sweep does not merge to `main`.

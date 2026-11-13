@@ -1,0 +1,569 @@
+#!/usr/bin/env python3
+"""Scheduled scout. Scans, files bleeps:found issues, starts the normal pipeline.
+
+Orca does not store a schedule in orca.yaml. Register the run with
+`bleeps-scout schedule`, which prints `orca automations create`.
+The project keys live in orca.project.yaml. Orca does not parse that file.
+
+A missing `proactive` key means on. `off` skips the run.
+`scout_cap` defaults to 2 and must be 0-20. That cap is open issues
+labelled bleeps:started, so a scout cannot pile on pull requests.
+
+ponytail: tests are flaky only if a second immediate run passes. No history.
+Debt is one issue for the whole tree, not one per comment. Upgrade path:
+split debt by directory if that single issue gets too big to work.
+"""
+
+from __future__ import annotations
+
+import importlib.machinery
+import importlib.util
+import json
+import subprocess
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+
+def load_script(name: str, filename: str):
+    path = Path(__file__).resolve().parent / filename
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    spec = importlib.util.spec_from_loader(name, loader)
+    if spec is None:
+        raise SystemExit(f"cannot load scripts/{filename}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    loader.exec_module(module)
+    return module
+
+
+def bleeps():
+    return load_script("bleeps_cli", "bleeps")
+
+DEFAULT_SCANS = ("tests", "ci", "lint", "advisories", "debt", "friction", "coverage")
+SCAN_NAMES = DEFAULT_SCANS + ("errors",)
+SKIP_DIRS = {".git", "node_modules", ".next", "dist", "coverage", "out"}
+EVIDENCE_LIMIT = 4000
+
+
+@dataclass
+class Finding:
+    key: str
+    title: str
+    evidence: str
+    risk: str
+    paths: tuple[str, ...] = ()
+
+
+def proactive_enabled(project: dict[str, str]) -> bool:
+    value = project.get("proactive", "on")
+    if value not in {"on", "off"}:
+        raise SystemExit(f"proactive must be on or off, got {value!r}")
+    return value == "on"
+
+
+def scout_cap(project: dict[str, str]) -> int:
+    raw = project.get("scout_cap", "2")
+    if not raw.isdigit():
+        raise SystemExit(f"scout_cap must be an integer 0-20, got {raw!r}")
+    cap = int(raw)
+    if cap > 20:
+        raise SystemExit("scout_cap must be an integer 0-20")
+    return cap
+
+
+def scout_scans(project: dict[str, str]) -> list[str]:
+    raw = project.get("scout_scans")
+    if not raw:
+        names = list(DEFAULT_SCANS)
+    else:
+        names = [part.strip() for part in raw.split(",") if part.strip()]
+    unknown = [name for name in names if name not in SCAN_NAMES]
+    if unknown:
+        raise SystemExit(f"unknown scout scan {unknown[0]!r}")
+    if project.get("error_tracking") and "errors" not in names and "scout_scans" not in project:
+        names.append("errors")
+    return names
+
+
+def guardrails():
+    return load_script("bleeps_guardrails", "guardrails")
+
+
+def risk_for(paths: list[str]) -> str:
+    module = guardrails()
+    for path in paths:
+        if module.matches(path):
+            return "high"
+    return "low"
+
+
+def run_shell(command: str, root: Path, timeout: int = 180) -> tuple[int, str]:
+    try:
+        result = subprocess.run(
+            ["sh", "-c", command],
+            cwd=root,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+        )
+        output = result.stdout + result.stderr
+    except subprocess.TimeoutExpired as error:
+        output = (error.stdout or "") + (error.stderr or "")
+        if isinstance(output, bytes):
+            output = output.decode("utf-8", "replace")
+        return 124, output[-EVIDENCE_LIMIT:]
+    return result.returncode, output[-EVIDENCE_LIMIT:]
+
+
+def test_finding(root: Path, commands: list[str]) -> Finding | None:
+    command = " && ".join(commands)
+    first, out1 = run_shell(command, root)
+    if first == 0:
+        return None
+    second, out2 = run_shell(command, root)
+    if second == 0:
+        return Finding(
+            key="tests:flaky",
+            title="flaky tests",
+            evidence=f"command: {command}\nfirst exit: {first}\nsecond exit: 0\n\n{out1}",
+            risk="low",
+        )
+    return Finding(
+        key="tests:fail",
+        title="tests failing",
+        evidence=f"command: {command}\nexit: {second}\n\n{out2}",
+        risk="low",
+    )
+
+
+def debt_finding(root: Path) -> Finding | None:
+    hits: list[str] = []
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        if any(part in SKIP_DIRS for part in path.parts):
+            continue
+        if path.stat().st_size > 1_000_000:
+            continue
+        try:
+            text = path.read_text(errors="ignore")
+        except OSError:
+            continue
+        for lineno, line in enumerate(text.splitlines(), 1):
+            if "TODO" in line or "FIXME" in line:
+                hits.append(f"{path.relative_to(root)}:{lineno}")
+                break
+    if not hits:
+        return None
+    sample = "\n".join(hits[:20])
+    paths = [hit.split(":", 1)[0] for hit in hits]
+    return Finding(
+        key="debt:todo",
+        title="TODO/FIXME debt",
+        evidence=f"{len(hits)} files mention TODO or FIXME\n{sample}",
+        risk=risk_for(paths),
+        paths=tuple(paths),
+    )
+
+
+def drop_known(findings: list[Finding], bodies: list[str]) -> list[Finding]:
+    known: set[str] = set()
+    for body in bodies:
+        for line in body.splitlines():
+            if line.startswith("Finding: "):
+                known.add(line.split(" ", 1)[1].strip())
+    return [finding for finding in findings if finding.key not in known]
+
+
+def choose(friction: list[int], findings: list[Finding], cap: int, in_flight: int) -> list[tuple[str, object]]:
+    slots = max(0, cap - in_flight)
+    queue: list[tuple[str, object]] = [("friction", number) for number in friction]
+    queue.extend(("finding", finding) for finding in findings)
+    return queue[:slots]
+
+
+def issue_body(finding: Finding) -> str:
+    return (
+        "<!-- bleeps-scout -->\n"
+        f"Finding: {finding.key}\n\n"
+        f"## Evidence\n\n{finding.evidence.strip()}\n\n"
+        f"## Risk\n\n{finding.risk}\n\n"
+        "High means a guardrail path (auth, billing, payments, data deletion, "
+        "or migrations). The pipeline still starts. It waits for James and "
+        "does not auto-merge.\n"
+    )
+
+
+def automation_command(root: Path, project: dict[str, str]) -> str:
+    schedule = project.get("scout_schedule", "daily")
+    when = project.get("scout_time", "09:00")
+    provider = project.get("scout_provider", "")
+    script = Path(__file__).resolve()
+    trigger = f"--trigger {schedule}"
+    if schedule in {"daily", "weekdays", "weekly"}:
+        trigger += f" --time {when}"
+    provider_flag = f" --provider {provider}" if provider else ""
+    prompt = (
+        "Run scripts/bleeps-scout in this checkout. "
+        "Do not scan a second way. It files bleeps:found issues and starts "
+        "the normal pipeline up to the cap."
+    )
+    return (
+        "orca automations create \\\n"
+        '  --name "Bleeps scout" \\\n'
+        f"  {trigger}{provider_flag} \\\n"
+        f"  --prompt {json.dumps(prompt)} \\\n"
+        f"  --precheck {json.dumps(f'{script} precheck')} \\\n"
+        "  --workspace active \\\n"
+        "  --setup skip"
+    )
+
+
+def coverage_findings(root: Path, project: dict[str, str]) -> list[Finding]:
+    keys = ("test", "test_unit", "test_integration", "test_e2e")
+    findings: list[Finding] = []
+    if not any(project.get(key) for key in keys):
+        findings.append(
+            Finding(
+                key="coverage:none",
+                title="no test command",
+                evidence="orca.project.yaml sets none of test, test_unit, test_integration, test_e2e.",
+                risk="low",
+            )
+        )
+    web = _looks_like_web(root)
+    e2e_present = project.get("test_e2e") or any(
+        (root / name).exists()
+        for name in ("playwright.config.ts", "playwright.config.js", "site/playwright.config.ts")
+    )
+    if web and not e2e_present:
+        findings.append(
+            Finding(
+                key="coverage:e2e",
+                title="web app has no e2e tests",
+                evidence="A package.json looks like a web app and test_e2e is unset. Blip scaffolds Playwright.",
+                risk="low",
+            )
+        )
+    return findings
+
+
+def _looks_like_web(root: Path) -> bool:
+    for relative in ("package.json", "site/package.json"):
+        path = root / relative
+        if not path.exists():
+            continue
+        text = path.read_text(errors="ignore")[:4000]
+        if any(name in text for name in ('"next"', '"react"', '"vue"', '"svelte"')):
+            return True
+    return False
+
+
+def collect(root: Path, project: dict[str, str], scans: list[str], dry_run: bool) -> tuple[list[Finding], list[int]]:
+    findings: list[Finding] = []
+    friction: list[int] = []
+    cli = bleeps()
+    if "tests" in scans:
+        commands = cli.test_commands(root)
+        if commands:
+            found = test_finding(root, commands)
+            if found:
+                findings.append(found)
+        else:
+            print("skipped: tests (no test command)", file=sys.stderr)
+    if "lint" in scans:
+        command = cli.resolve(root, "typecheck")
+        if command:
+            code, output = run_shell(command, root)
+            if code != 0:
+                findings.append(
+                    Finding(
+                        key="lint:typecheck",
+                        title="typecheck failing",
+                        evidence=f"command: {command}\nexit: {code}\n\n{output}",
+                        risk="low",
+                    )
+                )
+        else:
+            print("skipped: lint (no typecheck command)", file=sys.stderr)
+    if "coverage" in scans:
+        findings.extend(coverage_findings(root, project))
+    if "debt" in scans:
+        found = debt_finding(root)
+        if found:
+            findings.append(found)
+    if "ci" in scans:
+        if dry_run:
+            print("skipped: ci (dry-run)", file=sys.stderr)
+        else:
+            findings.extend(ci_findings())
+    if "advisories" in scans:
+        if dry_run:
+            print("skipped: advisories (dry-run)", file=sys.stderr)
+        else:
+            found = advisory_finding(root)
+            if found:
+                findings.append(found)
+    if "friction" in scans:
+        if dry_run:
+            print("skipped: friction (dry-run)", file=sys.stderr)
+        else:
+            friction = friction_issues()
+    if "errors" in scans:
+        command = project.get("error_tracking")
+        if not command:
+            print("skipped: errors (not configured)", file=sys.stderr)
+        elif dry_run:
+            print("skipped: errors (dry-run)", file=sys.stderr)
+        else:
+            code, output = run_shell(command, root)
+            if code != 0 or output.strip():
+                findings.append(
+                    Finding(
+                        key="errors:configured",
+                        title="error tracking",
+                        evidence=f"command: {command}\nexit: {code}\n\n{output}",
+                        risk="low",
+                    )
+                )
+    return findings, friction
+
+
+def gh_json(args: list[str]) -> list | dict | None:
+    if subprocess.run(["sh", "-c", "command -v gh"], capture_output=True).returncode != 0:
+        print("gh is not on PATH", file=sys.stderr)
+        return None
+    result = subprocess.run(["gh", *args], text=True, capture_output=True)
+    if result.returncode != 0:
+        print(result.stderr.strip(), file=sys.stderr)
+        return None
+    if not result.stdout.strip():
+        return []
+    return json.loads(result.stdout)
+
+
+def ci_findings() -> list[Finding]:
+    runs = gh_json(
+        ["run", "list", "--limit", "15", "--json", "databaseId,conclusion,url,name,headBranch,status"]
+    )
+    if not isinstance(runs, list):
+        return []
+    failed = [run for run in runs if run.get("conclusion") == "failure"]
+    if not failed:
+        return []
+    lines = [f"{run.get('name')} {run.get('headBranch')} {run.get('url')}" for run in failed]
+    return [
+        Finding(
+            key="ci:fail",
+            title="CI failing",
+            evidence="\n".join(lines),
+            risk="low",
+        )
+    ]
+
+
+def advisory_finding(root: Path) -> Finding | None:
+    lock = None
+    prefix = ""
+    if (root / "package-lock.json").exists():
+        lock = root / "package-lock.json"
+    elif (root / "site" / "package-lock.json").exists():
+        lock = root / "site" / "package-lock.json"
+        prefix = " --prefix site"
+    if lock is None:
+        print("skipped: advisories (no package-lock.json)", file=sys.stderr)
+        return None
+    code, output = run_shell(f"npm audit --json{prefix}", root, timeout=120)
+    if code == 124:
+        print("skipped: advisories (timed out)", file=sys.stderr)
+        return None
+    try:
+        data = json.loads(output)
+    except json.JSONDecodeError:
+        if code == 0:
+            return None
+        return Finding(
+            key="advisories:npm",
+            title="dependency advisories",
+            evidence=output,
+            risk="low",
+        )
+    vulns = data.get("metadata", {}).get("vulnerabilities", {})
+    count = sum(int(vulns.get(level, 0) or 0) for level in ("high", "critical", "moderate", "low"))
+    if count == 0:
+        return None
+    return Finding(
+        key="advisories:npm",
+        title="dependency advisories",
+        evidence=json.dumps(vulns),
+        risk="low",
+    )
+
+
+def friction_issues() -> list[int]:
+    issues = gh_json(
+        ["issue", "list", "--state", "open", "--label", "friction", "--limit", "50", "--json", "number,labels"]
+    )
+    if not isinstance(issues, list):
+        return []
+    numbers = []
+    for issue in issues:
+        labels = {label.get("name") for label in issue.get("labels") or []}
+        if "friction-skipped" in labels:
+            continue
+        numbers.append(int(issue["number"]))
+    return numbers
+
+
+def open_bodies() -> list[str]:
+    issues = gh_json(
+        ["issue", "list", "--state", "open", "--label", "bleeps:found", "--limit", "50", "--json", "body"]
+    )
+    if not isinstance(issues, list):
+        return []
+    return [issue.get("body") or "" for issue in issues]
+
+
+def in_flight() -> int:
+    issues = gh_json(
+        ["issue", "list", "--state", "open", "--label", "bleeps:started", "--limit", "50", "--json", "number"]
+    )
+    if not isinstance(issues, list):
+        return 0
+    return len(issues)
+
+
+def ensure_labels() -> None:
+    for name, color, description in (
+        ("bleeps:found", "5319E7", "Filed by the Bleeps scout"),
+        ("bleeps:started", "0E8A16", "Scout started the pipeline for this issue"),
+    ):
+        subprocess.run(
+            ["gh", "label", "create", name, "--color", color, "--description", description, "--force"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+
+def file_issue(finding: Finding) -> int | None:
+    result = subprocess.run(
+        ["gh", "issue", "create", "--title", finding.title, "--label", "bleeps:found", "--body-file", "-"],
+        input=issue_body(finding),
+        text=True,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        print(result.stderr.strip(), file=sys.stderr)
+        return None
+    url = result.stdout.strip()
+    print(url)
+    number = url.rstrip("/").rsplit("/", 1)[-1]
+    return int(number) if number.isdigit() else None
+
+
+def start_pipeline(number: int, dry_run: bool) -> None:
+    command = [
+        "orca",
+        "worktree",
+        "create",
+        "--name",
+        f"bleeps-{number}",
+        "--issue",
+        str(number),
+        "--base-branch",
+        "develop",
+        "--run-hooks",
+        "--setup",
+        "run",
+        "--json",
+    ]
+    if dry_run:
+        print("would run: " + " ".join(command))
+        return
+    if subprocess.run(["sh", "-c", "command -v orca"], capture_output=True).returncode != 0:
+        print("orca is not on PATH; issue filed, worktree not started", file=sys.stderr)
+        print("would run: " + " ".join(command))
+        return
+    result = subprocess.run(command, text=True, capture_output=True)
+    if result.returncode != 0:
+        print(result.stderr.strip(), file=sys.stderr)
+        return
+    subprocess.run(
+        ["gh", "issue", "edit", str(number), "--add-label", "bleeps:started"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    print(f"started #{number}")
+
+
+def cmd_schedule(root: Path, install: bool) -> int:
+    project = bleeps().load_project(root)
+    if not proactive_enabled(project):
+        print("proactive is off")
+        return 0
+    print(automation_command(root, project))
+    if not install:
+        if not project.get("scout_provider"):
+            print("set scout_provider before --install", file=sys.stderr)
+        return 0
+    if not project.get("scout_provider"):
+        print("set scout_provider before --install", file=sys.stderr)
+        return 2
+    if subprocess.run(["sh", "-c", "command -v orca"], capture_output=True).returncode != 0:
+        print("orca is not on PATH", file=sys.stderr)
+        return 2
+    command = automation_command(root, project).replace(" \\\n", " ")
+    result = subprocess.run(["sh", "-c", command], cwd=root)
+    return result.returncode
+
+
+def main(argv: list[str]) -> int:
+    root = Path.cwd()
+    project = bleeps().load_project(root)
+    if argv[:1] == ["precheck"]:
+        return 0 if proactive_enabled(project) else 1
+    if argv[:1] == ["schedule"]:
+        return cmd_schedule(root, "--install" in argv[1:])
+    dry_run = "--dry-run" in argv
+    if not proactive_enabled(project):
+        print("proactive is off")
+        return 0
+    cap = scout_cap(project)
+    scans = scout_scans(project)
+    findings, friction = collect(root, project, scans, dry_run)
+    if not dry_run:
+        findings = drop_known(findings, open_bodies())
+    for finding in findings:
+        print(f"finding {finding.key} risk={finding.risk}")
+        if dry_run:
+            print(issue_body(finding))
+    if dry_run:
+        started = choose(friction, findings, cap, 0)
+        print(f"would start {len(started)} of cap {cap}")
+        return 0
+    if subprocess.run(["sh", "-c", "command -v gh"], capture_output=True).returncode != 0:
+        print("gh is not on PATH; nothing filed", file=sys.stderr)
+        return 2
+    ensure_labels()
+    filed: list[tuple[Finding, int]] = []
+    for finding in findings:
+        number = file_issue(finding)
+        if number is not None:
+            filed.append((finding, number))
+    queue = choose(friction, [finding for finding, _number in filed], cap, in_flight())
+    numbers = {finding.key: number for finding, number in filed}
+    for kind, item in queue:
+        if kind == "friction":
+            start_pipeline(int(item), dry_run=False)
+        else:
+            number = numbers.get(item.key)  # type: ignore[union-attr]
+            if number is not None:
+                start_pipeline(number, dry_run=False)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
