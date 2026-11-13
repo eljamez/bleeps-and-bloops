@@ -22,7 +22,7 @@ version: 2
 
 groups:
   - id: command
-    name: Slash command
+    name: Issue command
   - id: skill
     name: Skill
   - id: agent
@@ -40,22 +40,28 @@ primitives:
   - id: kick-off
     group: command
     name: Kick-off command
-    summary: Slash command that takes a GitHub issue number and starts the ticket.
+    summary: >
+      Orca issueCommand. Orca sends it when a workspace launches from a
+      linked GitHub issue.
     inputs:
-      - A GitHub issue number
+      - A linked GitHub issue. Orca substitutes {{issue}} and {{artifact_url}}.
     outputs:
       - The ticket run, starting with the spec folder
-    invoked_by: A person
+    invoked_by: Orca, when a person launches a workspace from the issue
     when: Flow step 1, once a GitHub issue exists.
-    status: planned
+    status: built
     lives: >
-      Planned for the shared orca.yaml. Not in this repo.
+      orca.yaml issueCommand. The home server does not have Orca installed yet.
       The 2026-11-11 context pack command is reference only.
+    code:
+      - orca.yaml
     docs:
       - docs/flow.md
       - docs/roadmap.md
+      - docs/home-server.md
     adrs:
       - docs/decisions/0002-rebuild-factory-clean.md
+      - docs/decisions/0007-bleeps-is-built-for-orca.md
 
   - id: build-fix-loop
     group: skill
@@ -125,7 +131,11 @@ primitives:
     invoked_by: The agent shepherding the pull request
     when: After the pull request is open, through layered review, the gates, and the health check.
     status: planned
-    lives: Design in docs/ship-pr.md. No skill file and no script yet.
+    lives: >
+      Judgment in docs/ship-pr.md. scripts/ship-pr is a stub that refuses
+      to merge. The procedure is not built.
+    code:
+      - scripts/ship-pr
     docs:
       - docs/ship-pr.md
     adrs:
@@ -158,30 +168,88 @@ primitives:
     name: Grok Bot watcher
     summary: >
       Long-running watch for the PR queue, failing CI, and review nudges.
-      Later, the daily friction sweep can live here.
+      The daily friction sweep is the scout, not this bot.
     inputs:
       - The pull request queue, CI results, and review state
-      - Later, open issues labeled friction
     outputs:
       - Nudges on the queue, failing CI, and reviews
-      - Later, one list of friction issues handed to an agent
     invoked_by: Nobody starts it per ticket. It runs as a watch.
-    when: >
-      Beside flow step 7. The friction sweep starts after the review layer
-      is in place.
+    when: Beside flow step 7. The friction sweep is the scout.
     status: planned
     lives: Described in docs/architecture.md. No bot is running.
     docs:
       - docs/architecture.md
       - docs/friction-log.md
-    adrs: []
+    adrs:
+      - docs/decisions/0008-bleeps-is-proactive.md
+
+  - id: blip
+    group: agent
+    name: Blip
+    summary: >
+      Testing agent. Owns unit, integration, and end-to-end suites.
+      Green tests are a hard gate for auto-merge.
+    inputs:
+      - The project stack and orca.project.yaml test commands
+      - The ticket diff, during the build
+      - Scout findings for coverage gaps and flakes
+    outputs:
+      - Scaffolded suites on onboarding
+      - Tests for the change, and test tasks in tasks.md
+      - A verify.md record of unit, integration, and end-to-end
+    invoked_by: >
+      The pipeline agent delegates test work to a fresh session that has
+      read agents/blip/ROLE.md. issueCommand names that file.
+    when: >
+      Onboarding, during flow steps 3 and 4, and when the scout files a
+      coverage or flake finding.
+    status: built
+    lives: >
+      agents/blip. Orca has no agent-role key, so this directory is the role.
+      The home server is not running Orca yet.
+    code:
+      - agents/blip
+    docs:
+      - agents/blip/ROLE.md
+      - docs/flow.md
+    adrs:
+      - docs/decisions/0009-testing-is-a-gate-blip-owns-tests.md
+
+  - id: scout
+    group: script
+    name: Scout
+    summary: >
+      Scheduled scan that files bleeps:found issues and starts the normal
+      pipeline, capped so it cannot flood pull requests.
+    inputs:
+      - orca.project.yaml proactive, scans, schedule, and cap
+      - The worktree and, when gh is available, CI, advisories, and friction issues
+    outputs:
+      - GitHub issues labelled bleeps:found, with evidence
+      - Orca worktrees for those issues, up to the cap
+    invoked_by: An Orca automation. A person can run bleeps scout.
+    when: On the project schedule. Default daily at 09:00. Flow step 0.
+    status: built
+    lives: >
+      scripts/bleeps-scout. The schedule is an Orca automation, not an
+      orca.yaml key. Register it with bleeps scout schedule.
+    code:
+      - scripts/bleeps-scout
+    docs:
+      - docs/decisions/0008-bleeps-is-proactive.md
+      - docs/home-server.md
+      - docs/friction-log.md
+    adrs:
+      - docs/decisions/0008-bleeps-is-proactive.md
+      - docs/decisions/0009-testing-is-a-gate-blip-owns-tests.md
 
   - id: bleeps
     group: script
     name: bleeps CLI
     summary: >
       One CLI agents use to prove a change with tests, typecheck, preview,
-      and the deployed SHA. A green check is not evidence.
+      and the deployed SHA. A missing test command fails. A green check is
+      not deployed proof.
     inputs:
       - The project
       - health takes a commit SHA, and optionally waits
@@ -190,16 +258,18 @@ primitives:
       - A preview URL
       - A health pass only when the deployed SHA matches
     invoked_by: >
-      Agents. The Orca verification hook will call test and typecheck.
-      ship-pr will call health after a merge.
+      Agents. scripts/orca-verify calls test and typecheck.
+      The setup hook calls install. ship-pr will call health after a merge.
     when: >
-      test and typecheck during verification (Phase 1).
+      test and typecheck during verification.
       preview and health after the merge work exists (Phase 3).
-    status: planned
+    status: built
     lives: >
-      Design in docs/control-cli.md. It will live in this repo.
+      scripts/bleeps. install, doctor, test, and typecheck run.
+      preview and health refuse.
       Projects symlink it the same way they symlink the shared orca.yaml.
-      The command is not implemented.
+    code:
+      - scripts/bleeps
     docs:
       - docs/control-cli.md
       - docs/ship-pr.md
@@ -207,31 +277,47 @@ primitives:
     adrs:
       - docs/decisions/0001-shared-factory-config.md
       - docs/decisions/0005-adopt-kody-inspired-practices.md
+      - docs/decisions/0007-bleeps-is-built-for-orca.md
+      - docs/decisions/0009-testing-is-a-gate-blip-owns-tests.md
 
   - id: orca-hooks
     group: hook
     name: Orca worktree hooks
     summary: >
-      Shared orca.yaml. Setup hook installs deps on worktree create.
-      Verification hook runs tests and typecheck and blocks the PR on failure.
+      Shared orca.yaml. scripts.setup installs dependencies when Orca creates
+      a worktree. scripts/orca-verify runs tests and typecheck. Orca has no
+      verification key. A required GitHub check is what can block the pull request.
     inputs:
       - A new worktree, for the setup hook
-      - The change under test, for the verification hook
+      - The change under test, for scripts/orca-verify
     outputs:
       - Dependencies installed in the worktree
-      - A test and typecheck result that blocks the pull request on failure
-    invoked_by: Orca, not a person
-    when: Setup runs when a worktree is created. Verification runs before a pull request can pass.
-    status: planned
+      - A test and typecheck result
+    invoked_by: >
+      Orca runs setup. The kick-off prompt runs scripts/orca-verify.
+      A person can run either.
+    when: >
+      Setup runs when a worktree is created. Verification runs before a pull
+      request is opened, and in CI when the check is required.
+    status: built
     lives: >
-      The shared orca.yaml, which is not written yet.
-      A smaller per-project file overrides it.
+      orca.yaml, scripts/orca-setup, and scripts/orca-verify.
+      Projects commit orca.project.yaml. Example: examples/orca.project.yaml.
+      The home server does not have Orca installed yet.
+    code:
+      - orca.yaml
+      - scripts/orca-setup
+      - scripts/orca-verify
+      - orca.project.yaml
+      - examples/orca.project.yaml
     docs:
       - docs/architecture.md
       - docs/roadmap.md
+      - docs/home-server.md
     adrs:
       - docs/decisions/0001-shared-factory-config.md
       - docs/decisions/0002-rebuild-factory-clean.md
+      - docs/decisions/0007-bleeps-is-built-for-orca.md
 
   - id: guardrails
     group: gate
@@ -249,7 +335,10 @@ primitives:
     status: planned
     lives: >
       The list is settled in 0003 and 0005.
-      No hook or script enforces it yet.
+      scripts/guardrails reports matching paths and exits 2.
+      It does not block a merge. ship-pr is still a stub.
+    code:
+      - scripts/guardrails
     docs:
       - docs/flow.md
       - docs/ship-pr.md
