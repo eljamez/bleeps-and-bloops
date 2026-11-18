@@ -3,6 +3,7 @@
 
 install: npm ci --prefix site
 test: python3 scripts/check-orca
+ticket_sources: github
 proactive: on
 scout_cap: 2
 scout_schedule: daily

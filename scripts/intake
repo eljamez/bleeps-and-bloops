@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+"""One intake path. Fetch a ticket, post status, or link the pull request.
+
+Every source becomes the same ticket, then scripts/kick-off. See docs/tickets.md.
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import ticketlib
+
+raise SystemExit(ticketlib.intake_main(sys.argv[1:]))

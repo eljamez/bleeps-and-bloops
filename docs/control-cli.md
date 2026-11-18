@@ -31,3 +31,5 @@ Ship-pr's post-merge proof calls `health`. See [ship-pr](ship-pr.md).
 ## Where it lands
 
 `scripts/orca-verify` runs `test` and `typecheck`. Phase 3 uses `preview` and `health --sha` after merge. See [roadmap](roadmap.md).
+
+Ticket intake is `scripts/intake`, also `bleeps intake`. It is not a proof command. See [tickets](tickets.md).

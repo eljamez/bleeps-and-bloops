@@ -6,7 +6,7 @@ These are product-shaped choices already made, usually a no. Each record has a r
 
 [Flow](../flow.md) and [architecture](../architecture.md) describe how Bleeps works today. This folder records what we already settled.
 
-A record is about half a page: context, the decision, consequences, and a revisit-if. Copy [0000-template.md](0000-template.md) to the next unused number (`0012` is next). Do not renumber old files.
+A record is about half a page: context, the decision, consequences, and a revisit-if. Copy [0000-template.md](0000-template.md) to the next unused number (`0013` is next). Do not renumber old files.
 
 Write a record when the next agent would otherwise re-propose the same thing. Skip layout tweaks, library picks the code already encodes, and notes that a PR shipped.
 
@@ -25,3 +25,4 @@ When a later record changes a decision, mark the old one `superseded by NNNN`. L
 - [0009: Testing is a gate; Blip owns tests](0009-testing-is-a-gate-blip-owns-tests.md) — green tests are required to auto-merge. Blip owns the suites.
 - [0010: Bleeps runs the crew; Bloops reflects](0010-bleeps-runs-the-crew-bloops-reflects.md) — Bleeps orchestrates. Bloops merges and reflects. The writer does not certify.
 - [0011: Scripts first](0011-scripts-first.md) — repeated work is a script. Bloops proposes the next one.
+- [0012: One ticket, many sources](0012-one-ticket-many-sources.md) — GitHub, GitHub Projects, Jira, Discord, and Linear share one intake path. GitHub access stays required.

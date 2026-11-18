@@ -32,7 +32,7 @@ python3 scripts/bleeps-scout schedule --install
 
 That prints, then creates, an `orca automations create` run. Default is daily at 09:00 in the server's timezone. The precheck skips the run when `proactive` is `off`. A missing `proactive` key means on.
 
-`python3 scripts/bleeps-scout --dry-run` prints findings and does not file them. A real run files `bleeps:found` issues and starts at most `scout_cap` pipelines (default 2) with `orca worktree create --issue`. Guardrail findings still wait for James.
+`python3 scripts/bleeps-scout --dry-run` prints findings and does not file them. When `ticket_sources` lists another source, the dry run also prints `would post finding to <source>`. A real run files `bleeps:found` issues, posts each new finding to those sources, and starts at most `scout_cap` pipelines (default 2) with `orca worktree create --issue`. A source that fails is skipped. The GitHub issue stays. Open friction issues are not copied. Guardrail findings still wait for James.
 
 ## Blip
 
@@ -40,7 +40,21 @@ Test work is delegated to Blip: [agents/blip/ROLE.md](../agents/blip/ROLE.md). `
 
 ## Start a ticket
 
-Launch a workspace from a GitHub issue. Orca substitutes `{{issue}}` and `{{artifact_url}}` into `issueCommand`. That prompt is the kick-off. It writes the spec folder, builds in the worktree, asks for a fresh `verify.md`, and opens a pull request against `develop`.
+Connect the ticket sources in `orca.project.yaml`, then prove the machine can see them:
+
+```bash
+python3 scripts/check-ticket-sources
+```
+
+That fails when GitHub access is missing, even if the tickets live in Jira, Discord, Linear, or a GitHub Project. `--config-only` checks the file and does not call the network.
+
+Fetch a ticket and mirror it when the source is not GitHub:
+
+```bash
+python3 scripts/intake fetch jira PROJ-12 --slug latch
+```
+
+Launch a workspace from the GitHub issue that command prints (or from a plain GitHub issue). Orca substitutes `{{issue}}` and `{{artifact_url}}` into `issueCommand`. That prompt is the kick-off. It writes the spec folder, builds in the worktree, asks for a fresh `verify.md`, opens a pull request against `develop`, and links that pull request back with `scripts/intake link-pr`. The source list, the env var names, and what still needs a live credential are in [tickets](tickets.md).
 
 Bloops checks gates with `scripts/merge-pr`. Leave GitHub's auto-merge setting off. That setting is still an open question. See [ship-pr](ship-pr.md).
 

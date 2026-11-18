@@ -1,0 +1,8 @@
+{
+  "number": 12,
+  "title": "Gate the door",
+  "body": "The latch sticks.",
+  "state": "open",
+  "html_url": "https://github.com/acme/app/issues/12",
+  "labels": [{ "name": "bug" }]
+}

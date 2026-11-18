@@ -29,9 +29,12 @@ export default function StartNewPage() {
         <ol className="flow" aria-label="Setup steps">
           <Step title="Create the repository">
             <p>
-              Create a GitHub repository you administer. GitHub Issues are the
-              ticket source. Linear and Discord can feed the same{" "}
-              <code>ticket.md</code> later. They are not the front door today.
+              Create a GitHub repository you administer. GitHub is required.
+              Code, pull requests, and CI live there, whichever tracker the
+              tickets come from. A project then picks its ticket sources in{" "}
+              <code>orca.project.yaml</code>: GitHub issues, a GitHub Project,
+              Jira, Discord, or Linear. The setup is in{" "}
+              <a href={links.tickets}>Tickets</a>.
             </p>
           </Step>
           <Step title="Add develop, and protect main">
@@ -98,8 +101,12 @@ cp /path/to/bleeps-and-bloops/examples/orca.project.yaml orca.project.yaml`}</co
             Set <code>install</code>, <code>test</code>, and{" "}
             <code>typecheck</code>. <code>proactive</code> defaults to on, so
             Chip files issues. Set <code>proactive: off</code> to keep this
-            project out of the patrol. Commit <code>orca.project.yaml</code>.
-            Do not commit secrets.
+            project out of the patrol. Set <code>ticket_sources</code> to the
+            trackers this project uses. Credential keys are env var names.
+            Commit <code>orca.project.yaml</code>. Do not commit secrets.
+            On the machine that will do the work,{" "}
+            <code>python3 scripts/check-ticket-sources</code> fails when GitHub
+            access is missing.
           </p>
           {/* TODO: The home server is not set up by this repo. Hostname, OS, and clone path are not written. Do not invent them. */}
           <p>

@@ -540,7 +540,18 @@ def main(argv: list[str]) -> int:
         print(f"finding {finding.key} risk={finding.risk}")
         if dry_run:
             print(issue_body(finding))
+    lib = load_script("ticketlib", "ticketlib.py")
+    try:
+        posts = lib.outbound_sources(project)
+    except lib.TicketError as error:
+        print(error, file=sys.stderr)
+        return 2
     if dry_run:
+        # Chip still files the GitHub issue. Other sources get a copy.
+        # Friction issues already exist on GitHub and are not copied.
+        if findings:
+            for source in posts:
+                print(f"would post finding to {source}")
         started = choose(friction, findings, cap, 0)
         print(f"would start {len(started)} of cap {cap}")
         return 0
@@ -553,6 +564,8 @@ def main(argv: list[str]) -> int:
         number = file_issue(finding)
         if number is not None:
             filed.append((finding, number))
+            for note in lib.post_finding(project, finding.title, issue_body(finding), number, root=root):
+                print(note)
     queue = choose(friction, [finding for finding, _number in filed], cap, in_flight())
     numbers = {finding.key: number for finding, number in filed}
     for kind, item in queue:
