@@ -13,7 +13,7 @@ Common or repeated work is a script in this repo, under `scripts/` or the `bleep
 
 Agents prefer a script that already exists. The second time an agent does a step by hand, they propose a script. Bloops watches for that and files the proposal. The proposal goes through the normal pipeline. Nobody rewrites a script silently.
 
-Scripts in place for the crew: `scripts/kick-off` (Beep), `scripts/intake` (every ticket source), `scripts/fix-loop` and `scripts/orca-verify` (Blip), `scripts/verify` (Echo), `scripts/merge-pr` (Bloops), `scripts/bleeps-scout` (Chip), `scripts/bloops-reflect` (Bloops), `scripts/check-ticket-sources`.
+Scripts in place for the crew: `scripts/kick-off` (Beep), `scripts/intake` (every ticket source), `scripts/fix-loop` and `scripts/orca-verify` (Blip), `scripts/verify` (Echo), `scripts/merge-pr` (Bloops), `scripts/bleeps-scout` (Chip), `scripts/bloops-reflect` (Bloops), `scripts/check-ticket-sources`, `scripts/providers` (the crew).
 
 ## Consequences
 

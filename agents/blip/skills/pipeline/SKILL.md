@@ -5,7 +5,7 @@ description: During a ticket, put tests in tasks.md, write them for the change, 
 
 # Tests in the pipeline
 
-Use this while a ticket is in the build loop.
+Use this while a ticket is in the build loop. Run `scripts/providers show blip` before a fresh launch. After `scripts/fix-loop` has sent the suite back once, run it again with `--stalled` when `router` is `jev`.
 
 ## tasks.md
 

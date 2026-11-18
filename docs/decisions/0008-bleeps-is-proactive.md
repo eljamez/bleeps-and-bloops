@@ -1,7 +1,7 @@
 # 0008: Bleeps is proactive
 
 - **Status:** accepted
-- **Narrowed by:** [0010](0010-bleeps-runs-the-crew-bloops-reflects.md) — the scout is Chip. [0014](0014-where-it-runs.md) — the machine that registers the automation is a choice. The default is `local`.
+- **Narrowed by:** [0010](0010-bleeps-runs-the-crew-bloops-reflects.md) — the scout is Chip. [0014](0014-where-it-runs.md) — the machine that registers the automation is a choice. The default is `local`. [0015](0015-role-providers.md) — Chip's provider defaults to Claude Code. `scout_provider` overrides it.
 - **Date:** 2026-11-13
 
 ## Context
@@ -22,5 +22,5 @@ Guardrail areas still wait for James and do not auto-merge. The same rule applie
 
 ## Consequences
 
-- Register the automation once, on the machine `host` names, from the Orca workspace there (`--workspace active`). See [0014](0014-where-it-runs.md). The provider is `scout_provider`. It is unset until the owner picks the agent.
+- Register the automation once, on the machine `host` names, from the Orca workspace there (`--workspace active`). See [0014](0014-where-it-runs.md). The provider is Chip's row in the factory table. See [0015](0015-role-providers.md). `scout_provider` overrides it.
 - **Revisit if:** the scout files more noise than it fixes.

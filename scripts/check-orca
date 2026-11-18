@@ -11,6 +11,8 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 try:
@@ -27,6 +29,8 @@ ALLOWED = {
     "defaultTabs",
     "environmentRecipes",
     "worktree",
+    # Orca drops this key. scripts/providers reads it. See decision 0015.
+    "providers",
 }
 
 
@@ -62,6 +66,7 @@ def check_yaml() -> dict:
         "scripts/fix-loop",
         "scripts/ship-pr",
         "scripts/intake",
+        "scripts/providers",
         "bleeps:found",
         "Blip",
         "Exit 3",
@@ -229,9 +234,14 @@ def check_scout() -> None:
         require("host: local" in scheduled.stdout, scheduled.stdout)
         require("orca automations create" in scheduled.stdout, scheduled.stdout)
         require("--trigger daily" in scheduled.stdout, scheduled.stdout)
+        require("--provider claude" in scheduled.stdout, scheduled.stdout)
+        require("--model haiku" in scheduled.stdout, scheduled.stdout)
         require("--precheck" in scheduled.stdout, scheduled.stdout)
+        require("set scout_provider" not in scheduled.stderr, scheduled.stderr)
         installed = run([sys.executable, str(scout), "schedule", "--install"], project)
-        require(installed.returncode == 2, "install without a provider should fail")
+        require(installed.returncode == 2, installed.stderr)
+        require("orca is not on PATH" in installed.stderr, installed.stderr)
+        require("set scout_provider" not in installed.stderr, installed.stderr)
 
         (project / "orca.project.yaml").write_text("proactive: on\nhost: actions\n")
         refused = run([sys.executable, str(scout), "schedule"], project)
@@ -338,6 +348,118 @@ def check_fix_loop() -> None:
         require(red_type.returncode == 2 and "Escalate to James" in red_type.stdout, red_type.stdout + red_type.stderr)
 
 
+def load_providers():
+    path = ROOT / "scripts" / "providers"
+    loader = importlib.machinery.SourceFileLoader("bleeps_providers_check", str(path))
+    spec = importlib.util.spec_from_loader("bleeps_providers_check", loader)
+    require(spec is not None, "providers import")
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+def serve_tier(body: bytes, status: int = 200, header: str = "") -> HTTPServer:
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            if header:
+                self.send_header("x-jev-tier", header)
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, fmt: str, *args) -> None:
+            return
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
+
+
+def show(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return run([sys.executable, str(ROOT / "scripts" / "providers"), "show", *args], root)
+
+
+def check_providers() -> None:
+    module = load_providers()
+    require(module.factory_matches_builtin(ROOT), "orca.yaml providers drifted from scripts/providers")
+    checked = run([sys.executable, str(ROOT / "scripts" / "providers"), "check"], ROOT)
+    require(checked.returncode == 0, checked.stderr + checked.stdout)
+    require("role: chip" in checked.stdout and "model: haiku" in checked.stdout, checked.stdout)
+
+    beep = show(ROOT, "beep")
+    require(beep.returncode == 0 and "model: opus" in beep.stdout and "reason: configured" in beep.stdout, beep.stdout)
+    merge = show(ROOT, "bloops", "--merge")
+    require(merge.returncode == 0 and "model: none" in merge.stdout and "scripts/merge-pr" in merge.stdout, merge.stdout)
+    guard = show(ROOT, "buzz", "--guardrail")
+    require("model: opus" in guard.stdout and "reason: guardrail" in guard.stdout, guard.stdout)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        project = Path(tmp)
+        (project / "orca.project.yaml").write_text("router: jev\njev_key_env: sk-live\n")
+        leaked = run([sys.executable, str(ROOT / "scripts" / "providers"), "check"], project)
+        require(leaked.returncode != 0 and "environment variable" in leaked.stderr, leaked.stderr)
+
+        (project / "orca.project.yaml").write_text("router: jev\njev_url: http://user:secret@127.0.0.1:4000\n")
+        dirty = run([sys.executable, str(ROOT / "scripts" / "providers"), "check"], project)
+        require(dirty.returncode != 0, dirty.stderr)
+
+        (project / "orca.project.yaml").write_text("router: sometimes\n")
+        bad = run([sys.executable, str(ROOT / "scripts" / "providers"), "check"], project)
+        require(bad.returncode != 0 and "off or jev" in bad.stderr, bad.stderr)
+
+        high = serve_tier(b'{"tier":"frontier"}')
+        low = serve_tier(b'{"tier":"fast"}')
+        quiet = serve_tier(b'{"uptime":1}')
+        try:
+            high_url = f"http://127.0.0.1:{high.server_address[1]}"
+            low_url = f"http://127.0.0.1:{low.server_address[1]}"
+            quiet_url = f"http://127.0.0.1:{quiet.server_address[1]}"
+            (project / "orca.project.yaml").write_text(f"router: jev\njev_url: {high_url}\n")
+            raised = show(project, "buzz")
+            require(raised.returncode == 0, raised.stderr)
+            require("model: opus" in raised.stdout and "reason: jev" in raised.stdout, raised.stdout)
+            fixed = show(project, "beep")
+            require("model: opus" in fixed.stdout and "reason: configured" in fixed.stdout, fixed.stdout)
+            require("pin: x-jev-tier: frontier" in fixed.stdout, fixed.stdout)
+
+            (project / "orca.project.yaml").write_text(f"router: jev\njev_url: {low_url}\n")
+            held = show(project, "buzz")
+            require("model: sonnet" in held.stdout and "tier: balanced" in held.stdout, held.stdout)
+            require("reason: jev" in held.stdout, held.stdout)
+
+            (project / "orca.project.yaml").write_text(f"router: jev\njev_url: {quiet_url}\n")
+            floor = show(project, "chip")
+            require("model: haiku" in floor.stdout and "reason: floor" in floor.stdout, floor.stdout)
+            stalled = show(project, "blip", "--stalled")
+            require("model: opus" in stalled.stdout and "reason: stall" in stalled.stdout, stalled.stdout)
+            waiting = show(project, "blip")
+            require("model: sonnet" in waiting.stdout and "reason: configured" in waiting.stdout, waiting.stdout)
+
+            (project / "orca.project.yaml").write_text("router: jev\njev_url: http://127.0.0.1:9\n")
+            opened = show(project, "buzz")
+            require("model: sonnet" in opened.stdout and "reason: fail-open" in opened.stdout, opened.stdout)
+            signed = show(project, "buzz", "--guardrail")
+            require("model: opus" in signed.stdout and "reason: guardrail" in signed.stdout, signed.stdout)
+
+            (project / "orca.project.yaml").write_text(
+                f"router: jev\njev_url: {high_url}\nbuzz_provider: codex\nbuzz_model: gpt-x\nbuzz_tier: balanced\n"
+            )
+            unmapped = show(project, "buzz", "--guardrail")
+            require("reason: guardrail-unmapped" in unmapped.stdout and "model: gpt-x" in unmapped.stdout, unmapped.stdout)
+        finally:
+            high.shutdown()
+            low.shutdown()
+            quiet.shutdown()
+
+        (project / "orca.project.yaml").write_text("router: off\n")
+        plain = show(project, "chip")
+        require("provider: claude" in plain.stdout and "model: haiku" in plain.stdout, plain.stdout)
+        (project / "orca.project.yaml").write_text("scout_provider: grok\n")
+        override = show(project, "chip")
+        require("provider: grok" in override.stdout and "model: haiku" in override.stdout, override.stdout)
+
+
 def main() -> int:
     for name in (
         "orca-setup",
@@ -360,12 +482,14 @@ def main() -> int:
         "ticket-discord",
         "ticket-linear",
         "check-site",
+        "providers",
     ):
         path = ROOT / "scripts" / name
         require(path.stat().st_mode & stat.S_IXUSR, f"{name} is not executable")
     document = check_yaml()
     check_scripts(document["scripts"]["setup"])
     check_scout()
+    check_providers()
     check_fix_loop()
     tickets = run([sys.executable, str(ROOT / "scripts" / "check-tickets")], ROOT)
     require(tickets.returncode == 0, f"check-tickets failed\n{tickets.stdout}\n{tickets.stderr}")

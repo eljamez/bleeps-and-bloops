@@ -235,6 +235,7 @@ primitives:
       the normal pipeline, capped so it cannot flood pull requests.
     inputs:
       - orca.project.yaml proactive, host, scans, schedule, cap, and ticket_sources
+      - Chip's provider and model from scripts/providers. Claude Code is the default
       - The worktree and, when gh is available, CI, advisories, and friction issues
     outputs:
       - GitHub issues labelled bleeps:found, with evidence

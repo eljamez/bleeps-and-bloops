@@ -1,6 +1,7 @@
 # 0007: Bleeps is built for Orca
 
 - **Status:** accepted
+- **Narrowed by:** [0015](0015-role-providers.md) — the factory names the provider and model for each role. Claude Code is the default. A project can override a field.
 - **Date:** 2026-11-13
 
 ## Context
@@ -31,5 +32,5 @@ This narrows [0001](0001-shared-factory-config.md). The shared setup is Orca's `
 ## Consequences
 
 - New factory behavior goes in `orca.yaml` or in a script that file runs.
-- The agent inside the worktree can still be Claude Code, Grok, or another agent Orca launches. This decision is about the factory config.
+- The agent inside the worktree can still be Claude Code, Grok, or another agent Orca launches. The default for each role is [0015](0015-role-providers.md). This decision is about the factory config.
 - **Revisit if:** a step we need cannot be expressed in Orca, and a Claude Code hook is the only mechanism that works (for example, blocking a tool call). Conditional hooks landing in Orca is not, by itself, a reason to reopen this.

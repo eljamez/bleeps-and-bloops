@@ -3,10 +3,9 @@
 - Watch the Orca conditional hooks issue: [stablyai/orca#6917](https://github.com/stablyai/orca/issues/6917). Orca cannot run a hook only when a worktree was created from a pull request.
 - Whether there is a grooming or prioritization step before kick-off. See [flow](flow.md).
 - The hostname, the OS, and the clone path of the machine you pick. This repo does not record them. See [where it runs](where-it-runs.md).
-- Which agent Orca should launch. `orca.yaml` does not pick one.
 - Which repositories to onboard first.
 - Secrets stay on the machine that runs Orca (`gh` auth, the agent login). They are not in `orca.yaml`.
-- Which value to put in `scout_provider`, and which timezone the daily 09:00 scout should use. The automation uses that machine's clock until a timezone is set.
+- Which timezone the daily 09:00 scout should use. The automation uses that machine's clock until a timezone is set.
 - Whether `scripts/bleeps-scout schedule` should pass a longer `--missed-run-grace-minutes` for `host: local`. Orca's create default is 720 minutes, so a laptop closed all weekend misses that run.
 - The site has no Playwright suite yet. Blip's onboard skill is the path that adds it.
 - Whether to turn on GitHub's auto-merge setting. Bloops' script checks the gates and does not flip that setting. See [0010](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md).
@@ -30,3 +29,5 @@
 - **Names.** [0010](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md): Bleeps runs the crew. Bloops merges and reflects. Outputs do not need a name.
 - **Ticket sources.** [0013](decisions/0013-one-ticket-many-sources.md): GitHub, GitHub Projects, Jira, Discord, and Linear share `scripts/intake`. GitHub access stays required. Live calls against those APIs are not verified in this repo.
 - **Where it runs.** [0014](decisions/0014-where-it-runs.md): `host` is `local` (default), `cloud`, or `home`. A home server is optional. GitHub Actions is not a host. An environment recipe does not replace the machine.
+- **Which agent Orca launches.** [0015](decisions/0015-role-providers.md): each role has a provider and a model. Claude Code is the default. Chip's schedule uses that provider, so install does not wait for `scout_provider`.
+- **Jev.** [0015](decisions/0015-role-providers.md): optional. `router: jev` asks a local proxy. It cannot pick below the role's floor. A failed call uses the configured model. The factory runs with `router` left off.

@@ -186,7 +186,7 @@ flowchart TD
 
 **Purpose.** Chip's patrol. On a schedule, scan the project, file a `bleeps:found` issue per new finding, post that finding to each other configured ticket source, and start the normal pipeline up to a cap.
 
-**Inputs.** `proactive`, `host`, scans, schedule, cap, and `ticket_sources` in `orca.project.yaml`. The worktree. GitHub, when `gh` is available. `host` defaults to `local`.
+**Inputs.** `proactive`, `host`, scans, schedule, cap, and `ticket_sources` in `orca.project.yaml`. Chip's provider and model from `scripts/providers` (Claude Code and `haiku` unless overridden). The worktree. GitHub, when `gh` is available. `host` defaults to `local`.
 
 **Outputs.** Issues labelled `bleeps:found`, with evidence. A copy on each configured source other than plain GitHub issues. Orca worktrees for those issues, up to the cap. Open `friction` issues are queued and not filed again, and they are not copied.
 

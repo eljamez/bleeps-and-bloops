@@ -191,7 +191,9 @@ export function HostNote() {
         <a href={links.runs}>where it runs</a> notes. 8&nbsp;GB of RAM is the
         floor. 16&nbsp;GB is comfortable. Register Chip on that machine with{" "}
         <code>python3 scripts/bleeps-scout schedule</code>, then{" "}
-        <code>--install</code>, after <code>scout_provider</code> is set.
+        <code>--install</code>. Chip&apos;s agent defaults to{" "}
+        {system.defaults.scout_provider}. Set <code>scout_provider</code> only
+        to pick a different one.
       </p>
     </>
   );
