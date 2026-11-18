@@ -21,7 +21,7 @@ Open the page that owns the task:
 - [Echo](agents/echo/ROLE.md) — verifies. Read-only on product code.
 - [Chip](agents/chip/ROLE.md) — scout.
 - [Bloops](agents/bloops/ROLE.md) — merges and reflects.
-- [Home server](docs/home-server.md)
+- [Where it runs](docs/where-it-runs.md)
 - [Primitives](docs/primitives.md)
 - [Using Bleeps](docs/using-bleeps.md)
 - [Tickets](docs/tickets.md) — GitHub, GitHub Projects, Jira, Discord, Linear. One intake path.

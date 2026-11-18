@@ -12,7 +12,7 @@ Plan for Bleeps, the orchestrator behind the Bleeps and Bloops brand. Bloops mer
 - [Decisions](decisions/README.md) — veto list, including [0010: Bleeps runs the crew](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md) and [0011: Scripts first](decisions/0011-scripts-first.md)
 - [Primitives](primitives.md)
 - [Using Bleeps](using-bleeps.md)
-- [Home server](home-server.md)
+- [Where it runs](where-it-runs.md)
 - [Ship a PR](ship-pr.md)
 - [Friction log](friction-log.md)
 - [Control CLI](control-cli.md)

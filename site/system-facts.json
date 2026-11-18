@@ -53,6 +53,7 @@
     "test_integration",
     "test_e2e",
     "proactive",
+    "host",
     "scout_cap",
     "scout_schedule",
     "scout_time",
@@ -63,6 +64,7 @@
   ],
   "defaults": {
     "proactive": "on",
+    "host": "local",
     "scout_cap": "2",
     "scout_schedule": "daily",
     "scout_time": "09:00"

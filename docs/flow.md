@@ -4,7 +4,7 @@ Ticket-to-merge pipeline. Bleeps runs the crew. Bloops merges and reflects. Merg
 
 ## Steps
 
-0. On a schedule, Chip scans the project and files a GitHub issue labelled `bleeps:found` for each new finding. When the project lists another ticket source, Chip also creates that finding there. Open `friction` issues join the GitHub queue and are not filed again, and they are not copied. Each GitHub issue then enters step 1. See [0008](decisions/0008-bleeps-is-proactive.md) and [0013](decisions/0013-one-ticket-many-sources.md).
+0. On a schedule, on the machine `host` names (default `local`), Chip scans the project and files a GitHub issue labelled `bleeps:found` for each new finding. When the project lists another ticket source, Chip also creates that finding there. Open `friction` issues join the GitHub queue and are not filed again, and they are not copied. Each GitHub issue then enters step 1. A machine that is off does not replay missed days. See [0008](decisions/0008-bleeps-is-proactive.md), [0013](decisions/0013-one-ticket-many-sources.md), and [0014](decisions/0014-where-it-runs.md).
 1. A ticket arrives from GitHub Issues, a GitHub Project, Jira, Discord, or Linear. The project chooses its sources. GitHub access is required either way. `scripts/intake` turns the ticket into one shape and, for a non-GitHub source, a GitHub issue labelled `bleeps:intake`. Orca's `issueCommand` takes that issue (`{{issue}}` and `{{artifact_url}}`). Beep plans with `scripts/kick-off`.
 2. Write `spec.md` in `specs/<issue>-<slug>/`. Write `design.md` only if the approach is risky.
 3. Write `tasks.md` as a checklist. Test tasks are included. Blip owns them. See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md).

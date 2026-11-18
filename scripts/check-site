@@ -127,6 +127,7 @@ def derive() -> dict:
         "scripts": crew_scripts(),
         "defaults": {
             "proactive": get_default(scout, "proactive"),
+            "host": get_default(scout, "host"),
             "scout_cap": get_default(scout, "scout_cap"),
             "scout_schedule": get_default(scout, "scout_schedule"),
             "scout_time": get_default(scout, "scout_time"),
@@ -241,10 +242,14 @@ def page_problems() -> list[str]:
     need(using, "system.defaults")
     need(shell, "system.fixRounds")
     need(shell, "system.configKeys")
+    need(shell, "system.defaults.host")
+    need(shell, "function HostNote")
+    need(using, "system.defaults.host")
     for name in ("new", "existing"):
         page = app / "start" / name / "page.tsx"
         renders_sources(page)
         need(page, "ConfigKeys")
+        need(page, "HostNote")
         if "GitHub is required" not in read(page):
             found.append(f"start/{name} must say GitHub is required")
 

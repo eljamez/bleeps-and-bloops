@@ -18,7 +18,7 @@ Touch only the rows this change actually affects.
 - A ticket source: `scripts/ticketlib.py` `SOURCES`, an adapter under `scripts/`, `docs/tickets.md`, decision 0013 if the set changed, the label needle in `scripts/check-site`, and `site/system-facts.json` `ticketSources`. GitHub stays required.
 - A crew script: the script under `scripts/`, the "Scripts in place" line in decision 0011, the role that runs it, and `site/system-facts.json` `scripts`.
 - A config key: `examples/orca.project.yaml` and `orca.project.yaml` when this repo uses it, `docs/tickets.md` or `docs/using-bleeps.md` for the key's meaning, and `site/system-facts.json` `configKeys`. `health_url` and `preview` stay off the site until the commands run. Credential keys stay env var names. Never put a secret in the yaml or on the site.
-- A default (`fix_rounds`, `proactive`, `scout_cap`, `scout_schedule`, `scout_time`): the `project.get` default in the script, then `site/system-facts.json`. Do not hardcode the number in a page.
+- A default (`fix_rounds`, `proactive`, `host`, `scout_cap`, `scout_schedule`, `scout_time`): the `project.get` default in the script, then `site/system-facts.json`. Do not hardcode the number in a page.
 - A decision that changes an old one: the next number, and mark the old record superseded. Do not renumber.
 
 ## Site copy
