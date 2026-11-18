@@ -68,7 +68,7 @@ A name that is not in that list becomes `open`, and the command says so. A statu
 
 ## What is not verified live
 
-`scripts/check-tickets` parses fixture responses and never calls GitHub, Jira, Discord, or Linear. These still need a real credential on the home server:
+`scripts/check-tickets` parses fixture responses and never calls GitHub, Jira, Discord, or Linear. These still need a real credential on the machine that runs Orca (`host` in `orca.project.yaml`):
 
 - `gh auth login` (or `GH_TOKEN`) can read the repo and open issues.
 - `scripts/check-ticket-sources` against that repo, with each source you turn on.

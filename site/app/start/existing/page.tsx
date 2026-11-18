@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import system, { joinLabels } from "../../system";
-import { BlipNote, ConfigKeys, Section, SiteShell, Step, links, wrap } from "../../shell";
+import { BlipNote, ConfigKeys, HostNote, Section, SiteShell, Step, links, wrap } from "../../shell";
 
 export const dynamic = "force-static";
 
@@ -136,12 +136,10 @@ cp /path/to/bleeps-and-bloops/examples/orca.project.yaml orca.project.yaml`}</co
             access is missing.
           </p>
           <ConfigKeys />
-          {/* TODO: The home server is not set up by this repo. Hostname, OS, and clone path are not written. Do not invent them. */}
+          <HostNote />
           <p>
-            Installing Orca on a machine is still open. The written steps are
-            in the <a href={links.home}>home-server notes</a>. 8&nbsp;GB of RAM
-            is the floor. 16&nbsp;GB is comfortable. One worktree per ticket
-            keeps this repository from trampling another.
+            One worktree per ticket keeps this repository from trampling
+            another.
           </p>
           <BlipNote />
         </div>

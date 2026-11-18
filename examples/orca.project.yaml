@@ -24,6 +24,9 @@ health_url: https://example.invalid/health
 preview: npm run dev
 # proactive defaults to on when this key is omitted. off skips the scout.
 proactive: on
+# Where Orca runs. local (default), cloud, or home.
+# GitHub Actions is not a host. See docs/where-it-runs.md.
+host: local
 scout_cap: 2
 scout_schedule: daily
 scout_time: "09:00"

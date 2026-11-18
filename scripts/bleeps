@@ -3,7 +3,7 @@
 
 Project commands come from orca.project.yaml in the worktree. Orca does not
 read that file. Keys: install, test, typecheck, health_url, preview,
-proactive, scout_schedule, scout_time, scout_cap, scout_scans,
+proactive, host, scout_schedule, scout_time, scout_cap, scout_scans,
 scout_provider, error_tracking, fix_rounds, and the ticket source keys read by
 scripts/intake (names of env vars, never the secrets).
 fix_rounds caps scripts/fix-loop. Default 2. Integer 0-20.
@@ -27,6 +27,7 @@ KEYS = (
     "health_url",
     "preview",
     "proactive",
+    "host",
     "scout_schedule",
     "scout_time",
     "scout_cap",

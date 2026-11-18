@@ -1,7 +1,7 @@
 # 0008: Bleeps is proactive
 
 - **Status:** accepted
-- **Narrowed by:** [0010](0010-bleeps-runs-the-crew-bloops-reflects.md) — the scout is Chip.
+- **Narrowed by:** [0010](0010-bleeps-runs-the-crew-bloops-reflects.md) — the scout is Chip. [0014](0014-where-it-runs.md) — the machine that registers the automation is a choice. The default is `local`.
 - **Date:** 2026-11-13
 
 ## Context
@@ -22,5 +22,5 @@ Guardrail areas still wait for James and do not auto-merge. The same rule applie
 
 ## Consequences
 
-- The home server registers the automation once, from the primary Orca workspace (`--workspace active`). The provider is `scout_provider`. It is unset until James picks the agent.
-- **Revisit if:** the scout files more noise than it fixes, or Orca automations cannot run on the home server.
+- Register the automation once, on the machine `host` names, from the Orca workspace there (`--workspace active`). See [0014](0014-where-it-runs.md). The provider is `scout_provider`. It is unset until the owner picks the agent.
+- **Revisit if:** the scout files more noise than it fixes.

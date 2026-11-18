@@ -16,6 +16,7 @@ type SystemFacts = {
   configKeys: string[];
   defaults: {
     proactive: string;
+    host: string;
     scout_cap: string;
     scout_schedule: string;
     scout_time: string;

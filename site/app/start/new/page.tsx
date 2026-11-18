@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import system, { sourceList } from "../../system";
-import { BlipNote, ConfigKeys, Section, SiteShell, Step, links, wrap } from "../../shell";
+import { BlipNote, ConfigKeys, HostNote, Section, SiteShell, Step, links, wrap } from "../../shell";
 
 export const dynamic = "force-static";
 
@@ -24,8 +24,8 @@ export default function StartNewPage() {
           ticket, including <code>scripts/kick-off</code>,{" "}
           <code>scripts/intake</code>, <code>scripts/fix-loop</code>, and{" "}
           <code>scripts/merge-pr</code>, are in{" "}
-          <a href={links.repo}>the Bleeps and Bloops repo</a>. Installing Orca
-          on a machine is still open.
+          <a href={links.repo}>the Bleeps and Bloops repo</a>. You choose the
+          machine Orca runs on. The default is the computer in front of you.
         </p>
       </header>
 
@@ -113,17 +113,7 @@ cp /path/to/bleeps-and-bloops/examples/orca.project.yaml orca.project.yaml`}</co
             access is missing.
           </p>
           <ConfigKeys />
-          {/* TODO: The home server is not set up by this repo. Hostname, OS, and clone path are not written. Do not invent them. */}
-          <p>
-            Installing Orca on a machine is still open. The steps that are
-            written are in the <a href={links.home}>home-server notes</a>:
-            clone, approve the setup script, then{" "}
-            <code>orca worktree create --run-hooks</code>. 8&nbsp;GB of RAM is
-            the floor. 16&nbsp;GB is comfortable. Registering Chip&apos;s daily
-            run is <code>python3 scripts/bleeps-scout schedule</code>, then the
-            same command with <code>--install</code>, after{" "}
-            <code>scout_provider</code> is set.
-          </p>
+          <HostNote />
           <BlipNote />
         </div>
       </Section>

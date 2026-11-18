@@ -4,14 +4,14 @@ Bleeps runs the crew. Bloops merges and reflects. Bleeps and Bloops is the brand
 
 This page is how you adopt Bleeps on a repository of your own.
 
-It is Phase 1. The shared config is in the Bleeps repo. The home server is not running it yet. Reviewers and the ship-pr procedure are still on the [roadmap](roadmap.md).
+It is Phase 1. The shared config is in the Bleeps repo. Orca is not installed for this repo yet. Where it runs is a choice. Reviewers and the ship-pr procedure are still on the [roadmap](roadmap.md).
 
 The building blocks are the [primitives](primitives.md). The ticket order is the [flow](flow.md). Settled choices are the [decisions](decisions/README.md). Read those before you invent a second way to ship.
 
 ## Prerequisites
 
 - A GitHub repository you administer. GitHub holds the code, the pull requests, and CI, whichever tracker the tickets live in. The ticket source can be GitHub Issues, a GitHub Project, Jira, Discord, or Linear. Each project picks its sources in `orca.project.yaml`. See [tickets](tickets.md) and [0013](decisions/0013-one-ticket-many-sources.md).
-- [Orca](architecture.md), the MIT harness Bleeps is built for. See [0007](decisions/0007-bleeps-is-built-for-orca.md). The plan is a home server you reach by SSH. 8 GB of RAM is the floor. 16 GB is comfortable. Orca is not installed for Bleeps yet. Steps are in [home server](home-server.md).
+- [Orca](architecture.md), the MIT harness Bleeps is built for. See [0007](decisions/0007-bleeps-is-built-for-orca.md). `host` in `orca.project.yaml` says where it runs: `local` (the default, the computer in front of you), `cloud` (a VPS you leave on), or `home` (a machine at home). A home server is optional. The factory runs only while that machine is on and Orca is running. GitHub Actions can run the checks. It cannot run Orca. 8 GB of RAM is the floor. 16 GB is comfortable. Steps are in [where it runs](where-it-runs.md). See [0014](decisions/0014-where-it-runs.md).
 - An agent Orca can launch. Claude Code is one. It is also the planned architecture-fit reviewer. `orca.yaml` does not pick the agent.
 - Reviewers, when you reach Phase 2. CodeRabbit for style and obvious bugs. Devin, optionally, for an end-to-end pass after you have calibrated its noise. None of that layer is installed.
 
@@ -31,13 +31,13 @@ Turning auto-merge on in GitHub is Phase 3. Leave it off until the checks and th
 
 ### Shared config
 
-One shared [`orca.yaml`](../orca.yaml) is the factory config. `issueCommand` is the kick-off. `scripts.setup` installs dependencies when Orca creates a worktree. Orca does not merge a second yaml. Your repository symlinks `orca.yaml` and commits `orca.project.yaml` for install, test, and typecheck. Copy [examples/orca.project.yaml](../examples/orca.project.yaml). See [0001](decisions/0001-shared-factory-config.md), [0007](decisions/0007-bleeps-is-built-for-orca.md), and [home server](home-server.md).
+One shared [`orca.yaml`](../orca.yaml) is the factory config. `issueCommand` is the kick-off. `scripts.setup` installs dependencies when Orca creates a worktree. Orca does not merge a second yaml. Your repository symlinks `orca.yaml` and commits `orca.project.yaml` for install, test, typecheck, and `host`. Copy [examples/orca.project.yaml](../examples/orca.project.yaml). See [0001](decisions/0001-shared-factory-config.md), [0007](decisions/0007-bleeps-is-built-for-orca.md), and [where it runs](where-it-runs.md).
 
 The 2026-11-11 Claude plugins stay reference. `/bb:kick-off` is now `issueCommand`. `/bb:sdd-init` is the setup hook. The spec, task, and verify stages are steps in that prompt. The pack's ship step never merged; merge policy is [0003](decisions/0003-gitflow-auto-merge-to-develop.md), and `scripts/ship-pr` is still a stub. The full map is in [0007](decisions/0007-bleeps-is-built-for-orca.md).
 
 Blip owns tests. Read [agents/blip/ROLE.md](../agents/blip/ROLE.md). Put `test`, or `test_unit`, `test_integration`, and `test_e2e`, in `orca.project.yaml`. A missing test command fails `bleeps test`. A red suite runs `scripts/fix-loop` in the same run. `fix_rounds` defaults to 2. Nothing merges while the suite is red. See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md) and [0012](decisions/0012-red-suite-loops.md).
 
-The scout is on by default. Set `proactive: off` to keep it from filing issues. The schedule, scans, and cap are in the same file. See [0008](decisions/0008-bleeps-is-proactive.md) and [home server](home-server.md).
+The scout is on by default. Set `proactive: off` to keep it from filing issues. The schedule, scans, and cap are in the same file. `host` defaults to `local`. On a laptop, a scout that was due while the computer slept starts once if you wake it inside Orca's grace window (12 hours unless you change it), and is skipped after that. Tickets filed while it was off stay open. They are not a queue the computer drains later. See [0008](decisions/0008-bleeps-is-proactive.md) and [where it runs](where-it-runs.md).
 
 Set `ticket_sources` in the same file. `github` is the default. Add `github-project`, `jira`, `discord`, or `linear` for the trackers this project uses. Credential keys are env var names. Run `python3 scripts/check-ticket-sources` on the machine that will do the work. It fails when GitHub access is missing. See [tickets](tickets.md).
 
@@ -108,7 +108,7 @@ In place:
 - The [primitives](primitives.md) catalog and the [pull request template](../.github/pull_request_template.md).
 - Designs for [ship-pr](ship-pr.md), the [friction sweep](friction-log.md), and the [`bleeps` CLI](control-cli.md). `scripts/bleeps` runs `test` and `typecheck`. `scripts/ship-pr` refuses to merge.
 
-Still open in Phase 1: install Orca on the home server, run one worktree, and build the ship-pr procedure. The shared `orca.yaml` and `issueCommand` are in the repo.
+Still open in Phase 1: install Orca on the machine `host` names, run one worktree, and build the ship-pr procedure. The shared `orca.yaml` and `issueCommand` are in the repo. The default machine is the computer in front of you.
 
 After that: CodeRabbit and optional Devin, the friction sweep, auto-merge onto `develop`, `bleeps preview` and `bleeps health`, and the symlink of the shared config onto each project.
 
@@ -126,7 +126,7 @@ Do these on the repository. They need no Bleeps command.
 
 These wait on the roadmap.
 
-- [ ] Install Orca, log in an agent, and confirm one worktree on a throwaway repo. See [home server](home-server.md).
+- [ ] Install Orca, log in an agent, and confirm one worktree on a throwaway repo. See [where it runs](where-it-runs.md). Set `host` if the machine is not the computer in front of you.
 - [ ] Symlink the shared `orca.yaml` and commit `orca.project.yaml`.
 - [ ] Install CodeRabbit. Add Devin only after its noise is calibrated.
 - [ ] Enable auto-merge on `develop` with the required checks.

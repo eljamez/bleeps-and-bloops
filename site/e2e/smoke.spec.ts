@@ -7,6 +7,7 @@ const facts = JSON.parse(readFileSync(join(process.cwd(), "system-facts.json"), 
   crew: { name: string }[];
   ticketSources: { label: string }[];
   fixRounds: number;
+  defaults: { host: string };
 };
 
 const REPO = "https://github.com/eljamez/bleeps-and-bloops";
@@ -90,6 +91,15 @@ test("setup pages mention Blip and link to day-to-day use", async ({ page }) => 
     await page.getByRole("link", { name: "Day to day with Bleeps" }).click();
     await expect(page).toHaveURL("/using-bleeps");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Day to day");
+  }
+});
+
+test("setup pages say where the factory runs", async ({ page }) => {
+  for (const path of ["/start/new", "/start/existing"]) {
+    await page.goto(path);
+    await expect(page.getByText(new RegExp(`defaults to ${facts.defaults.host}`))).toBeVisible();
+    await expect(page.getByRole("link", { name: "where it runs" })).toBeVisible();
+    await expect(page.getByText(/GitHub Actions can run the checks/)).toBeVisible();
   }
 });
 

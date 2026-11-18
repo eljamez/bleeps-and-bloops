@@ -1,7 +1,9 @@
 # Bleeps factory config. Orca reads this file from the repository root.
 #
 # Decision: docs/decisions/0007-bleeps-is-built-for-orca.md
-# How to run it: docs/home-server.md
+# How to run it: docs/where-it-runs.md
+# host in orca.project.yaml picks the machine. Default local.
+# docs/decisions/0014-where-it-runs.md
 #
 # Parser, pinned so we do not invent keys:
 # https://github.com/stablyai/orca/blob/aa736b6650fd13a0256a7ba0b3b1c7741fb933ee/src/shared/orca-yaml.ts
@@ -129,6 +131,12 @@ issueCommand: |
   An issue labelled bleeps:found was filed by Chip. Use the same steps.
   If the issue body says Risk: high, it touches a guardrail. Wait for James
   and do not merge.
+
+  Where the factory runs is the host key in orca.project.yaml. local is the
+  default: the computer in front of you, and only while it is on and Orca is
+  running. cloud is a VPS you leave on. home is a machine at home. Register
+  Chip's automation on that machine. A GitHub Actions job can run checks. It
+  cannot run this command.
 
   Ticket sources are set in orca.project.yaml (ticket_sources). GitHub is
   required on every project: code, pull requests, and CI live there. Jira,

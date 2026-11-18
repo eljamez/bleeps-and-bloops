@@ -143,8 +143,9 @@ export default function HomePage() {
 
         <p className="status">
           <strong>Phase 1.</strong> The shared <code>orca.yaml</code> is in the
-          repo. The home server is not running the factory yet.{" "}
-          <code>scripts/merge-pr</code> checks the gates and does not turn on
+          repo. You choose where Orca runs. The default is the computer in
+          front of you. <code>scripts/merge-pr</code> checks the gates and does
+          not turn on
           GitHub auto-merge. That setting is still an open question.
         </p>
       </header>

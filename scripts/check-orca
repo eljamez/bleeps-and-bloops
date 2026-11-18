@@ -188,6 +188,13 @@ def check_scout() -> None:
     require(len(chosen) == 1 and chosen[0] == ("friction", 7), chosen)
     require(module.scout_cap({}) == 2, "default cap")
     require(module.scout_cap({"scout_cap": "2"}) == 2, "cap 2")
+    require(module.host_choice({}) == "local", "default host")
+    require(module.host_choice({"host": "home"}) == "home", "home host")
+    try:
+        module.host_choice({"host": "actions"})
+        require(False, "actions should fail")
+    except SystemExit as error:
+        require("GitHub Actions" in str(error), str(error))
 
     with tempfile.TemporaryDirectory() as tmp:
         project = Path(tmp)
@@ -219,11 +226,16 @@ def check_scout() -> None:
 
         scheduled = run([sys.executable, str(scout), "schedule"], project)
         require(scheduled.returncode == 0, scheduled.stderr)
+        require("host: local" in scheduled.stdout, scheduled.stdout)
         require("orca automations create" in scheduled.stdout, scheduled.stdout)
         require("--trigger daily" in scheduled.stdout, scheduled.stdout)
         require("--precheck" in scheduled.stdout, scheduled.stdout)
         installed = run([sys.executable, str(scout), "schedule", "--install"], project)
         require(installed.returncode == 2, "install without a provider should fail")
+
+        (project / "orca.project.yaml").write_text("proactive: on\nhost: actions\n")
+        refused = run([sys.executable, str(scout), "schedule"], project)
+        require(refused.returncode != 0 and "GitHub Actions" in refused.stderr, refused.stderr)
 
         gap = Path(tmp) / "web"
         gap.mkdir()

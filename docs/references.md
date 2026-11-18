@@ -19,7 +19,7 @@ Still only notes: feature flags with a tested recovery path, and Cursor Bugbot. 
 
 ## Orca
 
-Bleeps is built for Orca. See [0007](decisions/0007-bleeps-is-built-for-orca.md) and [home server](home-server.md).
+Bleeps is built for Orca. See [0007](decisions/0007-bleeps-is-built-for-orca.md) and [where it runs](where-it-runs.md).
 
 The parser in `stablyai/orca` `src/shared/orca-yaml.ts` (commit `aa736b6650fd13a0256a7ba0b3b1c7741fb933ee`) keeps `scripts.setup`, `scripts.archive`, `setupAgentStartupPolicy`, `issueCommand`, `defaultTabs`, `environmentRecipes`, and `worktree.sharedDirectories`. The factory file uses setup, the startup policy, `issueCommand`, and shared directories.
 

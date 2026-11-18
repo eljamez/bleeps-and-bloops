@@ -52,14 +52,14 @@ primitives:
     when: Flow step 1, once a GitHub issue exists.
     status: built
     lives: >
-      orca.yaml issueCommand. The home server does not have Orca installed yet.
+      orca.yaml issueCommand. Orca is not installed for this repo yet.
       The 2026-11-11 context pack command is reference only.
     code:
       - orca.yaml
     docs:
       - docs/flow.md
       - docs/roadmap.md
-      - docs/home-server.md
+      - docs/where-it-runs.md
       - docs/tickets.md
     adrs:
       - docs/decisions/0002-rebuild-factory-clean.md
@@ -86,7 +86,7 @@ primitives:
     status: built
     lives: >
       scripts/fix-loop. The crew still does the editing.
-      0002 said to write the loop fresh. The home server is not running Orca yet.
+      0002 said to write the loop fresh. Orca is not installed for this repo yet.
     code:
       - scripts/fix-loop
     docs:
@@ -215,7 +215,7 @@ primitives:
     status: built
     lives: >
       agents/blip and scripts/fix-loop. Orca has no agent-role key, so this
-      directory is the role. The home server is not running Orca yet.
+      directory is the role. Orca is not installed for this repo yet.
     code:
       - agents/blip
       - scripts/fix-loop
@@ -234,7 +234,7 @@ primitives:
       each new finding to the project's other ticket sources, and starts
       the normal pipeline, capped so it cannot flood pull requests.
     inputs:
-      - orca.project.yaml proactive, scans, schedule, cap, and ticket_sources
+      - orca.project.yaml proactive, host, scans, schedule, cap, and ticket_sources
       - The worktree and, when gh is available, CI, advisories, and friction issues
     outputs:
       - GitHub issues labelled bleeps:found, with evidence
@@ -250,12 +250,14 @@ primitives:
       - scripts/bleeps-scout
     docs:
       - docs/decisions/0008-bleeps-is-proactive.md
-      - docs/home-server.md
+      - docs/decisions/0014-where-it-runs.md
+      - docs/where-it-runs.md
       - docs/friction-log.md
     adrs:
       - docs/decisions/0008-bleeps-is-proactive.md
       - docs/decisions/0009-testing-is-a-gate-blip-owns-tests.md
       - docs/decisions/0013-one-ticket-many-sources.md
+      - docs/decisions/0014-where-it-runs.md
 
   - id: ticket-intake
     group: script
@@ -353,7 +355,7 @@ primitives:
     lives: >
       orca.yaml, scripts/orca-setup, and scripts/orca-verify.
       Projects commit orca.project.yaml. Example: examples/orca.project.yaml.
-      The home server does not have Orca installed yet.
+      Orca is not installed for this repo yet.
     code:
       - orca.yaml
       - scripts/orca-setup
@@ -363,7 +365,7 @@ primitives:
     docs:
       - docs/architecture.md
       - docs/roadmap.md
-      - docs/home-server.md
+      - docs/where-it-runs.md
     adrs:
       - docs/decisions/0001-shared-factory-config.md
       - docs/decisions/0002-rebuild-factory-clean.md

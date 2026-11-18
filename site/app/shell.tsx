@@ -17,7 +17,7 @@ export const links = {
   flow: blob("docs/flow.md"),
   friction: blob("docs/friction-log.md"),
   architecture: blob("docs/architecture.md"),
-  home: blob("docs/home-server.md"),
+  runs: blob("docs/where-it-runs.md"),
   example: blob("examples/orca.project.yaml"),
   blip: blob("agents/blip/ROLE.md"),
   tickets: blob("docs/tickets.md"),
@@ -164,6 +164,34 @@ export function ConfigKeys() {
       <p>
         A key ending in <code>_env</code> is the name of an environment
         variable. The file never holds the secret.
+      </p>
+    </>
+  );
+}
+
+export function HostNote() {
+  return (
+    <>
+      <p>
+        <code>host</code> is where Orca runs. It defaults to {system.defaults.host},
+        the computer in front of you. The factory runs there only while that
+        computer is on and Orca is running. If it was asleep at Chip&apos;s
+        time, Orca starts one catch-up after you wake it and leave it awake,
+        and only while the missed-run grace window is still open. A longer
+        outage skips that occurrence. The next run is the next scheduled time.
+        Tickets filed while it was off stay open on GitHub. They wait. The
+        next scout does not drain tickets you filed yourself.
+      </p>
+      <p>
+        <code>host: cloud</code> is a VPS you leave on. <code>host: home</code>{" "}
+        is a machine at home. Same scripts, same <code>orca.yaml</code>. Reach
+        an always-on machine on a private network such as Tailscale. Do not
+        open its ports. GitHub Actions can run the checks. It cannot run Orca,
+        so it is not a value of <code>host</code>. The steps are in the{" "}
+        <a href={links.runs}>where it runs</a> notes. 8&nbsp;GB of RAM is the
+        floor. 16&nbsp;GB is comfortable. Register Chip on that machine with{" "}
+        <code>python3 scripts/bleeps-scout schedule</code>, then{" "}
+        <code>--install</code>, after <code>scout_provider</code> is set.
       </p>
     </>
   );

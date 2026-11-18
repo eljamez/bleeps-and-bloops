@@ -15,7 +15,7 @@ A primitive is one of these kinds:
 
 The shared [`orca.yaml`](../orca.yaml) is the config those pieces live in. Kick-off is `issueCommand`. Setup is `scripts.setup`. Review rules and merge policy stay their own rows, because Orca has no keys for them. A project commits `orca.project.yaml` for install, test, and typecheck. Orca does not merge that file. See [0001](decisions/0001-shared-factory-config.md) and [0007](decisions/0007-bleeps-is-built-for-orca.md).
 
-`status: planned` means the block is specified and nobody can run it yet. `status: built` means a person or an agent can invoke it. Kick-off, the setup hook, `bleeps test` / `bleeps typecheck`, the fix loop, Chip, and Blip are built. The home server is not running Orca yet. The [roadmap](roadmap.md) is the list that moves.
+`status: planned` means the block is specified and nobody can run it yet. `status: built` means a person or an agent can invoke it. Kick-off, the setup hook, `bleeps test` / `bleeps typecheck`, the fix loop, Chip, and Blip are built. Orca is not installed for this repo yet. Where it runs is a [choice](where-it-runs.md). The [roadmap](roadmap.md) is the list that moves.
 
 The machine-readable list is [primitives.yaml](primitives.yaml). Update that file when a primitive is added, removed, or reshaped. Leave its `summary` alone for ordinary feature work. To put this on a repo of your own, read [Using Bleeps](using-bleeps.md).
 
@@ -62,7 +62,7 @@ flowchart TD
 
 **When.** [Flow](flow.md) step 1, once a GitHub issue exists.
 
-**Status.** Built. The prompt is in [`orca.yaml`](../orca.yaml). The home server does not have Orca installed yet.
+**Status.** Built. The prompt is in [`orca.yaml`](../orca.yaml). Orca is not installed for this repo yet.
 
 **Lives.** `orca.yaml` `issueCommand`. The 2026-11-11 `/bb:kick-off` command is reference only. See [0007](decisions/0007-bleeps-is-built-for-orca.md).
 
@@ -82,7 +82,7 @@ flowchart TD
 
 **When.** Flow step 4. Two red send-backs, then the next red escalates. See [0012](decisions/0012-red-suite-loops.md).
 
-**Status.** Built. The home server is not running Orca yet.
+**Status.** Built. Orca is not installed for this repo yet.
 
 **Lives.** [`scripts/fix-loop`](../scripts/fix-loop). The crew still does the editing. [0002](decisions/0002-rebuild-factory-clean.md) said to write the loop fresh.
 
@@ -174,7 +174,7 @@ flowchart TD
 
 **When.** Onboarding, during flow steps 3 and 4, and when the scout files a coverage or flake finding.
 
-**Status.** Built. The home server is not running Orca yet.
+**Status.** Built. Orca is not installed for this repo yet.
 
 **Lives.** [agents/blip](../agents/blip) and [`scripts/fix-loop`](../scripts/fix-loop). See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md) and [0012](decisions/0012-red-suite-loops.md).
 
@@ -186,7 +186,7 @@ flowchart TD
 
 **Purpose.** Chip's patrol. On a schedule, scan the project, file a `bleeps:found` issue per new finding, post that finding to each other configured ticket source, and start the normal pipeline up to a cap.
 
-**Inputs.** `proactive`, scans, schedule, cap, and `ticket_sources` in `orca.project.yaml`. The worktree. GitHub, when `gh` is available.
+**Inputs.** `proactive`, `host`, scans, schedule, cap, and `ticket_sources` in `orca.project.yaml`. The worktree. GitHub, when `gh` is available. `host` defaults to `local`.
 
 **Outputs.** Issues labelled `bleeps:found`, with evidence. A copy on each configured source other than plain GitHub issues. Orca worktrees for those issues, up to the cap. Open `friction` issues are queued and not filed again, and they are not copied.
 
@@ -196,7 +196,7 @@ flowchart TD
 
 **Status.** Built. Register the automation with `bleeps scout schedule`. It is not an `orca.yaml` key.
 
-**Lives.** [scripts/bleeps-scout](../scripts/bleeps-scout). See [0008](decisions/0008-bleeps-is-proactive.md) and [0013](decisions/0013-one-ticket-many-sources.md).
+**Lives.** [scripts/bleeps-scout](../scripts/bleeps-scout). See [0008](decisions/0008-bleeps-is-proactive.md), [0013](decisions/0013-one-ticket-many-sources.md), and [0014](decisions/0014-where-it-runs.md).
 
 ### Ticket intake
 
@@ -212,7 +212,7 @@ flowchart TD
 
 **When.** Flow step 1, and again at flow step 6 for the pull request link.
 
-**Status.** Built for fixture responses. Live calls need the credentials named in [tickets](tickets.md). The home server has not run those calls.
+**Status.** Built for fixture responses. Live calls need the credentials named in [tickets](tickets.md). Those calls have not been run on a machine yet.
 
 **Lives.** [scripts/intake](../scripts/intake), `scripts/ticket-github`, `scripts/ticket-github-project`, `scripts/ticket-jira`, `scripts/ticket-discord`, `scripts/ticket-linear`, and [scripts/check-ticket-sources](../scripts/check-ticket-sources). See [0013](decisions/0013-one-ticket-many-sources.md).
 
@@ -250,7 +250,7 @@ flowchart TD
 
 **When.** Setup runs when a worktree is created. Verification runs before a pull request is opened, and again in CI when the check is required.
 
-**Status.** Built. The home server does not have Orca installed yet.
+**Status.** Built. Orca is not installed for this repo yet.
 
 **Lives.** [`orca.yaml`](../orca.yaml), [`scripts/orca-setup`](../scripts/orca-setup), and [`scripts/orca-verify`](../scripts/orca-verify). Projects commit `orca.project.yaml`. The example is [examples/orca.project.yaml](../examples/orca.project.yaml).
 

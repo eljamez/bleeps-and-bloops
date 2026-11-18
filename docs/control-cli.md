@@ -6,7 +6,7 @@ Agents use one CLI to prove a change, and they keep that CLI working. A green ch
 
 `scripts/orca-verify` calls `test` and `typecheck`. The setup hook calls `install`. A new check goes into `bleeps` in the same PR. Feature work does not get its own curl script.
 
-Projects symlink `scripts/bleeps` the same way they symlink the shared `orca.yaml`. See [0001](decisions/0001-shared-factory-config.md) and [home server](home-server.md).
+Projects symlink `scripts/bleeps` the same way they symlink the shared `orca.yaml`. See [0001](decisions/0001-shared-factory-config.md) and [where it runs](where-it-runs.md).
 
 ## Commands
 

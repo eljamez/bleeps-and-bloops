@@ -285,7 +285,12 @@ export default function UsingBleepsPage() {
             The patrol is per project. <code>proactive</code> in{" "}
             <code>orca.project.yaml</code> defaults to {system.defaults.proactive}.
             Set <code>proactive: off</code> and Chip skips that project. Issues
-            already open stay open. <code>scout_schedule</code> defaults to {system.defaults.scout_schedule} and <code>scout_time</code> defaults
+            already open stay open. <code>host</code> defaults to {system.defaults.host},
+            the computer in front of you. That computer runs Chip only while
+            it is on and Orca is running. A missed run starts once if you wake
+            it inside Orca&apos;s grace window, and is skipped after that.
+            Tickets you filed stay open. Chip does not drain them.{" "}
+            <code>scout_schedule</code> defaults to {system.defaults.scout_schedule} and <code>scout_time</code> defaults
             to {system.defaults.scout_time}. <code>scout_cap</code> defaults to {system.defaults.scout_cap} open pipelines. Chip files the finding
             on GitHub, and also posts it to each other source in{" "}
             <code>ticket_sources</code>. Open friction issues are not copied.
@@ -301,9 +306,11 @@ python3 scripts/bleeps-scout schedule --install`}</code>
           </pre>
           <p>
             <code>python3 scripts/bleeps-scout --dry-run</code> prints findings
-            and does not file them. The home server is not running that
-            automation yet. <code>scout_provider</code> stays unset until you
-            choose the agent.
+            and does not file them. Register the automation on the machine{" "}
+            <code>host</code> names. For a VPS or a machine at home, reach it
+            on a private network such as Tailscale, and do not open its ports.
+            The steps are in the <a href={links.runs}>where it runs</a> notes.{" "}
+            <code>scout_provider</code> stays unset until you choose the agent.
           </p>
         </div>
       </Section>
