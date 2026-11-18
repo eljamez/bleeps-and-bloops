@@ -29,8 +29,13 @@ export default function StartExistingPage() {
           <Step title="Use the repository you administer">
             <p>
               You need admin on the GitHub repository so you can protect{" "}
-              <code>main</code> and add labels. GitHub Issues stay the ticket
-              source. Issues already in the tracker stay issues.
+              <code>main</code> and add labels. GitHub is required. Code, pull
+              requests, and CI stay here even when the tickets already live in
+              Jira, Discord, Linear, or a GitHub Project.{" "}
+              <code>scripts/intake</code> fetches one of those and mirrors it
+              to a GitHub issue so the line can start. Issues you already
+              track stay where they are. The setup is in{" "}
+              <a href={links.tickets}>Tickets</a>.
             </p>
           </Step>
           <Step title="Add develop beside the branch you ship">
@@ -117,7 +122,12 @@ cp /path/to/bleeps-and-bloops/examples/orca.project.yaml orca.project.yaml`}</co
             instead of the single <code>test</code> command.{" "}
             <code>proactive</code> defaults to on. Set{" "}
             <code>proactive: off</code> to keep Chip from filing issues here.
-            Commit <code>orca.project.yaml</code>. Do not commit secrets.
+            Set <code>ticket_sources</code> if this project takes tickets from
+            a GitHub Project, Jira, Discord, or Linear. Credential keys are
+            env var names. Commit <code>orca.project.yaml</code>. Do not
+            commit secrets. On the machine that will do the work,{" "}
+            <code>python3 scripts/check-ticket-sources</code> fails when GitHub
+            access is missing.
           </p>
           {/* TODO: The home server is not set up by this repo. Hostname, OS, and clone path are not written. Do not invent them. */}
           <p>

@@ -1,0 +1,9 @@
+{
+  "id": "uuid-1",
+  "identifier": "ENG-12",
+  "title": "Gate the door",
+  "description": "The latch sticks.",
+  "url": "https://linear.app/acme/issue/ENG-12",
+  "state": { "name": "Todo", "type": "unstarted" },
+  "labels": { "nodes": [{ "name": "bug" }] }
+}

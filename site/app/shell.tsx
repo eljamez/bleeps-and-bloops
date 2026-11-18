@@ -19,6 +19,7 @@ export const links = {
   home: blob("docs/home-server.md"),
   example: blob("examples/orca.project.yaml"),
   blip: blob("agents/blip/ROLE.md"),
+  tickets: blob("docs/tickets.md"),
 };
 
 const nav = [

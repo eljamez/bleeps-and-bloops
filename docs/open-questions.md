@@ -9,6 +9,14 @@
 - Which value to put in `scout_provider`, and which timezone the daily 09:00 scout should use. The automation uses the server clock until a timezone is set.
 - The site has no Playwright suite yet. Blip's onboard skill is the path that adds it.
 - Whether to turn on GitHub's auto-merge setting. Bloops' script checks the gates and does not flip that setting. See [0010](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md).
+- Per-source credentials and names James still has to provide before a live check can pass. The file stores env var names only. See [tickets](tickets.md).
+  - GitHub: confirm `gh auth login` or the token env, and `github_repo` when `origin` is not the repo.
+  - GitHub Project: owner (user or org), project number, and the Status option names if they are not Todo, In Progress, and Done.
+  - Jira: site URL, the email and API token env vars, the project key, and transition names that are not in the alias list.
+  - Linear: API key env, team key.
+  - Discord: bot token env, channel id, guild id, and whether a ticket is a channel message. Forum posts and threads are not fetched.
+- Whether Chip should post a finding to every configured source, or only one primary. Today it posts to each source other than plain GitHub issues. Friction issues are not copied.
+- Whether a status name that is not in the alias list should fail the fetch instead of becoming `open`.
 
 ## Resolved
 
@@ -19,3 +27,4 @@
 - **Round limit.** [0012](decisions/0012-red-suite-loops.md): `fix_rounds` in `orca.project.yaml` defaults to 2. A red suite goes back to the same run twice. The next red escalates to James with a summary and does not merge.
 - **Proactive work.** [0008](decisions/0008-bleeps-is-proactive.md): Chip files issues and starts the pipeline. The friction sweep is Chip.
 - **Names.** [0010](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md): Bleeps runs the crew. Bloops merges and reflects. Outputs do not need a name.
+- **Ticket sources.** [0013](decisions/0013-one-ticket-many-sources.md): GitHub, GitHub Projects, Jira, Discord, and Linear share `scripts/intake`. GitHub access stays required. Live calls against those APIs are not verified in this repo.

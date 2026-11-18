@@ -18,8 +18,8 @@ const stations: {
 }[] = [
   {
     kind: "step",
-    title: "1. A GitHub issue",
-    body: "You file an issue, or Chip files one. That issue is the ticket.",
+    title: "1. A ticket",
+    body: "You file a ticket, or Chip files one. GitHub issues are the default. A project can also take a GitHub Project, Jira, Discord, or Linear. GitHub still holds the code and the pull request.",
   },
   {
     kind: "step",
@@ -178,7 +178,7 @@ export default function HomePage() {
             <span className="beat-kicker">In</span>
             <strong className="beat-name">A ticket</strong>
             <span className="beat-note">
-              A GitHub issue, from you or from Chip.
+              GitHub, a GitHub Project, Jira, Discord, or Linear. You or Chip.
             </span>
           </li>
           <li>
@@ -205,8 +205,8 @@ export default function HomePage() {
 
       <Section id="line" index="01" title="From an issue to develop">
         <p>
-          This is the line, from a GitHub issue to a merge on{" "}
-          <code>develop</code>. The{" "}
+          This is the line, from a ticket to a merge on <code>develop</code>.
+          GitHub holds the code and the pull request. The{" "}
           <a href="/using-bleeps">day-to-day page</a> walks each step.
         </p>
         <p className="legend mt-5">

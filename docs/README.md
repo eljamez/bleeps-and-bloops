@@ -16,4 +16,5 @@ Plan for Bleeps, the orchestrator behind the Bleeps and Bloops brand. Bloops mer
 - [Ship a PR](ship-pr.md)
 - [Friction log](friction-log.md)
 - [Control CLI](control-cli.md)
+- [Tickets](tickets.md)
 - [Context pack, 2026-11-11 (reference only)](reference/context-pack-2026-11-11/README.md)

@@ -29,8 +29,11 @@
 # issueCommand placeholders Orca substitutes: {{issue}} and {{artifact_url}}.
 # A file at .orca/issue-command replaces this prompt for that checkout.
 #
-# Per-project install, test, typecheck, and the scout are not Orca keys.
-# The setup script reads orca.project.yaml. Example: examples/orca.project.yaml.
+# Per-project install, test, typecheck, the scout, and ticket sources are not
+# Orca keys. The setup script reads orca.project.yaml. Example:
+# examples/orca.project.yaml. Ticket sources (GitHub, GitHub Projects, Jira,
+# Discord, Linear) are named there. Secrets are env var names, never values.
+# scripts/intake is the one path into kick-off. See docs/tickets.md.
 #
 # The scout is an Orca automation (orca automations create), not a key in
 # this file. Orca's parser has no schedule field. See
@@ -76,14 +79,18 @@ issueCommand: |
   Work only in this worktree. Open pull requests against develop. Do not push
   to main, and do not open a pull request against main.
 
-  1. Beep plans. Beep runs <factory>/scripts/kick-off and writes spec.md,
-     tasks.md, and design.md only when the approach is risky. Beep writes
-     no product code.
+  1. Beep plans. If the issue body contains a Source-Id line, Beep runs
+     <factory>/scripts/intake fetch with that source, that id, a slug, and
+     --issue {{issue}}. That calls scripts/kick-off and fills ticket.md.
+     Otherwise Beep runs <factory>/scripts/kick-off {{issue}} <slug>.
+     Beep writes spec.md, tasks.md, and design.md only when the approach
+     is risky. Beep writes no product code.
   2. Buzz implements the tasks in this worktree. Buzz does not write
      verify.md, does not edit tests to make them pass, and does not merge.
      If the change touches auth, billing, payments, data deletion, or
      migrations, stop and wait for James. Run <factory>/scripts/guardrails.
-     Exit 2 means stop.
+     Exit 2 means stop. When Buzz starts, post
+     <factory>/scripts/intake status in_progress --issue {{issue}}.
   3. Blip owns tests. Read <factory>/agents/blip/ROLE.md. tasks.md includes
      the tests. Blip writes or extends unit, integration, and, on a web
      app, end-to-end tests. Run <factory>/scripts/fix-loop. It runs
@@ -102,9 +109,14 @@ issueCommand: |
      stops before a pull request.
   5. Open a pull request against develop and comment on the issue. Use the
      repository pull request template, including the primitives recap.
+     Link the pull request with
+     <factory>/scripts/intake link-pr <pr-url> --issue {{issue}}.
+     Do not mark the ticket done until it has merged.
   6. Bloops merges with <factory>/scripts/merge-pr. scripts/ship-pr is the
      same script. High risk waits for James. Never main. Do not turn on
-     GitHub auto-merge. Then run <factory>/scripts/bloops-reflect. Proposals
+     GitHub auto-merge. After a merge, post
+     <factory>/scripts/intake status done --issue {{issue}}.
+     Then run <factory>/scripts/bloops-reflect. Proposals
      are issues or pull requests. Do not edit skills in place.
   7. File leftover papercuts as GitHub issues labeled friction. Search open
      friction issues first.
@@ -117,6 +129,14 @@ issueCommand: |
   An issue labelled bleeps:found was filed by Chip. Use the same steps.
   If the issue body says Risk: high, it touches a guardrail. Wait for James
   and do not merge.
+
+  Ticket sources are set in orca.project.yaml (ticket_sources). GitHub is
+  required on every project: code, pull requests, and CI live there. Jira,
+  Discord, Linear, and a GitHub Project are optional. A ticket from one of
+  those is mirrored to a GitHub issue so this command can run. Chip files
+  bleeps:found on GitHub, and also posts the finding to each other source
+  the project configured. Run scripts/check-ticket-sources on the machine
+  that will do the work. It fails when GitHub access is missing.
 
   CodeRabbit, Devin, and the architecture-fit review are not started by
   this file. Do not claim a review ran unless it did. Grok Bot is not

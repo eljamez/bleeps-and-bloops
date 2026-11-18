@@ -61,6 +61,7 @@ def check_yaml() -> dict:
         "scripts/orca-verify",
         "scripts/fix-loop",
         "scripts/ship-pr",
+        "scripts/intake",
         "bleeps:found",
         "Blip",
         "Exit 3",
@@ -72,7 +73,7 @@ def check_yaml() -> dict:
     shared = (document.get("worktree") or {}).get("sharedDirectories") or []
     require("node_modules" in shared, "sharedDirectories should include node_modules")
     example = (ROOT / "examples" / "orca.project.yaml").read_text()
-    require("install:" in example and "health_url:" in example, "example override")
+    require("install:" in example and "health_url:" in example and "ticket_sources:" in example, "example override")
     return document
 
 
@@ -338,6 +339,14 @@ def main() -> int:
         "bloops-reflect",
         "bleeps-scout",
         "fix-loop",
+        "intake",
+        "check-ticket-sources",
+        "check-tickets",
+        "ticket-github",
+        "ticket-github-project",
+        "ticket-jira",
+        "ticket-discord",
+        "ticket-linear",
     ):
         path = ROOT / "scripts" / name
         require(path.stat().st_mode & stat.S_IXUSR, f"{name} is not executable")
@@ -345,6 +354,8 @@ def main() -> int:
     check_scripts(document["scripts"]["setup"])
     check_scout()
     check_fix_loop()
+    tickets = run([sys.executable, str(ROOT / "scripts" / "check-tickets")], ROOT)
+    require(tickets.returncode == 0, f"check-tickets failed\n{tickets.stdout}\n{tickets.stderr}")
     print("ok")
     return 0
 

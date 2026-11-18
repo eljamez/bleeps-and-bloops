@@ -52,9 +52,9 @@ flowchart TD
 
 **Kind.** Issue command.
 
-**Purpose.** Orca's `issueCommand`. It starts the ticket when a workspace launches from a linked GitHub issue.
+**Purpose.** Orca's `issueCommand`. It starts the ticket when a workspace launches from a linked GitHub issue. A Jira, Discord, Linear, or GitHub Project ticket is mirrored to that issue first. See [tickets](tickets.md).
 
-**Inputs.** The linked issue. Orca substitutes `{{issue}}` and `{{artifact_url}}`.
+**Inputs.** The linked GitHub issue. Orca substitutes `{{issue}}` and `{{artifact_url}}`. `scripts/intake` fills `ticket.md` when the issue is a mirror.
 
 **Outputs.** The ticket run, starting with the spec folder.
 
@@ -184,11 +184,11 @@ flowchart TD
 
 **Kind.** Script.
 
-**Purpose.** Chip's patrol. On a schedule, scan the project, file a `bleeps:found` issue per new finding, and start the normal pipeline up to a cap.
+**Purpose.** Chip's patrol. On a schedule, scan the project, file a `bleeps:found` issue per new finding, post that finding to each other configured ticket source, and start the normal pipeline up to a cap.
 
-**Inputs.** `proactive`, scans, schedule, and cap in `orca.project.yaml`. The worktree. GitHub, when `gh` is available.
+**Inputs.** `proactive`, scans, schedule, cap, and `ticket_sources` in `orca.project.yaml`. The worktree. GitHub, when `gh` is available.
 
-**Outputs.** Issues labelled `bleeps:found`, with evidence. Orca worktrees for those issues, up to the cap. Open `friction` issues are queued and not filed again.
+**Outputs.** Issues labelled `bleeps:found`, with evidence. A copy on each configured source other than plain GitHub issues. Orca worktrees for those issues, up to the cap. Open `friction` issues are queued and not filed again, and they are not copied.
 
 **Invoked by.** An Orca automation. A person can run `bleeps scout`.
 
@@ -196,7 +196,25 @@ flowchart TD
 
 **Status.** Built. Register the automation with `bleeps scout schedule`. It is not an `orca.yaml` key.
 
-**Lives.** [scripts/bleeps-scout](../scripts/bleeps-scout). See [0008](decisions/0008-bleeps-is-proactive.md).
+**Lives.** [scripts/bleeps-scout](../scripts/bleeps-scout). See [0008](decisions/0008-bleeps-is-proactive.md) and [0013](decisions/0013-one-ticket-many-sources.md).
+
+### Ticket intake
+
+**Kind.** Script.
+
+**Purpose.** Fetch a ticket from GitHub, a GitHub Project, Jira, Discord, or Linear, write the same ticket shape, and hand it to kick-off. Post status and the pull request link back when the source supports it.
+
+**Inputs.** `ticket_sources` and credential env var names in `orca.project.yaml`. A source id. GitHub access, which is required even when the ticket lives somewhere else.
+
+**Outputs.** `specs/<issue>-<slug>/ticket.json` and `ticket.md`. A GitHub issue labelled `bleeps:intake` when the source is not GitHub. A status or pull request link on the source.
+
+**Invoked by.** Beep, at the start of `issueCommand`. The crew, when a pull request opens. A person can run `scripts/intake` and `scripts/check-ticket-sources`.
+
+**When.** Flow step 1, and again at flow step 6 for the pull request link.
+
+**Status.** Built for fixture responses. Live calls need the credentials named in [tickets](tickets.md). The home server has not run those calls.
+
+**Lives.** [scripts/intake](../scripts/intake), `scripts/ticket-github`, `scripts/ticket-github-project`, `scripts/ticket-jira`, `scripts/ticket-discord`, `scripts/ticket-linear`, and [scripts/check-ticket-sources](../scripts/check-ticket-sources). See [0013](decisions/0013-one-ticket-many-sources.md).
 
 ### bleeps
 
@@ -284,7 +302,7 @@ flowchart TD
 
 **Purpose.** `specs/<issue>-<slug>/` holds `ticket.md`, `spec.md` (draft or approved), optional `design.md`, `tasks.md`, and `verify.md`.
 
-**Inputs.** The GitHub issue.
+**Inputs.** The normalized ticket. For a GitHub issue that is the whole ticket. For another source, the mirror issue plus `ticket.json`.
 
 **Outputs.** `ticket.md`. `spec.md`, with status draft or approved. `design.md` only if the approach is risky. `tasks.md` and `verify.md` are written by their own steps.
 

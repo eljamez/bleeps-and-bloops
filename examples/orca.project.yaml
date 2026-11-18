@@ -33,3 +33,22 @@ scout_scans: tests, ci, lint, advisories, debt, friction, coverage
 # fix_rounds: how many times a red suite goes back to be fixed in the same
 # run. Default 2. The next red escalates to the owner. Integer 0-20.
 # fix_rounds: 2
+#
+# Tickets. GitHub is required for every project (code, pull requests, CI).
+# ticket_sources lists where the work items come from. Omitted means github.
+# Keys that end in _env are environment variable names. Never put a token here.
+# Docs: docs/tickets.md. Check: python3 scripts/check-ticket-sources
+ticket_sources: github
+# github_token_env: GH_TOKEN
+# github_repo: owner/name
+# github_project_owner: owner
+# github_project_number: 1
+# jira_base_url: https://example.atlassian.net
+# jira_email_env: JIRA_EMAIL
+# jira_token_env: JIRA_API_TOKEN
+# jira_project: PROJ
+# discord_token_env: DISCORD_BOT_TOKEN
+# discord_channel_id: "123"
+# discord_guild_id: "456"
+# linear_api_key_env: LINEAR_API_KEY
+# linear_team: ENG

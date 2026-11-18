@@ -83,13 +83,25 @@ export default function UsingBleepsPage() {
       </Section>
 
       <Section id="issue" index="02" title="File an issue">
-        <p>
-          A GitHub issue is the ticket. You file it, or Chip files one labelled{" "}
-          <code>bleeps:found</code>. Launch an Orca workspace from that issue.
-          Orca runs <code>issueCommand</code> from the shared{" "}
-          <code>orca.yaml</code>, with the issue number filled in. Whether
-          someone grooms the issue first is still open.
-        </p>
+        <div className="stack">
+          <p>
+            A ticket comes from the sources this project connected: GitHub
+            issues, a GitHub Project, Jira, Discord, or Linear. GitHub is
+            required either way. You file it, or Chip files one labelled{" "}
+            <code>bleeps:found</code>. <code>scripts/intake</code> writes one
+            ticket shape and, for anything that is not already a GitHub issue,
+            mirrors it so Orca can start. Launch an Orca workspace from that
+            issue. Orca runs <code>issueCommand</code> from the shared{" "}
+            <code>orca.yaml</code>, with the issue number filled in. Whether
+            someone grooms the issue first is still open. The commands and the
+            env var names are in <a href={links.tickets}>Tickets</a>.
+          </p>
+          <p>
+            When the pull request opens, <code>scripts/intake link-pr</code>{" "}
+            posts the link back. Discord records that as a reply. Jira, Linear,
+            and a GitHub Project update their own status when the names match.
+          </p>
+        </div>
       </Section>
 
       <Section id="spec" index="03" title="Spec and tasks">
@@ -279,7 +291,9 @@ export default function UsingBleepsPage() {
             <code>proactive: off</code> and Chip skips that project. Issues
             already open stay open. <code>scout_schedule</code> defaults to
             daily and <code>scout_time</code> defaults to 09:00.{" "}
-            <code>scout_cap</code> defaults to 2 open pipelines.
+            <code>scout_cap</code> defaults to 2 open pipelines. Chip files the
+            finding on GitHub, and also posts it to each other source in{" "}
+            <code>ticket_sources</code>. Open friction issues are not copied.
           </p>
           <p>
             The schedule is an Orca automation, not a key inside{" "}

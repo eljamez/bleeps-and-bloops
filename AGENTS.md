@@ -22,6 +22,7 @@ Open the page that owns the task:
 - [Home server](docs/home-server.md)
 - [Primitives](docs/primitives.md)
 - [Using Bleeps](docs/using-bleeps.md)
+- [Tickets](docs/tickets.md) — GitHub, GitHub Projects, Jira, Discord, Linear. One intake path.
 - [Friction log](docs/friction-log.md)
 - [Ship a PR](docs/ship-pr.md)
 - [Control CLI](docs/control-cli.md)

@@ -1,7 +1,8 @@
 # Architecture
 
 - Bleeps is built for Orca. The factory config is the shared [`orca.yaml`](../orca.yaml). See [0007](decisions/0007-bleeps-is-built-for-orca.md) and [0001](decisions/0001-shared-factory-config.md).
-- `issueCommand` is the kick-off. `scripts.setup` installs dependencies when a worktree is created. How to run it: [home server](home-server.md).
+- `issueCommand` is the kick-off. `scripts/intake` is how a GitHub issue, a GitHub Project item, a Jira issue, a Discord message, or a Linear issue becomes that kick-off. GitHub access is required on every project. See [0013](decisions/0013-one-ticket-many-sources.md) and [tickets](tickets.md).
+- `scripts.setup` installs dependencies when a worktree is created. How to run it: [home server](home-server.md).
 - Blip owns tests. The role is [agents/blip](../agents/blip). A red suite loops in the run until green, up to `fix_rounds`. Green tests are still the merge gate. See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md) and [0012](decisions/0012-red-suite-loops.md).
 - Chip files issues and starts the pipeline. The schedule is an Orca automation. See [0008](decisions/0008-bleeps-is-proactive.md).
 - The crew is Beep, Buzz, Blip, Echo, Chip, and Bloops. Bleeps runs them. See [0010](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md).

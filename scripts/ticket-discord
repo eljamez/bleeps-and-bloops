@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""Discord adapter. A ticket is a message in the configured channel.
+
+Discord has no status field. Status and the pull request link are replies
+to that message. Forum posts are not read.
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import ticketlib
+
+raise SystemExit(ticketlib.adapter_main("discord", sys.argv[1:]))

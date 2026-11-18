@@ -4,7 +4,8 @@
 Project commands come from orca.project.yaml in the worktree. Orca does not
 read that file. Keys: install, test, typecheck, health_url, preview,
 proactive, scout_schedule, scout_time, scout_cap, scout_scans,
-scout_provider, error_tracking, fix_rounds.
+scout_provider, error_tracking, fix_rounds, and the ticket source keys read by
+scripts/intake (names of env vars, never the secrets).
 fix_rounds caps scripts/fix-loop. Default 2. Integer 0-20.
 """
 
@@ -36,6 +37,20 @@ KEYS = (
     "test_integration",
     "test_e2e",
     "fix_rounds",
+    "ticket_sources",
+    "github_token_env",
+    "github_repo",
+    "github_project_owner",
+    "github_project_number",
+    "jira_base_url",
+    "jira_email_env",
+    "jira_token_env",
+    "jira_project",
+    "discord_token_env",
+    "discord_channel_id",
+    "discord_guild_id",
+    "linear_api_key_env",
+    "linear_team",
 )
 PROJECT_FILE = "orca.project.yaml"
 
@@ -195,7 +210,7 @@ def cmd_health(root: Path) -> int:
 def main(argv: list[str]) -> int:
     if not argv or argv[0] in {"-h", "--help"}:
         print(
-            "usage: bleeps install|doctor|test|typecheck|preview|health|scout|kick-off|verify|merge|reflect|fix-loop ...",
+            "usage: bleeps install|doctor|test|typecheck|preview|health|scout|kick-off|verify|merge|reflect|fix-loop|intake ...",
             file=sys.stderr,
         )
         return 0 if argv and argv[0] in {"-h", "--help"} else 2
@@ -217,6 +232,7 @@ def main(argv: list[str]) -> int:
         "merge": "merge-pr",
         "reflect": "bloops-reflect",
         "fix-loop": "fix-loop",
+        "intake": "intake",
     }
     if command in scripts:
         script = str(Path(__file__).resolve().parent / scripts[command])

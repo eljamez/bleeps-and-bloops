@@ -85,6 +85,24 @@ test("setup pages mention Blip and link to day-to-day use", async ({ page }) => 
   }
 });
 
+test("setup pages require GitHub and name the other ticket sources", async ({ page }) => {
+  for (const path of ["/start/new", "/start/existing"]) {
+    await page.goto(path);
+    await expect(page.getByText(/GitHub is required/)).toBeVisible();
+    const text = await page.locator("body").innerText();
+    for (const source of ["Jira", "Discord", "Linear", "GitHub Project"]) {
+      expect(text, source).toContain(source);
+    }
+    await expect(page.getByRole("link", { name: "Tickets" })).toBeVisible();
+  }
+});
+
+test("usage page explains intake and Chip posting findings", async ({ page }) => {
+  await page.goto("/using-bleeps");
+  await expect(page.getByText(/scripts\/intake writes one/)).toBeVisible();
+  await expect(page.getByText(/also posts it to each other source/)).toBeVisible();
+});
+
 test("home page sends a red suite back into the run", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText(/A red suite goes back to the fix loop/)).toBeVisible();

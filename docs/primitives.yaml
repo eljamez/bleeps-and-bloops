@@ -42,9 +42,10 @@ primitives:
     name: Kick-off command
     summary: >
       Orca issueCommand. Orca sends it when a workspace launches from a
-      linked GitHub issue.
+      linked GitHub issue. Other ticket sources are mirrored onto that issue.
     inputs:
       - A linked GitHub issue. Orca substitutes {{issue}} and {{artifact_url}}.
+      - A normalized ticket from scripts/intake when the issue is a mirror.
     outputs:
       - The ticket run, starting with the spec folder
     invoked_by: Orca, when a person launches a workspace from the issue
@@ -59,9 +60,11 @@ primitives:
       - docs/flow.md
       - docs/roadmap.md
       - docs/home-server.md
+      - docs/tickets.md
     adrs:
       - docs/decisions/0002-rebuild-factory-clean.md
       - docs/decisions/0007-bleeps-is-built-for-orca.md
+      - docs/decisions/0013-one-ticket-many-sources.md
 
   - id: build-fix-loop
     group: skill
@@ -227,13 +230,15 @@ primitives:
     group: script
     name: Chip
     summary: >
-      The scout. A scheduled patrol that files bleeps:found issues and starts
+      The scout. A scheduled patrol that files bleeps:found issues, posts
+      each new finding to the project's other ticket sources, and starts
       the normal pipeline, capped so it cannot flood pull requests.
     inputs:
-      - orca.project.yaml proactive, scans, schedule, and cap
+      - orca.project.yaml proactive, scans, schedule, cap, and ticket_sources
       - The worktree and, when gh is available, CI, advisories, and friction issues
     outputs:
       - GitHub issues labelled bleeps:found, with evidence
+      - A copy on each configured source other than plain GitHub issues
       - Orca worktrees for those issues, up to the cap
     invoked_by: An Orca automation. A person can run bleeps scout.
     when: On the project schedule. Default daily at 09:00. Flow step 0.
@@ -250,6 +255,43 @@ primitives:
     adrs:
       - docs/decisions/0008-bleeps-is-proactive.md
       - docs/decisions/0009-testing-is-a-gate-blip-owns-tests.md
+      - docs/decisions/0013-one-ticket-many-sources.md
+
+  - id: ticket-intake
+    group: script
+    name: Ticket intake
+    summary: >
+      One path from GitHub, a GitHub Project, Jira, Discord, or Linear into
+      kick-off. GitHub access is required on every project. Adapters fetch a
+      ticket and post status and the pull request link where the source allows it.
+    inputs:
+      - ticket_sources and credential env var names in orca.project.yaml
+      - A source id
+      - GitHub access, including when the ticket lives somewhere else
+    outputs:
+      - specs/<issue>-<slug>/ticket.json and ticket.md
+      - A GitHub issue labelled bleeps:intake when the source is not GitHub
+      - A status or pull request link on the source
+    invoked_by: >
+      Beep, at the start of issueCommand. The crew, when a pull request opens.
+      A person can run scripts/intake and scripts/check-ticket-sources.
+    when: Flow step 1, and again at flow step 6 for the pull request link.
+    status: built
+    lives: >
+      scripts/intake and scripts/ticket-*. Fixture tests are scripts/check-tickets.
+      Live API calls need the credentials in docs/tickets.md and have not been run.
+    code:
+      - scripts/intake
+      - scripts/ticketlib.py
+      - scripts/check-ticket-sources
+    docs:
+      - docs/tickets.md
+      - docs/flow.md
+      - docs/using-bleeps.md
+    adrs:
+      - docs/decisions/0013-one-ticket-many-sources.md
+      - docs/decisions/0007-bleeps-is-built-for-orca.md
+      - docs/decisions/0011-scripts-first.md
 
   - id: bleeps
     group: script

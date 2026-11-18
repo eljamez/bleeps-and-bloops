@@ -1,0 +1,389 @@
+#!/usr/bin/env python3
+"""Fixture tests for ticket intake. No network and no real credentials."""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import ticketlib
+
+FIXTURES = ROOT / "scripts" / "fixtures"
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise SystemExit(message)
+
+
+def load(name: str):
+    return json.loads((FIXTURES / name).read_text())
+
+
+def project(**extra) -> dict:
+    data = {
+        "ticket_sources": "github",
+        "github_repo": "acme/app",
+        "github_project_owner": "acme",
+        "github_project_number": "4",
+        "jira_base_url": "https://acme.atlassian.net",
+        "jira_email_env": "JIRA_EMAIL",
+        "jira_token_env": "JIRA_API_TOKEN",
+        "jira_project": "PROJ",
+        "discord_token_env": "DISCORD_BOT_TOKEN",
+        "discord_channel_id": "123",
+        "discord_guild_id": "456",
+        "linear_api_key_env": "LINEAR_API_KEY",
+        "linear_team": "ENG",
+    }
+    data.update(extra)
+    return data
+
+
+def test_parsers() -> None:
+    github = ticketlib.parse_github_issue(load("github-issue.json"))
+    require(github["source"] == "github" and github["id"] == "12", github)
+    require(github["status"] == "open" and github["labels"] == ["bug"], github)
+    require(set(github) == set(ticketlib.FIELDS), github)
+
+    closed = dict(load("github-issue.json"), state="closed", labels=[{"name": "bleeps:in-progress"}])
+    require(ticketlib.parse_github_issue(closed)["status"] == "done", closed)
+
+    working = dict(load("github-issue.json"), labels=[{"name": "bleeps:in-progress"}])
+    require(ticketlib.parse_github_issue(working)["status"] == "in_progress", working)
+
+    board = ticketlib.parse_github_project(load("github-project.json"))
+    require(board["source"] == "github-project" and board["status"] == "in_progress", board)
+    missing = dict(load("github-project.json"), on_project=False)
+    try:
+        ticketlib.parse_github_project(missing)
+    except ticketlib.TicketError as error:
+        require("not on the configured GitHub Project" in str(error), error)
+    else:
+        raise SystemExit("off-project item should fail")
+
+    jira = ticketlib.parse_jira(load("jira-issue.json"), "https://acme.atlassian.net")
+    require(jira["id"] == "PROJ-12" and jira["status"] == "in_progress", jira)
+    require("The latch sticks." in jira["body"], jira)
+    require(jira["url"] == "https://acme.atlassian.net/browse/PROJ-12", jira)
+
+    linear = ticketlib.parse_linear_node(load("linear-issue.json"))
+    require(linear["id"] == "ENG-12" and linear["status"] == "open", linear)
+    canceled = dict(load("linear-issue.json"), state={"name": "Canceled", "type": "canceled"})
+    parsed = ticketlib.parse_linear_node(canceled)
+    require(parsed["status"] == "done" and "canceled" in parsed["labels"], parsed)
+
+    discord = ticketlib.parse_discord(load("discord-message.json"), "123", "456")
+    require(discord["id"] == "998877" and discord["title"] == "Gate the door", discord)
+    require(discord["url"].startswith("https://discord.com/channels/456/"), discord["url"])
+    bare = ticketlib.parse_discord(load("discord-message.json"), "123", "")
+    require("/api/v10/" in bare["url"], bare["url"])
+
+
+def test_status_picks() -> None:
+    transitions = load("jira-transitions.json")["transitions"]
+    picked = ticketlib.pick_jira_transition(transitions, "in_progress")
+    require(picked["id"] == "21", picked)
+    odd = [{"id": "9", "name": "Start work", "to": {"statusCategory": {"key": "indeterminate"}}}]
+    require(ticketlib.pick_jira_transition(odd, "in_progress")["id"] == "9", odd)
+    require(ticketlib.pick_jira_transition([{"id": "1", "name": "Icebox"}], "done") is None, "icebox")
+
+    states = [
+        {"id": "b", "name": "Backlog", "type": "backlog"},
+        {"id": "s", "name": "Doing", "type": "started"},
+        {"id": "d", "name": "Done", "type": "completed"},
+    ]
+    require(ticketlib.pick_linear_state(states, "open")["id"] == "b", states)
+    require(ticketlib.pick_linear_state(states, "done")["type"] == "completed", states)
+    options = [{"id": "o1", "name": "Todo"}, {"id": "o2", "name": "In Progress"}, {"id": "o3", "name": "Done"}]
+    require(ticketlib.pick_named(options, "in_progress")["id"] == "o2", options)
+    status, note = ticketlib.status_from_name("Icebox")
+    require(status == "open" and note and "Icebox" in note, note)
+
+
+def test_config_and_github_required() -> None:
+    ticketlib.validate_project(project())
+    try:
+        ticketlib.validate_project(project(jira_token_env="ghp_not_a_name"))
+    except ticketlib.TicketError as error:
+        require("environment variable name" in str(error), error)
+    else:
+        raise SystemExit("a token in an env key should fail")
+    try:
+        ticketlib.validate_project(project(jira_base_url="https://user:pw@acme.atlassian.net"))
+    except ticketlib.TicketError as error:
+        require("no user or password" in str(error), error)
+    else:
+        raise SystemExit("credentials in a URL should fail")
+    try:
+        ticketlib.sources_of({"ticket_sources": "asana"})
+    except ticketlib.TicketError as error:
+        require("unknown ticket source" in str(error), error)
+    else:
+        raise SystemExit("unknown source should fail")
+
+    ok, detail = ticketlib.github_access({}, {}, lambda _name: None, lambda: 1)
+    require(not ok and detail == ticketlib.GITHUB_REQUIRED, detail)
+    require("GitHub is required" in detail, detail)
+    ok, detail = ticketlib.github_access({}, {"GH_TOKEN": "present"}, lambda _name: None, lambda: 1)
+    require(ok and "GH_TOKEN" in detail, detail)
+    ok, detail = ticketlib.github_access({}, {}, lambda name: "/usr/bin/gh" if name == "gh" else None, lambda: 0)
+    require(ok and "gh auth status" in detail, detail)
+
+    require(ticketlib.parse_github_remote("git@github.com:acme/app.git") == "acme/app", "ssh")
+    require(ticketlib.parse_github_remote("https://github.com/acme/app") == "acme/app", "https")
+    require(ticketlib.outbound_sources({}) == [], "default")
+    require(ticketlib.outbound_sources({"ticket_sources": "linear, github, github-project"}) == ["linear", "github-project"], "outbound")
+
+
+def test_mirror_and_plans() -> None:
+    ticket = ticketlib.parse_jira(load("jira-issue.json"), "https://acme.atlassian.net")
+    text = ticketlib.render_ticket_md(ticket)
+    require(ticketlib.source_from_text(text) == ("jira", "PROJ-12"), text)
+    require(ticketlib.source_from_text(ticketlib.mirror_body(ticket)) == ("jira", "PROJ-12"), "mirror")
+
+    calls = []
+
+    def runner(args, cwd=None, input_text=None):
+        calls.append((args, input_text))
+        if args[1:3] == ["issue", "list"]:
+            body = ticketlib.mirror_body(ticket)
+            return subprocess.CompletedProcess(args, 0, json.dumps([{"number": 9, "body": body}]), "")
+        raise AssertionError(args)
+
+    require(ticketlib.ensure_mirror(ticket, Path("."), runner) == 9, calls)
+    require(all("create" not in args for args, _text in calls), calls)
+
+    calls.clear()
+
+    def create(args, cwd=None, input_text=None):
+        calls.append((args, input_text))
+        if args[1:3] == ["issue", "list"]:
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        if args[1:3] == ["label", "create"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[1:3] == ["issue", "create"]:
+            require("Source-Id: jira:PROJ-12" in (input_text or ""), input_text)
+            return subprocess.CompletedProcess(args, 0, "https://github.com/acme/app/issues/15\n", "")
+        raise AssertionError(args)
+
+    require(ticketlib.ensure_mirror(ticket, Path("."), create) == 15, calls)
+    plan = ticketlib.github_status_plan("12", "in_progress", "open")
+    require(any("bleeps:in-progress" in part for command in plan for part in command), plan)
+    done = ticketlib.github_status_plan("12", "done", "open")
+    require(done[0][:3] == ["issue", "close", "12"], done)
+    require(ticketlib.github_link_plan("12", "https://github.com/acme/app/pull/3")[0][-1].endswith("/pull/3"), "link")
+
+
+def test_intake_and_status(tmp: Path) -> None:
+    (tmp / "orca.project.yaml").write_text(
+        "ticket_sources: jira, discord, linear, github-project\n"
+        "github_repo: acme/app\n"
+        "github_project_owner: acme\n"
+        "github_project_number: 4\n"
+        "jira_base_url: https://acme.atlassian.net\n"
+        "jira_email_env: JIRA_EMAIL\n"
+        "jira_token_env: JIRA_API_TOKEN\n"
+        "jira_project: PROJ\n"
+        "discord_token_env: DISCORD_BOT_TOKEN\n"
+        "discord_channel_id: 123\n"
+        "discord_guild_id: 456\n"
+        "linear_api_key_env: LINEAR_API_KEY\n"
+        "linear_team: ENG\n"
+    )
+    code = ticketlib.intake_main(
+        ["fetch", "jira", "PROJ-12", "--fixture", str(FIXTURES / "jira-issue.json"), "--issue", "12", "--slug", "latch"],
+        root=tmp,
+        env={},
+    )
+    require(code == 0, "intake fetch")
+    folder = tmp / "specs" / "12-latch"
+    saved = json.loads((folder / "ticket.json").read_text())
+    require(saved["source"] == "jira" and saved["id"] == "PROJ-12", saved)
+    require("Source-Id: jira:PROJ-12" in (folder / "ticket.md").read_text(), "ticket.md")
+    require((folder / "spec.md").exists() and (folder / "tasks.md").exists(), "scaffold")
+
+    dry = ticketlib.intake_main(
+        ["fetch", "discord", "998877", "--fixture", str(FIXTURES / "discord-message.json"), "--dry-run"],
+        root=tmp,
+        env={},
+    )
+    require(dry == 0, "dry-run")
+    require(not (tmp / "specs" / "998877-gate-the-door").exists(), "dry-run must not write")
+
+    scripted = ticketlib.Scripted([load("jira-transitions.json")])
+    result_code = ticketlib.intake_main(
+        ["status", "done", "--issue", "12", "--dry-run"],
+        root=tmp,
+        env={},
+        transport=scripted,
+    )
+    require(result_code == 0, "status")
+    require(len(scripted.calls) == 1 and scripted.calls[0]["method"] == "GET", scripted.calls)
+    require(scripted.calls[0]["url"].endswith("/PROJ-12/transitions"), scripted.calls[0]["url"])
+
+    linear_calls = ticketlib.Scripted(
+        [
+            {"data": {"issues": {"nodes": [load("linear-issue.json")]}}},
+            {"data": {"teams": {"nodes": [{"states": {"nodes": [
+                {"id": "st", "name": "Doing", "type": "started"},
+                {"id": "dn", "name": "Done", "type": "completed"},
+            ]}}]}}},
+        ]
+    )
+    code = ticketlib.set_status("linear", project(), "ENG-12", "in_progress", {}, linear_calls, None, tmp, True)
+    # set_status returns a dict, not a code. The line above is the dict.
+    require(code["state"] == "st" and len(linear_calls.calls) == 2, (code, linear_calls.calls))
+
+    discord_calls = ticketlib.Scripted([])
+    replied = ticketlib.set_status("discord", project(), "998877", "in_progress", {}, discord_calls, None, tmp, True)
+    require(replied["note"].startswith("reply") and discord_calls.calls == [], replied)
+
+    project_calls = ticketlib.Scripted(
+        [
+            {
+                "data": {
+                    "user": {
+                        "projectV2": {
+                            "id": "PVT_1",
+                            "field": {"id": "F1", "options": [
+                                {"id": "opt-do", "name": "Todo"},
+                                {"id": "opt-go", "name": "In Progress"},
+                            ]},
+                            "items": {"nodes": [{
+                                "id": "PVTI_1",
+                                "content": {"number": 12},
+                                "fieldValueByName": {"name": "Todo"},
+                            }]},
+                        }
+                    }
+                }
+            }
+        ]
+    )
+    updated = ticketlib.set_status("github-project", project(), "12", "in_progress", {}, project_calls, None, tmp, True)
+    require(updated["option"] == "opt-go", updated)
+    require(len(project_calls.calls) == 1, project_calls.calls)
+
+
+def test_check_and_scout(tmp: Path) -> None:
+    (tmp / "orca.project.yaml").write_text("ticket_sources: github\ngithub_repo: acme/app\n")
+    lines = ticketlib.check_project(tmp, live=False, env={}, runner=lambda *args, **kwargs: None)
+    require(any("not checked (--config-only)" in line for line in lines), lines)
+    try:
+        ticketlib.check_project(
+            tmp,
+            live=True,
+            env={},
+            which=lambda _name: None,
+            gh_status=lambda: 1,
+            runner=lambda *args, **kwargs: None,
+        )
+    except ticketlib.TicketError as error:
+        require(error.code == 2 and "GitHub is required" in str(error), error)
+    else:
+        raise SystemExit("missing GitHub should fail the live check")
+
+    scout = ROOT / "scripts" / "bleeps-scout"
+    (tmp / "orca.project.yaml").write_text(
+        "proactive: on\nscout_cap: 1\nscout_scans: tests, debt\n"
+        "test: false\n"
+        "ticket_sources: linear, github-project\n"
+    )
+    (tmp / "auth").mkdir()
+    (tmp / "auth" / "session.ts").write_text("ok\n")
+    scanned = subprocess.run([sys.executable, str(scout), "--dry-run"], cwd=tmp, text=True, capture_output=True)
+    require(scanned.returncode == 0, scanned.stderr)
+    require("would post finding to linear" in scanned.stdout, scanned.stdout)
+    require("would post finding to github-project" in scanned.stdout, scanned.stdout)
+    require("gh issue create" not in scanned.stdout, scanned.stdout)
+
+    (tmp / "orca.project.yaml").write_text("proactive: on\nscout_scans: tests\ntest: true\nticket_sources: nope\n")
+    bad = subprocess.run([sys.executable, str(scout), "--dry-run"], cwd=tmp, text=True, capture_output=True)
+    require(bad.returncode == 2 and "unknown ticket source" in bad.stderr, bad.stderr + bad.stdout)
+
+    scripted = ticketlib.Scripted(
+        [
+            {"data": {"teams": {"nodes": [{"id": "team-1", "key": "ENG"}]}}},
+            {"data": {"issueCreate": {"issue": {"id": "uuid", "identifier": "ENG-4", "title": "tests failing", "url": "https://linear.app/acme/issue/ENG-4"}}}},
+        ]
+    )
+    notes = ticketlib.post_finding(
+        project(ticket_sources="linear, jira"),
+        "tests failing",
+        "evidence",
+        8,
+        env={},
+        transport=scripted,
+        root=tmp,
+    )
+    require(any(note.startswith("posted linear ENG-4") for note in notes), notes)
+    require(any(note.startswith("skipped jira:") for note in notes), notes)
+    require("GitHub issue: #8" in scripted.calls[1]["payload"]["variables"]["description"], scripted.calls[1])
+
+
+def test_plain_github_issue(tmp: Path) -> None:
+    (tmp / "orca.project.yaml").write_text("ticket_sources: github\ngithub_repo: acme/app\n")
+    calls = []
+
+    def runner(args, cwd=None, input_text=None):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    code = ticketlib.intake_main(
+        ["link-pr", "https://github.com/acme/app/pull/4", "--issue", "99", "--dry-run"],
+        root=tmp,
+        env={},
+        runner=runner,
+    )
+    require(code == 0 and calls == [], calls)
+    scripted = ticketlib.Scripted([load("github-issue.json")])
+    code = ticketlib.intake_main(
+        ["status", "in_progress", "--issue", "12", "--dry-run"],
+        root=tmp,
+        env={},
+        transport=scripted,
+        runner=runner,
+    )
+    require(code == 0 and calls == [], (code, calls))
+    require(scripted.calls and scripted.calls[0]["url"].endswith("/issues/12"), scripted.calls)
+
+
+def test_cli(tmp: Path) -> None:
+    (tmp / "orca.project.yaml").write_text("ticket_sources: github\ngithub_repo: acme/app\n")
+    checked = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "check-ticket-sources"), "--config-only"],
+        cwd=tmp,
+        text=True,
+        capture_output=True,
+    )
+    require(checked.returncode == 0 and checked.stdout.strip().endswith("ok"), checked.stdout + checked.stderr)
+    usage = subprocess.run([sys.executable, str(ROOT / "scripts" / "ticket-jira")], text=True, capture_output=True)
+    require(usage.returncode == 2 and "ticket-jira" in usage.stdout, usage.stdout)
+
+
+def main() -> int:
+    test_parsers()
+    test_status_picks()
+    test_config_and_github_required()
+    test_mirror_and_plans()
+    with tempfile.TemporaryDirectory() as tmp:
+        test_intake_and_status(Path(tmp))
+    with tempfile.TemporaryDirectory() as tmp:
+        test_check_and_scout(Path(tmp))
+    with tempfile.TemporaryDirectory() as tmp:
+        test_plain_github_issue(Path(tmp))
+    with tempfile.TemporaryDirectory() as tmp:
+        test_cli(Path(tmp))
+    print("ok")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
