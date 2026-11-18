@@ -1,0 +1,119 @@
+{
+  "crew": [
+    {
+      "name": "Beep",
+      "job": "Plans the ticket and writes the spec. No product code."
+    },
+    {
+      "name": "Buzz",
+      "job": "Builds the change in an Orca worktree. Does not certify it."
+    },
+    {
+      "name": "Blip",
+      "job": "QA lead. Owns the suites. A red suite loops in the run."
+    },
+    {
+      "name": "Echo",
+      "job": "Independent verify. Read-only, in a fresh session."
+    },
+    {
+      "name": "Chip",
+      "job": "Scout. Files findings on GitHub and on each other configured source."
+    },
+    {
+      "name": "Bloops",
+      "job": "Merges through a script, then studies the run and proposes improvements."
+    }
+  ],
+  "ticketSources": [
+    { "id": "github", "label": "GitHub issues" },
+    { "id": "github-project", "label": "a GitHub Project" },
+    { "id": "jira", "label": "Jira" },
+    { "id": "discord", "label": "Discord" },
+    { "id": "linear", "label": "Linear" }
+  ],
+  "githubRequired": true,
+  "fixRounds": 2,
+  "scripts": [
+    { "path": "scripts/kick-off", "who": "Beep" },
+    { "path": "scripts/intake", "who": "Beep" },
+    { "path": "scripts/fix-loop", "who": "Blip" },
+    { "path": "scripts/orca-verify", "who": "Blip" },
+    { "path": "scripts/verify", "who": "Echo" },
+    { "path": "scripts/merge-pr", "who": "Bloops" },
+    { "path": "scripts/bleeps-scout", "who": "Chip" },
+    { "path": "scripts/bloops-reflect", "who": "Bloops" },
+    { "path": "scripts/check-ticket-sources", "who": "You" }
+  ],
+  "configKeys": [
+    "install",
+    "test",
+    "typecheck",
+    "test_unit",
+    "test_integration",
+    "test_e2e",
+    "proactive",
+    "scout_cap",
+    "scout_schedule",
+    "scout_time",
+    "scout_scans",
+    "scout_provider",
+    "ticket_sources",
+    "fix_rounds"
+  ],
+  "defaults": {
+    "proactive": "on",
+    "scout_cap": "2",
+    "scout_schedule": "daily",
+    "scout_time": "09:00"
+  },
+  "pipeline": [
+    {
+      "kind": "step",
+      "title": "1. A ticket",
+      "body": "You file a ticket, or Chip files one. A project chooses from {{sources}}. GitHub is required. Code, pull requests, and CI stay on GitHub."
+    },
+    {
+      "kind": "step",
+      "title": "2. Spec and tasks",
+      "body": "Beep writes spec.md in specs/<issue>-<slug>/, and design.md only when the approach is the risky part. tasks.md is the checklist, and it includes the tests."
+    },
+    {
+      "kind": "step",
+      "title": "3. Build in an Orca worktree",
+      "body": "Buzz builds in an isolated worktree. Blip runs scripts/fix-loop. When the suite is red, the failure goes back in the same run until it is green. fix_rounds caps that loop and defaults to {{fixRounds}}. A guardrail change waits for you."
+    },
+    {
+      "kind": "step",
+      "title": "4. Independent verify",
+      "body": "Echo reads the work and writes verify.md. Echo is read-only, does not share the builder's context, and does not edit."
+    },
+    {
+      "kind": "gate",
+      "title": "Gate: Ready to ship?",
+      "body": "The verdict has to be “Ready to ship”, and the suite has to be green. That is the verdict that opens a pull request.",
+      "hold": "A red suite goes back to the fix loop. Any other verdict stops the line before a pull request."
+    },
+    {
+      "kind": "step",
+      "title": "5. Pull request and review",
+      "body": "The pull request targets develop. CodeRabbit, optionally Devin, and Claude Code review it. Grok Bot watches the queue, failing CI, and review nudges."
+    },
+    {
+      "kind": "gate",
+      "title": "Gate: All clear?",
+      "body": "Tests and the other required checks are green, verify says Ready to ship, reviews have no blocking findings, and a guardrail change has your sign-off.",
+      "hold": "A failed gate leaves the work on the branch."
+    },
+    {
+      "kind": "step",
+      "title": "6. Merge to develop",
+      "body": "When the gates pass, Bloops reports the merge through scripts/merge-pr, then studies the run. The script does not turn on GitHub auto-merge. That setting is still an open question."
+    },
+    {
+      "kind": "step",
+      "title": "7. You promote main",
+      "body": "You merge develop into main. The crew never touches main."
+    }
+  ]
+}

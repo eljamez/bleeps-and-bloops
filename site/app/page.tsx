@@ -1,3 +1,4 @@
+import system, { fill, sourceList } from "./system";
 import { REPO, Section, SiteShell, wrap } from "./shell";
 
 export const dynamic = "force-static";
@@ -9,61 +10,6 @@ const plate = [
   ["Lands on", "develop"],
   ["Main", "You promote it"],
 ] as const;
-
-const stations: {
-  kind: "step" | "gate";
-  title: string;
-  body: string;
-  hold?: string;
-}[] = [
-  {
-    kind: "step",
-    title: "1. A ticket",
-    body: "You file a ticket, or Chip files one. GitHub issues are the default. A project can also take a GitHub Project, Jira, Discord, or Linear. GitHub still holds the code and the pull request.",
-  },
-  {
-    kind: "step",
-    title: "2. Spec and tasks",
-    body: "Beep writes spec.md in specs/<issue>-<slug>/, and design.md only when the approach is the risky part. tasks.md is the checklist, and it includes the tests.",
-  },
-  {
-    kind: "step",
-    title: "3. Build in an Orca worktree",
-    body: "Buzz builds in an isolated worktree. When Blip's suite is red, the failure goes back in the same run until it is green. fix_rounds caps that loop and defaults to 2. A guardrail change waits for you.",
-  },
-  {
-    kind: "step",
-    title: "4. Independent verify",
-    body: "Echo reads the work and writes verify.md. Echo is read-only, does not share the builder's context, and does not edit.",
-  },
-  {
-    kind: "gate",
-    title: "Gate: Ready to ship?",
-    body: "The verdict has to be “Ready to ship”, and the suite has to be green. That is the verdict that opens a pull request.",
-    hold: "A red suite goes back to the fix loop. Any other verdict stops the line before a pull request.",
-  },
-  {
-    kind: "step",
-    title: "5. Pull request and review",
-    body: "The pull request targets develop. CodeRabbit, optionally Devin, and Claude Code review it. Grok Bot watches the queue, failing CI, and review nudges.",
-  },
-  {
-    kind: "gate",
-    title: "Gate: All clear?",
-    body: "Tests and the other required checks are green, verify says Ready to ship, reviews have no blocking findings, and a guardrail change has your sign-off.",
-    hold: "A failed gate leaves the work on the branch.",
-  },
-  {
-    kind: "step",
-    title: "6. Merge to develop",
-    body: "When the gates pass, Bloops reports the merge through scripts/merge-pr, then studies the run. The script does not turn on GitHub auto-merge. That setting is still an open question.",
-  },
-  {
-    kind: "step",
-    title: "7. You promote main",
-    body: "You merge develop into main. Bleeps never touches main.",
-  },
-];
 
 function SquareWave() {
   return (
@@ -178,7 +124,7 @@ export default function HomePage() {
             <span className="beat-kicker">In</span>
             <strong className="beat-name">A ticket</strong>
             <span className="beat-note">
-              GitHub, a GitHub Project, Jira, Discord, or Linear. You or Chip.
+              {sourceList()}. You or Chip.
             </span>
           </li>
           <li>
@@ -203,10 +149,10 @@ export default function HomePage() {
         </p>
       </header>
 
-      <Section id="line" index="01" title="From an issue to develop">
+      <Section id="line" index="01" title="From a ticket to develop">
         <p>
           This is the line, from a ticket to a merge on <code>develop</code>.
-          GitHub holds the code and the pull request. The{" "}
+          GitHub holds the code, the pull request, and CI. The{" "}
           <a href="/using-bleeps">day-to-day page</a> walks each step.
         </p>
         <p className="legend mt-5">
@@ -221,13 +167,13 @@ export default function HomePage() {
           </span>
         </p>
         <ol className="flow" aria-label="Issue to merge">
-          {stations.map((station) => (
+          {system.pipeline.map((station) => (
             <li key={station.title} className={station.kind}>
               <h3>{station.title}</h3>
-              <p>{station.body}</p>
+              <p>{fill(station.body)}</p>
               {station.hold ? (
                 <p className="hold">
-                  <strong>Holds.</strong> {station.hold}
+                  <strong>Holds.</strong> {fill(station.hold)}
                 </p>
               ) : null}
             </li>
@@ -240,8 +186,10 @@ export default function HomePage() {
           <p>
             Chip patrols the project on a schedule: failing tests, CI breaks,
             lint and type errors, dependency advisories, and friction-log
-            items. Chip files an issue and the same crew takes it through the
-            line, with the same sign-off on guardrails.
+            items. Chip files a GitHub issue and posts the finding to each
+            other source the project configured. Open friction issues are not
+            copied. The same crew takes the GitHub issue through the line,
+            with the same sign-off on guardrails.
           </p>
           <p>
             A project turns the patrol on or off in{" "}

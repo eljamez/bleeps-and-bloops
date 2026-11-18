@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Section, SiteShell, links, wrap } from "../shell";
+import system, { sourceList } from "../system";
+import { ConfigKeys, Section, SiteShell, links, wrap } from "../shell";
 
 export const dynamic = "force-static";
 
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 const jumps = [
   ["#crew", "Crew"],
-  ["#issue", "Issue"],
+  ["#ticket", "Ticket"],
   ["#spec", "Spec"],
   ["#build", "Build"],
   ["#blip", "Blip"],
@@ -24,15 +25,6 @@ const jumps = [
   ["#patrol", "Patrol"],
 ] as const;
 
-const crew = [
-  ["Beep", "Plans the work and writes the spec."],
-  ["Buzz", "Builds the change in an Orca worktree."],
-  ["Blip", "QA lead. Owns the suites. A red suite loops in the run."],
-  ["Echo", "Independent verify. Read-only, and a separate session."],
-  ["Chip", "Proactive scout. Files issues for what it finds."],
-  ["Bloops", "Merges through a script, then studies the run and improves every agent's skills."],
-] as const;
-
 export default function UsingBleepsPage() {
   return (
     <SiteShell current="using">
@@ -40,9 +32,9 @@ export default function UsingBleepsPage() {
         <h1>Day to day</h1>
         <p className="lede">
           After either setup, the work is the same. You steer. Bleeps runs the
-          crew from a GitHub issue to a pull request on <code>develop</code>.
-          Bloops merges when the gates pass. You promote <code>develop</code>{" "}
-          to <code>main</code>. The order is the <a href={links.flow}>flow</a>.
+          crew from a ticket to a pull request on <code>develop</code>. Bloops
+          merges when the gates pass. You promote <code>develop</code> to{" "}
+          <code>main</code>. The order is the <a href={links.flow}>flow</a>.
           The blocks are the <a href={links.primitives}>primitives</a>.
         </p>
         <nav aria-label="On this page">
@@ -58,36 +50,39 @@ export default function UsingBleepsPage() {
 
       <Section id="crew" index="01" title="The crew">
         <div className="stack">
-          {/* TODO: Keep these jobs aligned with the role files under agents/. Do not invent extra commands. */}
+          {/* Jobs and the script list are site/system-facts.json. scripts/check-site locks them to the system. */}
           <p>
             Bleeps is the doer. Bleeps runs this crew and gets the work done.
           </p>
           <dl className="habits">
-            {crew.map(([name, job]) => (
-              <div className="habit" key={name}>
-                <dt>{name}</dt>
-                <dd>{job}</dd>
+            {system.crew.map((member) => (
+              <div className="habit" key={member.name}>
+                <dt>{member.name}</dt>
+                <dd>{member.job}</dd>
               </div>
             ))}
           </dl>
           <p>
             Scripts first: common work gets a script so nobody does it by hand
-            or from scratch. Beep runs <code>scripts/kick-off</code>. Echo
-            writes the verdict with <code>scripts/verify</code>. Bloops merges
-            with <code>scripts/merge-pr</code> and reflects with{" "}
-            <code>scripts/bloops-reflect</code>. Chip runs{" "}
-            <code>scripts/bleeps-scout</code>. Tests run through{" "}
-            <code>bleeps test</code>.
+            or from scratch. Tests run through <code>bleeps test</code>.
           </p>
+          <ul className="tasks">
+            {system.scripts.map((script) => (
+              <li key={script.path}>
+                <code>{script.path}</code> ({script.who})
+              </li>
+            ))}
+          </ul>
+          <ConfigKeys />
         </div>
       </Section>
 
-      <Section id="issue" index="02" title="File an issue">
+      <Section id="ticket" index="02" title="File a ticket">
         <div className="stack">
           <p>
-            A ticket comes from the sources this project connected: GitHub
-            issues, a GitHub Project, Jira, Discord, or Linear. GitHub is
-            required either way. You file it, or Chip files one labelled{" "}
+            A ticket comes from the sources this project connected:{" "}
+            {sourceList()}.
+            GitHub is required either way. You file it, or Chip files one labelled{" "}
             <code>bleeps:found</code>. <code>scripts/intake</code> writes one
             ticket shape and, for anything that is not already a GitHub issue,
             mirrors it so Orca can start. Launch an Orca workspace from that
@@ -121,11 +116,12 @@ export default function UsingBleepsPage() {
         <div className="stack">
           <p>
             Buzz builds in an isolated Orca worktree. When the suite is red,
-            Blip sends the failure back in the same run. Buzz fixes the code,
-            or Blip fixes the test when the test is wrong. Blip reruns until
-            green. <code>fix_rounds</code> defaults to 2. Past that, the run
-            escalates to you with a summary. When the change touches a
-            guardrail, the loop pauses for you.
+            Blip runs <code>scripts/fix-loop</code> and sends the failure back
+            in the same run. Buzz fixes the code, or Blip fixes the test when
+            the test is wrong. Blip reruns until green. <code>fix_rounds</code> defaults
+            to {system.fixRounds}. Past that, the run escalates to you
+            with a summary. When the change touches a guardrail, the loop
+            pauses for you.
           </p>
           <p>
             Echo then writes <code>verify.md</code>. Echo is read-only, does
@@ -154,7 +150,7 @@ export default function UsingBleepsPage() {
             code, or Blip fixes the test when the test is wrong. Blip reruns
             until the suite is green, then Echo verifies. Nothing merges
             while tests are red. <code>fix_rounds</code> in{" "}
-            <code>orca.project.yaml</code> caps the loop and defaults to 2.
+            <code>orca.project.yaml</code> caps the loop and defaults to {system.fixRounds}.
             Past that, the run escalates to you with a summary. Echo&apos;s
             verdict, the reviews, and guardrail sign-off still have to pass.
             A missing test command fails <code>bleeps test</code>. It is not
@@ -287,12 +283,11 @@ export default function UsingBleepsPage() {
           </p>
           <p>
             The patrol is per project. <code>proactive</code> in{" "}
-            <code>orca.project.yaml</code> defaults to on. Set{" "}
-            <code>proactive: off</code> and Chip skips that project. Issues
-            already open stay open. <code>scout_schedule</code> defaults to
-            daily and <code>scout_time</code> defaults to 09:00.{" "}
-            <code>scout_cap</code> defaults to 2 open pipelines. Chip files the
-            finding on GitHub, and also posts it to each other source in{" "}
+            <code>orca.project.yaml</code> defaults to {system.defaults.proactive}.
+            Set <code>proactive: off</code> and Chip skips that project. Issues
+            already open stay open. <code>scout_schedule</code> defaults to {system.defaults.scout_schedule} and <code>scout_time</code> defaults
+            to {system.defaults.scout_time}. <code>scout_cap</code> defaults to {system.defaults.scout_cap} open pipelines. Chip files the finding
+            on GitHub, and also posts it to each other source in{" "}
             <code>ticket_sources</code>. Open friction issues are not copied.
           </p>
           <p>

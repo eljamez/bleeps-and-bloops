@@ -1,6 +1,6 @@
 # Using Bleeps
 
-Bleeps runs the crew. Bloops merges and reflects. Bleeps and Bloops is the brand. Outputs do not need a name. Kent C. Dodds names his system Kody. Bleeps is that kind of name for the orchestrator.
+Bleeps runs the crew. Bloops merges and reflects. Bleeps and Bloops is the brand. Outputs do not need a name. Bleeps is the name of the orchestrator.
 
 This page is how you adopt Bleeps on a repository of your own.
 

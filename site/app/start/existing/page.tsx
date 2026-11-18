@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { BlipNote, Section, SiteShell, Step, links, wrap } from "../../shell";
+import system, { joinLabels } from "../../system";
+import { BlipNote, ConfigKeys, Section, SiteShell, Step, links, wrap } from "../../shell";
 
 export const dynamic = "force-static";
 
@@ -30,9 +31,13 @@ export default function StartExistingPage() {
             <p>
               You need admin on the GitHub repository so you can protect{" "}
               <code>main</code> and add labels. GitHub is required. Code, pull
-              requests, and CI stay here even when the tickets already live in
-              Jira, Discord, Linear, or a GitHub Project.{" "}
-              <code>scripts/intake</code> fetches one of those and mirrors it
+              requests, and CI stay here even when the tickets already live in{" "}
+              {joinLabels(
+                system.ticketSources
+                  .filter((source) => source.id !== "github")
+                  .map((source) => source.label),
+              )}
+              . <code>scripts/intake</code> fetches one of those and mirrors it
               to a GitHub issue so the line can start. Issues you already
               track stay where they are. The setup is in{" "}
               <a href={links.tickets}>Tickets</a>.
@@ -53,9 +58,10 @@ export default function StartExistingPage() {
               merge into it. Keep the protection you already have, and keep
               agents off <code>main</code>. GitHub auto-merge is still an open
               question. <code>scripts/merge-pr</code> does not turn it on.
-              Required checks you already run stay. They are one gate. The
-              verify verdict and the deployed SHA are gates of their own, and
-              those checks are planned.
+              Required checks you already run stay. They are one gate. Echo&apos;s
+              verify verdict is another gate, and <code>scripts/merge-pr</code>{" "}
+              reads it. The deployed SHA check is not built yet:{" "}
+              <code>bleeps health</code> still refuses.
             </p>
           </Step>
           <Step title="Point AGENTS.md at Bleeps">
@@ -120,15 +126,16 @@ cp /path/to/bleeps-and-bloops/examples/orca.project.yaml orca.project.yaml`}</co
             If you set <code>test_unit</code>, <code>test_integration</code>,
             or <code>test_e2e</code>, <code>bleeps test</code> runs those
             instead of the single <code>test</code> command.{" "}
-            <code>proactive</code> defaults to on. Set{" "}
+            <code>proactive</code> defaults to {system.defaults.proactive}. Set{" "}
             <code>proactive: off</code> to keep Chip from filing issues here.
-            Set <code>ticket_sources</code> if this project takes tickets from
-            a GitHub Project, Jira, Discord, or Linear. Credential keys are
-            env var names. Commit <code>orca.project.yaml</code>. Do not
-            commit secrets. On the machine that will do the work,{" "}
+            Set <code>ticket_sources</code> to the trackers this project uses: {joinLabels(system.ticketSources.map((source) => source.label))}.
+            Credential keys are env var names. Commit{" "}
+            <code>orca.project.yaml</code>. Do not commit secrets. On the
+            machine that will do the work,{" "}
             <code>python3 scripts/check-ticket-sources</code> fails when GitHub
             access is missing.
           </p>
+          <ConfigKeys />
           {/* TODO: The home server is not set up by this repo. Hostname, OS, and clone path are not written. Do not invent them. */}
           <p>
             Installing Orca on a machine is still open. The written steps are

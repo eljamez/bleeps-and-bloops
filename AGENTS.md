@@ -4,6 +4,8 @@ Bleeps runs the crew and gets the work done. Bloops is the agent that merges and
 
 Scripts first. Repeated work is a script under `scripts/` or `bleeps`. Prefer the script. The second time a step is done by hand, propose a script. See [0011](docs/decisions/0011-scripts-first.md).
 
+When you change the system, update the docs, the decision, `orca.yaml`, the scripts, and the site together. Follow [Updating Bleeps and Bloops](agents/bloops/skills/update/SKILL.md) and run `python3 scripts/check-site`.
+
 The agent that writes code does not certify it.
 
 Open the page that owns the task:
