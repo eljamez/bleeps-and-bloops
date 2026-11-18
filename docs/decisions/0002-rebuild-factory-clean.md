@@ -18,7 +18,7 @@ These design ideas carry forward:
 - A per-ticket `specs/<issue>-<slug>/` folder: `ticket.md`, `spec.md` with draft/approved status, optional `design.md`, `tasks.md`, and `verify.md` whose verdict gates shipping.
 - An independent read-only reviewer that never shares the implementer's context.
 - A human-approval guardrail list: auth, billing, payments, data deletion, migrations.
-- GitHub Issues as the first ticket source. Linear and Discord come later, via an ingestion step that produces the same `ticket.md`. That step is [0012](0012-one-ticket-many-sources.md): one ticket, `scripts/intake`, and GitHub still required.
+- GitHub Issues as the first ticket source. Linear and Discord come later, via an ingestion step that produces the same `ticket.md`. That step is [0013](0013-one-ticket-many-sources.md): one ticket, `scripts/intake`, and GitHub still required.
 - The four habit skills: explore-first, delegate-cheap-work, verify-before-ship, decompose-hotspot.
 
 Write these known pack gaps fresh: the missing `spec-driven-loop` skill, and the `spec-implementer` and test/ux/backend reviewer agents.

@@ -36,7 +36,7 @@ That prints, then creates, an `orca automations create` run. Default is daily at
 
 ## Blip
 
-Test work is delegated to Blip: [agents/blip/ROLE.md](../agents/blip/ROLE.md). `bleeps test` fails when no test command is configured.
+Test work is delegated to Blip: [agents/blip/ROLE.md](../agents/blip/ROLE.md). `bleeps test` fails when no test command is configured. A red suite runs `scripts/fix-loop` in the same run. `fix_rounds` defaults to 2. The next red escalates to James with a summary. Gitignore `.bleeps/` so that state is not committed. See [0012](decisions/0012-red-suite-loops.md).
 
 ## Start a ticket
 
@@ -85,7 +85,6 @@ Optional: `ln -s /path/to/bleeps-and-bloops/scripts/bleeps bleeps` so the CLI na
 - A project with no test command prints `skipped: no test command` and exits 0. Say if a missing command should fail instead.
 - CodeRabbit, Devin, and Grok Bot are not started by `orca.yaml`.
 - Branch protection and auto-merge are GitHub settings. See [roadmap](roadmap.md) Phase 3.
-- The round limit's number is not chosen. The prompt stops to ask James before a third pass on the same finding.
 - Orca cannot run a command only for worktrees created from a pull request. [stablyai/orca#6917](https://github.com/stablyai/orca/issues/6917).
 
 ## Prove the scripts

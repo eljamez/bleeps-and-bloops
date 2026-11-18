@@ -18,14 +18,14 @@ The crew, each with a directory under `agents/`:
 | --- | --- |
 | Beep | Kick-off and planning. `spec.md`, `design.md` only when the approach is risky, `tasks.md`. No product code. |
 | Buzz | Implements in the worktree. Does not certify that work. |
-| Blip | QA lead. Owns the suites. See [0009](0009-testing-is-a-gate-blip-owns-tests.md). |
+| Blip | QA lead. Owns the suites. A red suite loops in the run. See [0009](0009-testing-is-a-gate-blip-owns-tests.md) and [0012](0012-red-suite-loops.md). |
 | Echo | Independent verifier. Fresh context. Read-only on product code. Writes `verify.md` and can fail the gate. |
 | Chip | The scout. Daily patrol, `bleeps:found` issues, cap 2. See [0008](0008-bleeps-is-proactive.md). |
 | Bloops | Merge, then reflection. |
 
-The agent that writes code never certifies it. Buzz does not write the verdict. Echo does not edit the product.
+The agent that writes code never certifies it. Buzz does not write the verdict. Echo does not edit the product. Blip may fix a wrong test, and Buzz may fix the product, and neither of them certifies that fix.
 
-Bloops merges with a thin skill and `scripts/merge-pr`. The gates are unchanged: green tests, reviews clear, no guardrail area without James's sign-off, `develop` only, never `main`. Whether GitHub's auto-merge setting is turned on stays an open question. `scripts/ship-pr` calls the same script.
+Bloops merges with a thin skill and `scripts/merge-pr`. The gates are unchanged: green tests, reviews clear, no guardrail area without James's sign-off, `develop` only, never `main`. A red suite loops inside the run and still blocks the merge. See [0012](0012-red-suite-loops.md). Whether GitHub's auto-merge setting is turned on stays an open question. `scripts/ship-pr` calls the same script.
 
 Bloops also records how a run went (cycle time, review rounds, test failures, friction-log entries, reverts, Chip's findings) and proposes changes to skills, scripts, and `AGENTS.md`. Proposals are issues or pull requests in the normal pipeline. Bloops does not edit those files in place.
 

@@ -27,7 +27,7 @@ const jumps = [
 const crew = [
   ["Beep", "Plans the work and writes the spec."],
   ["Buzz", "Builds the change in an Orca worktree."],
-  ["Blip", "QA lead. Sets up and maintains the tests."],
+  ["Blip", "QA lead. Owns the suites. A red suite loops in the run."],
   ["Echo", "Independent verify. Read-only, and a separate session."],
   ["Chip", "Proactive scout. Files issues for what it finds."],
   ["Bloops", "Merges through a script, then studies the run and improves every agent's skills."],
@@ -120,15 +120,19 @@ export default function UsingBleepsPage() {
       <Section id="build" index="04" title="Build and verify">
         <div className="stack">
           <p>
-            Buzz builds, tests, and fixes in an isolated Orca worktree, with a
-            round limit. The number of rounds is not chosen yet. When the
-            change touches a guardrail, the loop pauses for you.
+            Buzz builds in an isolated Orca worktree. When the suite is red,
+            Blip sends the failure back in the same run. Buzz fixes the code,
+            or Blip fixes the test when the test is wrong. Blip reruns until
+            green. <code>fix_rounds</code> defaults to 2. Past that, the run
+            escalates to you with a summary. When the change touches a
+            guardrail, the loop pauses for you.
           </p>
           <p>
             Echo then writes <code>verify.md</code>. Echo is read-only, does
             not share Buzz&apos;s or Blip&apos;s session, and does not edit.
-            The verdict that continues is “Ready to ship”. Any other verdict
-            stops the line before a pull request. <code>verify.md</code>{" "}
+            The verdict that continues is “Ready to ship”, and only when the
+            suite is green. A red suite returns to the fix loop. Any other
+            verdict stops the line before a pull request. <code>verify.md</code>{" "}
             records unit, integration, and end-to-end. End-to-end is not
             applicable only when the project is not a web app.
           </p>
@@ -145,10 +149,16 @@ export default function UsingBleepsPage() {
             coverage skills are in the repo.
           </p>
           <p>
-            Green tests are a hard gate before auto-merge. A failing test
-            leaves the pull request on its branch. Echo&apos;s verdict, the
-            reviews, and guardrail sign-off still have to pass. A missing test
-            command fails <code>bleeps test</code>. It is not a skip.
+            Green tests are a hard gate before auto-merge. A red suite does
+            not stop the run. It goes back in the same run: Buzz fixes the
+            code, or Blip fixes the test when the test is wrong. Blip reruns
+            until the suite is green, then Echo verifies. Nothing merges
+            while tests are red. <code>fix_rounds</code> in{" "}
+            <code>orca.project.yaml</code> caps the loop and defaults to 2.
+            Past that, the run escalates to you with a summary. Echo&apos;s
+            verdict, the reviews, and guardrail sign-off still have to pass.
+            A missing test command fails <code>bleeps test</code>. It is not
+            a skip.
           </p>
         </div>
       </Section>
