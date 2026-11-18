@@ -28,6 +28,19 @@ def verify_failures(root: Path) -> str:
     return str(failures)
 
 
+def site_check() -> int:
+    factory = Path(__file__).resolve().parent.parent
+    script = factory / "scripts" / "check-site"
+    result = subprocess.run([sys.executable, str(script)], cwd=factory, text=True, capture_output=True)
+    if result.returncode != 0:
+        sys.stderr.write(result.stdout)
+        sys.stderr.write(result.stderr)
+        print("site: drifted")
+        return result.returncode
+    print("site: in sync")
+    return 0
+
+
 def main() -> int:
     root = Path.cwd()
     print("Bloops reflection")
@@ -38,7 +51,7 @@ def main() -> int:
     print(f"reverts: {git_count(['log', '--oneline', '--grep=Revert', '-50'])}")
     print("scout findings: count open issues labeled bleeps:found with gh")
     print("proposals: file an issue or a pull request. this script does not edit skills")
-    return 0
+    return site_check()
 
 
 if __name__ == "__main__":

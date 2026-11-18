@@ -347,6 +347,7 @@ def main() -> int:
         "ticket-jira",
         "ticket-discord",
         "ticket-linear",
+        "check-site",
     ):
         path = ROOT / "scripts" / name
         require(path.stat().st_mode & stat.S_IXUSR, f"{name} is not executable")
@@ -356,6 +357,10 @@ def main() -> int:
     check_fix_loop()
     tickets = run([sys.executable, str(ROOT / "scripts" / "check-tickets")], ROOT)
     require(tickets.returncode == 0, f"check-tickets failed\n{tickets.stdout}\n{tickets.stderr}")
+    site = run([sys.executable, str(ROOT / "scripts" / "check-site")], ROOT)
+    require(site.returncode == 0, f"check-site failed\n{site.stdout}\n{site.stderr}")
+    site_self = run([sys.executable, str(ROOT / "scripts" / "check-site"), "--self-check"], ROOT)
+    require(site_self.returncode == 0, f"check-site self-check failed\n{site_self.stdout}\n{site_self.stderr}")
     print("ok")
     return 0
 

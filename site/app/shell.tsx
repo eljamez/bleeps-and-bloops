@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import system from "./system";
 
 export const wrap = "mx-auto w-full max-w-6xl px-5 sm:px-8";
 
@@ -147,6 +148,27 @@ export function Step({
   );
 }
 
+export function ConfigKeys() {
+  return (
+    <>
+      <p>
+        Keys in <code>orca.project.yaml</code> this line uses:
+      </p>
+      <ul className="tasks">
+        {system.configKeys.map((key) => (
+          <li key={key}>
+            <code>{key}</code>
+          </li>
+        ))}
+      </ul>
+      <p>
+        A key ending in <code>_env</code> is the name of an environment
+        variable. The file never holds the secret.
+      </p>
+    </>
+  );
+}
+
 export function BlipNote() {
   return (
     <p>
@@ -156,9 +178,9 @@ export function BlipNote() {
       <code>test_integration</code>, and <code>test_e2e</code>, in{" "}
       <code>orca.project.yaml</code>. Green tests are a hard gate before
       auto-merge. A red suite does not stop the run. It goes back to be
-      fixed, up to <code>fix_rounds</code> (default 2), and then the run
-      asks you. A missing test command fails <code>bleeps test</code>. The{" "}
-      <a href={links.blip}>role is in the repo</a>.
+      fixed, up to <code>fix_rounds</code> (default {system.fixRounds}), and
+      then the run asks you. A missing test command fails{" "}
+      <code>bleeps test</code>. The <a href={links.blip}>role is in the repo</a>.
     </p>
   );
 }
