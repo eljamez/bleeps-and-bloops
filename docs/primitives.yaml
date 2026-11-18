@@ -67,25 +67,31 @@ primitives:
     group: skill
     name: Build / fix loop
     summary: >
-      Build, test, and fix in an isolated Orca worktree, with a round limit,
-      and pause when a change touches a guardrail area.
+      Build in an isolated Orca worktree. A red suite goes back to Buzz or
+      Blip in the same run, up to fix_rounds, and pauses on a guardrail.
     inputs:
       - tasks.md
       - The repo, in an isolated Orca worktree
+      - fix_rounds in orca.project.yaml, default 2
     outputs:
-      - The change on a feature branch
+      - The change on a feature branch when the suite is green
+      - A summary for James when fix_rounds is spent
       - A pause when the change touches a guardrail area
-    invoked_by: The agent on the ticket, inside the worktree
-    when: Flow step 4. The number of rounds is not chosen yet.
-    status: planned
+    invoked_by: >
+      The agent on the ticket, inside the worktree. Blip runs scripts/fix-loop.
+    when: Flow step 4. Two red send-backs, then the next red escalates.
+    status: built
     lives: >
-      Not written. It runs in an isolated Orca worktree.
-      0002 says to write the loop fresh.
+      scripts/fix-loop. The crew still does the editing.
+      0002 said to write the loop fresh. The home server is not running Orca yet.
+    code:
+      - scripts/fix-loop
     docs:
       - docs/flow.md
     adrs:
       - docs/decisions/0002-rebuild-factory-clean.md
       - docs/decisions/0003-gitflow-auto-merge-to-develop.md
+      - docs/decisions/0012-red-suite-loops.md
 
   - id: habit-skills
     group: skill
@@ -188,7 +194,7 @@ primitives:
     name: Blip
     summary: >
       Testing agent. Owns unit, integration, and end-to-end suites.
-      Green tests are a hard gate for auto-merge.
+      A red suite loops in the run. Green tests are a hard gate for auto-merge.
     inputs:
       - The project stack and orca.project.yaml test commands
       - The ticket diff, during the build
@@ -205,15 +211,17 @@ primitives:
       coverage or flake finding.
     status: built
     lives: >
-      agents/blip. Orca has no agent-role key, so this directory is the role.
-      The home server is not running Orca yet.
+      agents/blip and scripts/fix-loop. Orca has no agent-role key, so this
+      directory is the role. The home server is not running Orca yet.
     code:
       - agents/blip
+      - scripts/fix-loop
     docs:
       - agents/blip/ROLE.md
       - docs/flow.md
     adrs:
       - docs/decisions/0009-testing-is-a-gate-blip-owns-tests.md
+      - docs/decisions/0012-red-suite-loops.md
 
   - id: chip
     group: script

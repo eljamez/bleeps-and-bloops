@@ -22,4 +22,4 @@ The flake check is two runs back to back. It is not a history of the suite.
 
 Read the finding. If the fix is a missing layer, use the onboard skill and open the pull request through the normal pipeline. If the test is flaky, reproduce it, fix the race or the order dependency, and keep the test. Do not mark it skipped.
 
-A guardrail path still waits for James. Green tests do not override that.
+A red suite uses the fix loop in the pipeline skill. It does not end the run. A guardrail path still waits for James. Green tests do not override that.

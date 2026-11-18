@@ -15,7 +15,7 @@ A primitive is one of these kinds:
 
 The shared [`orca.yaml`](../orca.yaml) is the config those pieces live in. Kick-off is `issueCommand`. Setup is `scripts.setup`. Review rules and merge policy stay their own rows, because Orca has no keys for them. A project commits `orca.project.yaml` for install, test, and typecheck. Orca does not merge that file. See [0001](decisions/0001-shared-factory-config.md) and [0007](decisions/0007-bleeps-is-built-for-orca.md).
 
-`status: planned` means the block is specified and nobody can run it yet. `status: built` means a person or an agent can invoke it. Kick-off, the setup hook, `bleeps test` / `bleeps typecheck`, Chip, and Blip are built. The home server is not running Orca yet. The [roadmap](roadmap.md) is the list that moves.
+`status: planned` means the block is specified and nobody can run it yet. `status: built` means a person or an agent can invoke it. Kick-off, the setup hook, `bleeps test` / `bleeps typecheck`, the fix loop, Chip, and Blip are built. The home server is not running Orca yet. The [roadmap](roadmap.md) is the list that moves.
 
 The machine-readable list is [primitives.yaml](primitives.yaml). Update that file when a primitive is added, removed, or reshaped. Leave its `summary` alone for ordinary feature work. To put this on a repo of your own, read [Using Bleeps](using-bleeps.md).
 
@@ -72,19 +72,19 @@ flowchart TD
 
 **Kind.** Skill.
 
-**Purpose.** Build, test, and fix in an isolated Orca worktree, with a round limit, and pause when a change touches a guardrail area.
+**Purpose.** Build in an isolated Orca worktree. A red suite goes back to Buzz or Blip in the same run, up to `fix_rounds`, and pauses when a change touches a guardrail area.
 
-**Inputs.** `tasks.md`, and the repo in an isolated Orca worktree.
+**Inputs.** `tasks.md`, the repo in an isolated Orca worktree, and `fix_rounds` in `orca.project.yaml` (default 2).
 
-**Outputs.** The change on a feature branch. A pause when the change touches a guardrail area.
+**Outputs.** The change on a feature branch when the suite is green. A summary for James when `fix_rounds` is spent. A pause when the change touches a guardrail area.
 
-**Invoked by.** The agent on the ticket, inside the worktree.
+**Invoked by.** The agent on the ticket, inside the worktree. Blip runs `scripts/fix-loop`.
 
-**When.** Flow step 4. The number of rounds is not chosen yet.
+**When.** Flow step 4. Two red send-backs, then the next red escalates. See [0012](decisions/0012-red-suite-loops.md).
 
-**Status.** Planned.
+**Status.** Built. The home server is not running Orca yet.
 
-**Lives.** Not written. [0002](decisions/0002-rebuild-factory-clean.md) says to write the loop fresh.
+**Lives.** [`scripts/fix-loop`](../scripts/fix-loop). The crew still does the editing. [0002](decisions/0002-rebuild-factory-clean.md) said to write the loop fresh.
 
 ### Habit skills
 
@@ -164,7 +164,7 @@ flowchart TD
 
 **Kind.** Agent role.
 
-**Purpose.** Owns unit, integration, and end-to-end tests. Green tests are a hard gate for auto-merge.
+**Purpose.** Owns unit, integration, and end-to-end tests. A red suite loops in the run until green or `fix_rounds` escalates to James. Green tests are a hard gate for auto-merge.
 
 **Inputs.** The project stack and the test commands in `orca.project.yaml`. The ticket diff. Scout findings for gaps and flakes.
 
@@ -176,7 +176,7 @@ flowchart TD
 
 **Status.** Built. The home server is not running Orca yet.
 
-**Lives.** [agents/blip](../agents/blip). See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md).
+**Lives.** [agents/blip](../agents/blip) and [`scripts/fix-loop`](../scripts/fix-loop). See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md) and [0012](decisions/0012-red-suite-loops.md).
 
 ## Script or CLI
 

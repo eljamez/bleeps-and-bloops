@@ -154,7 +154,9 @@ export function BlipNote() {
       Put <code>test</code>, or <code>test_unit</code>,{" "}
       <code>test_integration</code>, and <code>test_e2e</code>, in{" "}
       <code>orca.project.yaml</code>. Green tests are a hard gate before
-      auto-merge. A missing test command fails <code>bleeps test</code>. The{" "}
+      auto-merge. A red suite does not stop the run. It goes back to be
+      fixed, up to <code>fix_rounds</code> (default 2), and then the run
+      asks you. A missing test command fails <code>bleeps test</code>. The{" "}
       <a href={links.blip}>role is in the repo</a>.
     </p>
   );

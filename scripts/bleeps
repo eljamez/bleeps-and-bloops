@@ -4,7 +4,8 @@
 Project commands come from orca.project.yaml in the worktree. Orca does not
 read that file. Keys: install, test, typecheck, health_url, preview,
 proactive, scout_schedule, scout_time, scout_cap, scout_scans,
-scout_provider, error_tracking.
+scout_provider, error_tracking, fix_rounds.
+fix_rounds caps scripts/fix-loop. Default 2. Integer 0-20.
 """
 
 from __future__ import annotations
@@ -34,6 +35,7 @@ KEYS = (
     "test_unit",
     "test_integration",
     "test_e2e",
+    "fix_rounds",
 )
 PROJECT_FILE = "orca.project.yaml"
 
@@ -193,7 +195,7 @@ def cmd_health(root: Path) -> int:
 def main(argv: list[str]) -> int:
     if not argv or argv[0] in {"-h", "--help"}:
         print(
-            "usage: bleeps install|doctor|test|typecheck|preview|health|scout|kick-off|verify|merge|reflect ...",
+            "usage: bleeps install|doctor|test|typecheck|preview|health|scout|kick-off|verify|merge|reflect|fix-loop ...",
             file=sys.stderr,
         )
         return 0 if argv and argv[0] in {"-h", "--help"} else 2
@@ -214,6 +216,7 @@ def main(argv: list[str]) -> int:
         "verify": "verify",
         "merge": "merge-pr",
         "reflect": "bloops-reflect",
+        "fix-loop": "fix-loop",
     }
     if command in scripts:
         script = str(Path(__file__).resolve().parent / scripts[command])

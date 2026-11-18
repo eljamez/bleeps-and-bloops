@@ -29,7 +29,7 @@ const stations: {
   {
     kind: "step",
     title: "3. Build in an Orca worktree",
-    body: "Buzz builds, tests, and fixes in an isolated worktree, with a round limit. Blip writes the tests. A guardrail change waits for you.",
+    body: "Buzz builds in an isolated worktree. When Blip's suite is red, the failure goes back in the same run until it is green. fix_rounds caps that loop and defaults to 2. A guardrail change waits for you.",
   },
   {
     kind: "step",
@@ -39,8 +39,8 @@ const stations: {
   {
     kind: "gate",
     title: "Gate: Ready to ship?",
-    body: "The verdict has to be “Ready to ship”. That is the verdict that opens a pull request.",
-    hold: "Any other verdict stops the line before a pull request.",
+    body: "The verdict has to be “Ready to ship”, and the suite has to be green. That is the verdict that opens a pull request.",
+    hold: "A red suite goes back to the fix loop. Any other verdict stops the line before a pull request.",
   },
   {
     kind: "step",

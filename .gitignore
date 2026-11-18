@@ -28,3 +28,6 @@ blob-report/
 # Environment
 .env
 .env.*
+
+# Fix-loop state. Do not commit a red-suite summary.
+.bleeps/

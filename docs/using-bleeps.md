@@ -35,7 +35,7 @@ One shared [`orca.yaml`](../orca.yaml) is the factory config. `issueCommand` is 
 
 The 2026-11-11 Claude plugins stay reference. `/bb:kick-off` is now `issueCommand`. `/bb:sdd-init` is the setup hook. The spec, task, and verify stages are steps in that prompt. The pack's ship step never merged; merge policy is [0003](decisions/0003-gitflow-auto-merge-to-develop.md), and `scripts/ship-pr` is still a stub. The full map is in [0007](decisions/0007-bleeps-is-built-for-orca.md).
 
-Blip owns tests. Read [agents/blip/ROLE.md](../agents/blip/ROLE.md). Put `test`, or `test_unit`, `test_integration`, and `test_e2e`, in `orca.project.yaml`. A missing test command fails `bleeps test`. See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md).
+Blip owns tests. Read [agents/blip/ROLE.md](../agents/blip/ROLE.md). Put `test`, or `test_unit`, `test_integration`, and `test_e2e`, in `orca.project.yaml`. A missing test command fails `bleeps test`. A red suite runs `scripts/fix-loop` in the same run. `fix_rounds` defaults to 2. Nothing merges while the suite is red. See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md) and [0012](decisions/0012-red-suite-loops.md).
 
 The scout is on by default. Set `proactive: off` to keep it from filing issues. The schedule, scans, and cap are in the same file. See [0008](decisions/0008-bleeps-is-proactive.md) and [home server](home-server.md).
 
@@ -72,8 +72,8 @@ These are the steps in [flow](flow.md). Kick-off is `issueCommand`. The ship-pr 
 1. A GitHub issue is filed. A person launches an Orca workspace from that issue. Orca sends `issueCommand`, with `{{issue}}` and `{{artifact_url}}` filled in. Whether someone grooms or prioritizes the issue before that is still open.
 2. The agent writes `spec.md` in `specs/<issue>-<slug>/`, along with `ticket.md`. `spec.md` carries status draft or approved. `design.md` is written only if the approach is risky.
 3. The agent writes `tasks.md`, a checklist.
-4. The agent builds, tests, and fixes in an isolated Orca worktree, with a round limit. The number of rounds is not chosen yet. When the change touches a guardrail, the loop pauses for a human.
-5. A separate read-only reviewer writes `verify.md`. It does not share the implementer's context, and it does not edit. Only "Ready to ship" continues. Any other verdict stops the line before a pull request.
+4. The agent builds in an isolated Orca worktree. Blip runs `scripts/fix-loop`. A red suite goes back in the same run: Buzz fixes the code, or Blip fixes the test when the test is wrong. Blip reruns until green. `fix_rounds` defaults to 2. The next red escalates to the owner with a summary and does not merge. When the change touches a guardrail, the loop pauses for a human.
+5. A separate read-only reviewer writes `verify.md`. It does not share the implementer's context, and it does not edit. Only "Ready to ship" continues, and only when the suite is green. A red suite returns to step 4. Any other verdict stops the line before a pull request.
 6. The agent opens a pull request against `develop` and comments on the issue. The description includes the recap.
 7. Layered review runs: CodeRabbit, optionally Devin, and Claude Code for architecture fit. Grok Bot watches the queue, failing CI, and review nudges. That layer is Phase 2, and the bot is planned.
 8. The pull request auto-merges into `develop` when every gate passes. The ship-pr text judges risk, what to fix, and when to stop. `scripts/ship-pr` will walk CI, reviews, memory, merge, and health. Today it refuses to merge. Low and medium risk may merge once that procedure exists. High risk waits. See [Ship a PR](ship-pr.md).

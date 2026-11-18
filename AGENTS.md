@@ -15,7 +15,7 @@ Open the page that owns the task:
 - [Crew](docs/decisions/0010-bleeps-runs-the-crew-bloops-reflects.md) — Beep, Buzz, Blip, Echo, Chip, Bloops
 - [Beep](agents/beep/ROLE.md) — plans. No product code.
 - [Buzz](agents/buzz/ROLE.md) — implements. Does not certify.
-- [Blip](agents/blip/ROLE.md) — tests. Green tests are a gate.
+- [Blip](agents/blip/ROLE.md) — tests. A red suite loops in the run. Green tests still gate the merge.
 - [Echo](agents/echo/ROLE.md) — verifies. Read-only on product code.
 - [Chip](agents/chip/ROLE.md) — scout.
 - [Bloops](agents/bloops/ROLE.md) — merges and reflects.

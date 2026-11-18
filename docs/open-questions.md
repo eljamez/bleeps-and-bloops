@@ -2,7 +2,6 @@
 
 - Watch the Orca conditional hooks issue: [stablyai/orca#6917](https://github.com/stablyai/orca/issues/6917). Orca cannot run a hook only when a worktree was created from a pull request.
 - Whether there is a grooming or prioritization step before kick-off. See [flow](flow.md).
-- The round limit's number is not chosen. The kick-off prompt asks James before a third pass on the same finding.
 - Home server hostname, OS, and the path of the clone. See [home server](home-server.md).
 - Which agent Orca should launch. `orca.yaml` does not pick one.
 - Which repositories to onboard first.
@@ -17,5 +16,6 @@
 - **Runtime.** Resolved in [0007: Bleeps is built for Orca](decisions/0007-bleeps-is-built-for-orca.md). The factory config is `orca.yaml`. The 2026-11-11 Claude plugins stay reference, including the `engineering` plugin and any newer `spec-driven-workflow` on a machine. Their ideas map onto Orca keys in that decision.
 - **Core `orca.yaml`.** It is at the repository root. Setup installs dependencies. Orca has no verification key. `scripts/orca-verify` runs the checks, and a required GitHub check is what can block a pull request.
 - **A missing test command.** [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md): it fails. It is not a skip.
+- **Round limit.** [0012](decisions/0012-red-suite-loops.md): `fix_rounds` in `orca.project.yaml` defaults to 2. A red suite goes back to the same run twice. The next red escalates to James with a summary and does not merge.
 - **Proactive work.** [0008](decisions/0008-bleeps-is-proactive.md): Chip files issues and starts the pipeline. The friction sweep is Chip.
 - **Names.** [0010](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md): Bleeps runs the crew. Bloops merges and reflects. Outputs do not need a name.
