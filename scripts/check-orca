@@ -59,9 +59,13 @@ def check_yaml() -> dict:
         "main",
         "Ready to ship",
         "scripts/orca-verify",
+        "scripts/fix-loop",
         "scripts/ship-pr",
         "bleeps:found",
         "Blip",
+        "Exit 3",
+        "fix_rounds",
+        "does not certify",
     ):
         require(needle in prompt, f"issueCommand missing {needle}")
     require("scout" not in document, "schedule is an Orca automation, not an orca.yaml key")
@@ -273,6 +277,54 @@ def check_scout() -> None:
         require(skill.read_text() == before, "reflect must not edit skills")
 
 
+def check_fix_loop() -> None:
+    script = [sys.executable, str(ROOT / "scripts" / "fix-loop")]
+    with tempfile.TemporaryDirectory() as tmp:
+        project = Path(tmp)
+        (project / "orca.project.yaml").write_text("test: true\ntypecheck: true\n")
+        green = run(script, project)
+        require(green.returncode == 0 and "fix-loop: green" in green.stdout, green.stdout + green.stderr)
+        require(not (project / ".bleeps" / "fix-loop.json").exists(), "green run keeps no state")
+
+        (project / "orca.project.yaml").write_text("test: false\n")
+        first = run(script, project)
+        require(first.returncode == 3 and "round 1 of 2" in first.stdout, first.stdout)
+        second = run(script, project)
+        require(second.returncode == 3 and "round 2 of 2" in second.stdout, second.stdout)
+        third = run(script, project)
+        require(third.returncode == 2 and "Escalate to James" in third.stdout, third.stdout)
+        require("Do not merge" in third.stdout, third.stdout)
+
+        (project / "orca.project.yaml").write_text("test: true\ntypecheck: true\n")
+        again = run(script, project)
+        require(again.returncode == 0, again.stdout + again.stderr)
+        require(not (project / ".bleeps" / "fix-loop.json").exists(), "green clears a spent loop")
+
+        (project / "orca.project.yaml").write_text("test: false\nfix_rounds: 1\n")
+        one = run(script, project)
+        require(one.returncode == 3 and "round 1 of 1" in one.stdout, one.stdout)
+        capped = run(script, project)
+        require(capped.returncode == 2, capped.stdout)
+
+        (project / "orca.project.yaml").write_text("test: false\nfix_rounds: 99\n")
+        huge = run(script, project)
+        require(huge.returncode != 0 and "0-20" in huge.stderr, huge.stderr)
+
+        via = run([sys.executable, str(ROOT / "scripts" / "bleeps"), "fix-loop"], project)
+        require(via.returncode != 0 and "0-20" in via.stderr, via.stderr or via.stdout)
+
+        empty = Path(tmp) / "empty"
+        empty.mkdir()
+        missing = run(script, empty)
+        require(missing.returncode == 3 and "no test command" in missing.stderr, missing.stderr + missing.stdout)
+
+        typed = Path(tmp) / "typed"
+        typed.mkdir()
+        (typed / "orca.project.yaml").write_text("test: true\ntypecheck: false\nfix_rounds: 0\n")
+        red_type = run(script, typed)
+        require(red_type.returncode == 2 and "Escalate to James" in red_type.stdout, red_type.stdout + red_type.stderr)
+
+
 def main() -> int:
     for name in (
         "orca-setup",
@@ -285,12 +337,14 @@ def main() -> int:
         "verify",
         "bloops-reflect",
         "bleeps-scout",
+        "fix-loop",
     ):
         path = ROOT / "scripts" / name
         require(path.stat().st_mode & stat.S_IXUSR, f"{name} is not executable")
     document = check_yaml()
     check_scripts(document["scripts"]["setup"])
     check_scout()
+    check_fix_loop()
     print("ok")
     return 0
 

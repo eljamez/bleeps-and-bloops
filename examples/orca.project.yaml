@@ -30,3 +30,6 @@ scout_time: "09:00"
 scout_scans: tests, ci, lint, advisories, debt, friction, coverage
 # scout_provider: claude
 # error_tracking: a command that prints findings. Unset means that scan is skipped.
+# fix_rounds: how many times a red suite goes back to be fixed in the same
+# run. Default 2. The next red escalates to the owner. Integer 0-20.
+# fix_rounds: 2

@@ -1,6 +1,7 @@
 # 0009: Testing is a gate; Blip owns tests
 
 - **Status:** accepted
+- **Narrowed by:** [0012](0012-red-suite-loops.md) — a red suite loops inside the run. Merge still waits for green.
 - **Date:** 2026-11-13
 
 ## Context
@@ -21,6 +22,6 @@ Guardrail areas still wait for James. Green tests do not override that.
 
 ## Consequences
 
-- The verify reviewer stays read-only and does not share Blip's session.
+- The verify reviewer stays read-only and does not share Blip's session. A red suite during the run goes back to Buzz or Blip. See [0012](0012-red-suite-loops.md).
 - This repo's current suite is `python3 scripts/check-orca`. The site does not yet have Playwright.
 - **Revisit if:** Orca grows a real per-project agent key, or a project cannot express its suite as the test commands in `orca.project.yaml`.

@@ -80,18 +80,26 @@ issueCommand: |
      tasks.md, and design.md only when the approach is risky. Beep writes
      no product code.
   2. Buzz implements the tasks in this worktree. Buzz does not write
-     verify.md and does not merge. The round limit's number is not chosen
-     yet. Stop and ask James before a third pass on the same finding. If
-     the change touches auth, billing, payments, data deletion, or
+     verify.md, does not edit tests to make them pass, and does not merge.
+     If the change touches auth, billing, payments, data deletion, or
      migrations, stop and wait for James. Run <factory>/scripts/guardrails.
      Exit 2 means stop.
   3. Blip owns tests. Read <factory>/agents/blip/ROLE.md. tasks.md includes
      the tests. Blip writes or extends unit, integration, and, on a web
-     app, end-to-end tests. Run <factory>/scripts/orca-verify. A missing
-     test command fails. Green tests are a hard gate.
+     app, end-to-end tests. Run <factory>/scripts/fix-loop. It runs
+     scripts/orca-verify. A missing test command fails. Exit 0 means
+     green: continue to Echo. Exit 3 means red, and a fix round remains:
+     do not stop the run. Buzz fixes product code. Blip fixes the test
+     when the test itself is wrong. Then Blip runs fix-loop again. The
+     writer does not certify the fix. Exit 2 means fix_rounds is spent
+     (default 2, set in orca.project.yaml): escalate to James with the
+     script's summary. Do not open a pull request and do not merge.
+     Nothing merges while tests are red.
   4. Echo verifies in a fresh session, read-only on product code. Echo runs
-     <factory>/scripts/verify. The only verdict that continues is Ready to ship.
-     Anything else stops before a pull request.
+     <factory>/scripts/verify. The only verdict that continues is Ready to ship,
+     and only when the suite is green. If Echo's run of orca-verify is red,
+     go back to step 3. Do not end the run. Any other not-ready verdict
+     stops before a pull request.
   5. Open a pull request against develop and comment on the issue. Use the
      repository pull request template, including the primitives recap.
   6. Bloops merges with <factory>/scripts/merge-pr. scripts/ship-pr is the

@@ -85,6 +85,12 @@ test("setup pages mention Blip and link to day-to-day use", async ({ page }) => 
   }
 });
 
+test("home page sends a red suite back into the run", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText(/A red suite goes back to the fix loop/)).toBeVisible();
+  await expect(page.getByText(/fix_rounds caps that loop and defaults to 2/)).toBeVisible();
+});
+
 test("usage page explains Blip and the patrol switch", async ({ page }) => {
   await page.goto("/using-bleeps");
   await expect(page.getByRole("heading", { name: "The crew" })).toBeVisible();
@@ -98,5 +104,7 @@ test("usage page explains Blip and the patrol switch", async ({ page }) => {
     page.getByText(/Scripts first: common work gets a script/),
   ).toBeVisible();
   await expect(page.getByText(/Green tests are a hard gate before auto-merge/)).toBeVisible();
+  await expect(page.getByText(/A red suite does not stop the run/)).toBeVisible();
+  await expect(page.getByText(/Nothing merges while tests are red/)).toBeVisible();
   await expect(page.getByText(/The patrol is per project/)).toBeVisible();
 });
