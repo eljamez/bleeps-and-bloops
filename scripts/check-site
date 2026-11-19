@@ -3,7 +3,7 @@
 
 The site renders site/system-facts.json. This script derives the same
 facts from the crew table, ticketlib, the fix loop, decision 0011, the
-scout, and examples/orca.project.yaml, then compares. It also checks
+scout, scripts/providers, and examples/orca.project.yaml, then compares. It also checks
 that the pages actually render that file.
 
 ponytail: label needles for ticket sources are a short map, not a
@@ -32,7 +32,34 @@ EXAMPLE = ROOT / "examples" / "orca.project.yaml"
 SKIP_KEYS = {"health_url", "preview"}
 
 # Commented keys a person still sets or reads about while using the line.
-EXTRA_KEYS = {"fix_rounds", "test_unit", "test_integration", "test_e2e", "scout_provider"}
+EXTRA_KEYS = {
+    "fix_rounds",
+    "test_unit",
+    "test_integration",
+    "test_e2e",
+    "scout_provider",
+    "router",
+    "jev_key_env",
+    "jev_url",
+    "beep_provider",
+    "beep_model",
+    "beep_tier",
+    "buzz_provider",
+    "buzz_model",
+    "buzz_tier",
+    "blip_provider",
+    "blip_model",
+    "blip_tier",
+    "echo_provider",
+    "echo_model",
+    "echo_tier",
+    "chip_provider",
+    "chip_model",
+    "chip_tier",
+    "bloops_provider",
+    "bloops_model",
+    "bloops_tier",
+}
 
 LABEL_NEEDLES = {
     "github": "GitHub",
@@ -118,19 +145,43 @@ def example_keys() -> tuple[set[str], set[str]]:
     return uncommented, commented
 
 
+def provider_roles() -> list[dict[str, str]]:
+    text = read(ROOT / "scripts" / "providers")
+    block = re.search(r"^ROLES = \((.*)\n\)", text, re.S | re.M)
+    if not block:
+        raise SystemExit("scripts/providers has no ROLES table")
+    rows = re.findall(
+        r'\("([a-z]+)", "([^"]+)", "([^"]+)", "([^"]+)", "([^"]+)"\)',
+        block.group(1),
+    )
+    if len(rows) < 2:
+        raise SystemExit("scripts/providers ROLES table is empty")
+    return [
+        {"name": name.capitalize(), "provider": provider, "model": model, "tier": tier, "route": route}
+        for name, provider, model, tier, route in rows
+    ]
+
+
 def derive() -> dict:
     scout = ROOT / "scripts" / "bleeps-scout"
+    providers = ROOT / "scripts" / "providers"
+    roles = provider_roles()
+    chip = next(role for role in roles if role["name"] == "Chip")
     return {
         "crew": crew_from_decision(),
         "sources": quoted_tuple(ROOT / "scripts" / "ticketlib.py", "SOURCES"),
         "fix_rounds": int(get_default(ROOT / "scripts" / "fix-loop", "fix_rounds")),
         "scripts": crew_scripts(),
+        "roles": roles,
         "defaults": {
             "proactive": get_default(scout, "proactive"),
             "host": get_default(scout, "host"),
             "scout_cap": get_default(scout, "scout_cap"),
             "scout_schedule": get_default(scout, "scout_schedule"),
             "scout_time": get_default(scout, "scout_time"),
+            "router": get_default(providers, "router"),
+            "scout_provider": chip["provider"],
+            "jev_url": get_default(providers, "jev_url"),
         },
     }
 
@@ -195,6 +246,8 @@ def problems(facts: dict, derived: dict) -> list[str]:
 
     if facts.get("defaults") != derived["defaults"]:
         bad(f"defaults are {facts.get('defaults')}, scripts say {derived['defaults']}")
+    if facts.get("roles") != derived["roles"]:
+        bad(f"roles are {facts.get('roles')}, scripts/providers says {derived['roles']}")
 
     config = set(facts.get("configKeys", []))
     required = required_config_keys()
@@ -240,6 +293,9 @@ def page_problems() -> list[str]:
     need(using, "system.fixRounds")
     renders_sources(using)
     need(using, "system.defaults")
+    need(using, "system.defaults.router")
+    need(using, "system.defaults.scout_provider")
+    need(using, "system.roles")
     need(shell, "system.fixRounds")
     need(shell, "system.configKeys")
     need(shell, "system.defaults.host")

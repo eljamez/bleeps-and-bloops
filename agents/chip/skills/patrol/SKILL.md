@@ -5,7 +5,7 @@ description: Run the daily scout patrol. File bleeps:found issues and start the 
 
 # Patrol
 
-Run `scripts/bleeps-scout`. Use `--dry-run` when you only want the findings.
+Run `scripts/providers show chip`, then `scripts/bleeps-scout`. Use `--dry-run` when you only want the findings.
 
 Do not scan a second way beside the script. Do not raise the cap to clear a queue. Guardrail findings still wait for James. A dry run that lists another ticket source prints `would post finding to <source>` and does not call that API.
 

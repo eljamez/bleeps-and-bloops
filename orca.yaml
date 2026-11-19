@@ -17,7 +17,9 @@
 #   environmentRecipes         ephemeral VM recipes
 #   worktree.sharedDirectories gitignored directories shared across worktrees
 #
-# Anything else is dropped. This file sets none of the keys it does not need.
+# Anything else is dropped, except `providers`. Orca drops that key too.
+# scripts/providers reads it. A project overrides one field in
+# orca.project.yaml. See docs/decisions/0015-role-providers.md.
 # There is no verification key and no merge key. scripts/orca-verify runs the
 # checks. A required GitHub check is what can block a pull request.
 # Conditional hooks, which this file cannot express:
@@ -132,6 +134,18 @@ issueCommand: |
   If the issue body says Risk: high, it touches a guardrail. Wait for James
   and do not merge.
 
+  The provider and model for each role are the providers table below.
+  Orca drops that key. Run <factory>/scripts/providers show <role> and
+  launch with the flags it prints. A project overrides one field in
+  orca.project.yaml. router defaults to off. router: jev asks a local
+  Jev proxy and is optional. Beep and Echo stay on the frontier model.
+  Buzz and Chip stay on their floor unless the proxy names a higher tier.
+  Blip stays on the balanced model until a fix round has failed, then
+  run show blip --stalled. A guardrail (scripts/guardrails exit 2) uses
+  the frontier model: pass --guardrail. If the proxy does not answer,
+  use the role's configured model. Bloops merges with scripts/merge-pr
+  and uses no model for that. Reflection is show bloops.
+
   Where the factory runs is the host key in orca.project.yaml. local is the
   default: the computer in front of you, and only while it is on and Orca is
   running. cloud is a VPS you leave on. home is a machine at home. Register
@@ -158,3 +172,38 @@ worktree:
   sharedDirectories:
     - node_modules
     - site/node_modules
+
+# Bleeps reads this. Orca's parser drops it. Defaults match scripts/providers.
+providers:
+  router: off
+  roles:
+    beep:
+      provider: claude
+      model: opus
+      tier: frontier
+      route: fixed
+    buzz:
+      provider: claude
+      model: sonnet
+      tier: balanced
+      route: jev
+    blip:
+      provider: claude
+      model: sonnet
+      tier: balanced
+      route: stall
+    echo:
+      provider: claude
+      model: opus
+      tier: frontier
+      route: fixed
+    chip:
+      provider: claude
+      model: haiku
+      tier: fast
+      route: jev
+    bloops:
+      provider: claude
+      model: sonnet
+      tier: balanced
+      route: reflect

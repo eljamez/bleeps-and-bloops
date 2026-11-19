@@ -12,7 +12,7 @@ The building blocks are the [primitives](primitives.md). The ticket order is the
 
 - A GitHub repository you administer. GitHub holds the code, the pull requests, and CI, whichever tracker the tickets live in. The ticket source can be GitHub Issues, a GitHub Project, Jira, Discord, or Linear. Each project picks its sources in `orca.project.yaml`. See [tickets](tickets.md) and [0013](decisions/0013-one-ticket-many-sources.md).
 - [Orca](architecture.md), the MIT harness Bleeps is built for. See [0007](decisions/0007-bleeps-is-built-for-orca.md). `host` in `orca.project.yaml` says where it runs: `local` (the default, the computer in front of you), `cloud` (a VPS you leave on), or `home` (a machine at home). A home server is optional. The factory runs only while that machine is on and Orca is running. GitHub Actions can run the checks. It cannot run Orca. 8 GB of RAM is the floor. 16 GB is comfortable. Steps are in [where it runs](where-it-runs.md). See [0014](decisions/0014-where-it-runs.md).
-- An agent Orca can launch. Claude Code is one. It is also the planned architecture-fit reviewer. `orca.yaml` does not pick the agent.
+- An agent Orca can launch. Claude Code is the default, one provider and model per role. See [0015](decisions/0015-role-providers.md). `router` stays off unless you set `router: jev`. It is also the planned architecture-fit reviewer.
 - Reviewers, when you reach Phase 2. CodeRabbit for style and obvious bugs. Devin, optionally, for an end-to-end pass after you have calibrated its noise. None of that layer is installed.
 
 ## Set up the repository

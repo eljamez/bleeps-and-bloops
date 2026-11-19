@@ -64,7 +64,36 @@ export default function UsingBleepsPage() {
           </dl>
           <p>
             Scripts first: common work gets a script so nobody does it by hand
-            or from scratch. Tests run through <code>bleeps test</code>.
+            or from scratch. Tests run through <code>bleeps test</code>. Each
+            role has a provider and a model. <code>router</code> defaults to{" "}
+            {system.defaults.router}. Leave it there and every role uses the
+            model below. Set <code>router: jev</code> only when you want a
+            local Jev proxy to raise Buzz or Chip, or to raise Blip after a
+            fix round has failed. Beep and Echo stay on the frontier model.
+            A change in auth, billing, payments, data deletion, or migrations
+            uses that same frontier model. The proxy address defaults to{" "}
+            <code>{system.defaults.jev_url}</code>. If it does not answer, the
+            role keeps its configured model.
+          </p>
+          <ul className="tasks">
+            {system.roles.map((role) => (
+              <li key={role.name}>
+                {role.name}: <code>{role.provider}</code> <code>{role.model}</code>{" "}
+                ({role.tier}
+                {role.route === "fixed"
+                  ? ", fixed"
+                  : role.route === "reflect"
+                    ? ", reflection"
+                    : role.route === "stall"
+                      ? ", up only after a failed fix round"
+                      : ", up only when you opt in"}
+                )
+              </li>
+            ))}
+          </ul>
+          <p>
+            Bloops merges with <code>scripts/merge-pr</code>. That step has no
+            model. The row above is the reflection.
           </p>
           <ul className="tasks">
             {system.scripts.map((script) => (
@@ -297,8 +326,9 @@ export default function UsingBleepsPage() {
           </p>
           <p>
             The schedule is an Orca automation, not a key inside{" "}
-            <code>orca.yaml</code>. After you set <code>scout_provider</code>,
-            this prints the command and then creates it:
+            <code>orca.yaml</code>. Chip&apos;s provider defaults to{" "}
+            {system.defaults.scout_provider}. This prints the command and then
+            creates it:
           </p>
           <pre>
             <code>{`python3 scripts/bleeps-scout schedule
@@ -309,8 +339,9 @@ python3 scripts/bleeps-scout schedule --install`}</code>
             and does not file them. Register the automation on the machine{" "}
             <code>host</code> names. For a VPS or a machine at home, reach it
             on a private network such as Tailscale, and do not open its ports.
-            The steps are in the <a href={links.runs}>where it runs</a> notes.{" "}
-            <code>scout_provider</code> stays unset until you choose the agent.
+            The steps are in the <a href={links.runs}>where it runs</a> notes.
+            Set <code>scout_provider</code> only when Chip should use a
+            different agent than the table.
           </p>
         </div>
       </Section>

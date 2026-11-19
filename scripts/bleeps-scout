@@ -19,6 +19,7 @@ from __future__ import annotations
 import importlib.machinery
 import importlib.util
 import json
+import shlex
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -39,6 +40,10 @@ def load_script(name: str, filename: str):
 
 def bleeps():
     return load_script("bleeps_cli", "bleeps")
+
+
+def providers():
+    return load_script("bleeps_providers", "providers")
 
 DEFAULT_SCANS = ("tests", "ci", "lint", "advisories", "debt", "friction", "coverage")
 SCAN_NAMES = DEFAULT_SCANS + ("errors",)
@@ -217,12 +222,15 @@ def issue_body(finding: Finding) -> str:
 def automation_command(root: Path, project: dict[str, str]) -> str:
     schedule = project.get("scout_schedule", "daily")
     when = project.get("scout_time", "09:00")
-    provider = project.get("scout_provider", "")
+    provider, model = providers().automation_flags(root)
     script = Path(__file__).resolve()
     trigger = f"--trigger {schedule}"
     if schedule in {"daily", "weekdays", "weekly"}:
         trigger += f" --time {when}"
-    provider_flag = f" --provider {provider}" if provider else ""
+    provider_flag = " --provider {provider} --extra-agent-args={model}".format(
+        provider=provider,
+        model=shlex.quote("--model " + model),
+    )
     prompt = (
         "Run scripts/bleeps-scout in this checkout. "
         "Do not scan a second way. It files bleeps:found issues and starts "
@@ -527,12 +535,7 @@ def cmd_schedule(root: Path, install: bool) -> int:
     print(f"host: {choice}. {HOST_NOTE[choice]}")
     print(automation_command(root, project))
     if not install:
-        if not project.get("scout_provider"):
-            print("set scout_provider before --install", file=sys.stderr)
         return 0
-    if not project.get("scout_provider"):
-        print("set scout_provider before --install", file=sys.stderr)
-        return 2
     if subprocess.run(["sh", "-c", "command -v orca"], capture_output=True).returncode != 0:
         print("orca is not on PATH", file=sys.stderr)
         return 2

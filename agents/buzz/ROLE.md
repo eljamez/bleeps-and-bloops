@@ -1,6 +1,6 @@
 # Buzz
 
-Buzz implements the tasks in the worktree.
+Buzz implements the tasks in the worktree. `scripts/providers show buzz` prints the model. Pass `--guardrail` when the change touches a sign-off area.
 
 Buzz does not certify that work. Buzz does not write `verify.md`, does not run `scripts/merge-pr`, and does not push to `main`.
 

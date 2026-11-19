@@ -22,7 +22,7 @@ A per-workspace environment recipe (`environmentRecipes` in `orca.yaml`) boots a
 
 Install Orca on the computer you use. Log in an agent once. Run `gh auth login` once. The token stays on that computer.
 
-Register Chip on that same computer, after `scout_provider` is set:
+Register Chip on that same computer. The provider defaults to Claude Code. Set `scout_provider` only to override Chip:
 
 ```bash
 python3 scripts/bleeps-scout schedule
@@ -73,7 +73,7 @@ Orca passes `ORCA_ROOT_PATH`, `ORCA_WORKTREE_PATH`, and `ORCA_WORKSPACE_NAME` in
 
 ## Scout
 
-The scout is not a key in `orca.yaml`. From the Orca workspace on the machine `host` names, after you set `scout_provider`:
+The scout is not a key in `orca.yaml`. From the Orca workspace on the machine `host` names. Chip's provider comes from the role table ([0015](decisions/0015-role-providers.md)) and defaults to Claude Code:
 
 ```bash
 python3 scripts/bleeps-scout schedule

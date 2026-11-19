@@ -4,8 +4,9 @@
 Project commands come from orca.project.yaml in the worktree. Orca does not
 read that file. Keys: install, test, typecheck, health_url, preview,
 proactive, host, scout_schedule, scout_time, scout_cap, scout_scans,
-scout_provider, error_tracking, fix_rounds, and the ticket source keys read by
-scripts/intake (names of env vars, never the secrets).
+scout_provider, router, jev_key_env, jev_url, a provider/model/tier per role
+(beep, buzz, blip, echo, chip, bloops), error_tracking, fix_rounds, and the
+ticket source keys read by scripts/intake (names of env vars, never the secrets).
 fix_rounds caps scripts/fix-loop. Default 2. Integer 0-20.
 """
 
@@ -33,6 +34,27 @@ KEYS = (
     "scout_cap",
     "scout_scans",
     "scout_provider",
+    "router",
+    "jev_key_env",
+    "jev_url",
+    "beep_provider",
+    "beep_model",
+    "beep_tier",
+    "buzz_provider",
+    "buzz_model",
+    "buzz_tier",
+    "blip_provider",
+    "blip_model",
+    "blip_tier",
+    "echo_provider",
+    "echo_model",
+    "echo_tier",
+    "chip_provider",
+    "chip_model",
+    "chip_tier",
+    "bloops_provider",
+    "bloops_model",
+    "bloops_tier",
     "error_tracking",
     "test_unit",
     "test_integration",
@@ -211,7 +233,7 @@ def cmd_health(root: Path) -> int:
 def main(argv: list[str]) -> int:
     if not argv or argv[0] in {"-h", "--help"}:
         print(
-            "usage: bleeps install|doctor|test|typecheck|preview|health|scout|kick-off|verify|merge|reflect|fix-loop|intake ...",
+            "usage: bleeps install|doctor|test|typecheck|preview|health|scout|kick-off|verify|merge|reflect|fix-loop|intake|providers ...",
             file=sys.stderr,
         )
         return 0 if argv and argv[0] in {"-h", "--help"} else 2
@@ -234,6 +256,7 @@ def main(argv: list[str]) -> int:
         "reflect": "bloops-reflect",
         "fix-loop": "fix-loop",
         "intake": "intake",
+        "providers": "providers",
     }
     if command in scripts:
         script = str(Path(__file__).resolve().parent / scripts[command])

@@ -31,7 +31,32 @@ scout_cap: 2
 scout_schedule: daily
 scout_time: "09:00"
 scout_scans: tests, ci, lint, advisories, debt, friction, coverage
+# scout_provider overrides Chip's provider. The default is Chip's row.
 # scout_provider: claude
+# router is off unless you opt in. jev asks a local proxy. The key is an
+# environment variable name. jev_url is the proxy, not a secret.
+# router: off
+# jev_key_env: JEV_API_KEY
+# jev_url: http://127.0.0.1:4000
+# One field overrides that role. Omitted fields keep the factory table.
+# beep_provider: claude
+# beep_model: opus
+# beep_tier: frontier
+# buzz_provider: claude
+# buzz_model: sonnet
+# buzz_tier: balanced
+# blip_provider: claude
+# blip_model: sonnet
+# blip_tier: balanced
+# echo_provider: claude
+# echo_model: opus
+# echo_tier: frontier
+# chip_provider: claude
+# chip_model: haiku
+# chip_tier: fast
+# bloops_provider: claude
+# bloops_model: sonnet
+# bloops_tier: balanced
 # error_tracking: a command that prints findings. Unset means that scan is skipped.
 # fix_rounds: how many times a red suite goes back to be fixed in the same
 # run. Default 2. The next red escalates to the owner. Integer 0-20.

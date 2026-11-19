@@ -43,7 +43,8 @@
     { "path": "scripts/merge-pr", "who": "Bloops" },
     { "path": "scripts/bleeps-scout", "who": "Chip" },
     { "path": "scripts/bloops-reflect", "who": "Bloops" },
-    { "path": "scripts/check-ticket-sources", "who": "You" }
+    { "path": "scripts/check-ticket-sources", "who": "You" },
+    { "path": "scripts/providers", "who": "Crew" }
   ],
   "configKeys": [
     "install",
@@ -59,6 +60,27 @@
     "scout_time",
     "scout_scans",
     "scout_provider",
+    "router",
+    "jev_key_env",
+    "jev_url",
+    "beep_provider",
+    "beep_model",
+    "beep_tier",
+    "buzz_provider",
+    "buzz_model",
+    "buzz_tier",
+    "blip_provider",
+    "blip_model",
+    "blip_tier",
+    "echo_provider",
+    "echo_model",
+    "echo_tier",
+    "chip_provider",
+    "chip_model",
+    "chip_tier",
+    "bloops_provider",
+    "bloops_model",
+    "bloops_tier",
     "ticket_sources",
     "fix_rounds"
   ],
@@ -67,8 +89,19 @@
     "host": "local",
     "scout_cap": "2",
     "scout_schedule": "daily",
-    "scout_time": "09:00"
+    "scout_time": "09:00",
+    "router": "off",
+    "scout_provider": "claude",
+    "jev_url": "http://127.0.0.1:4000"
   },
+  "roles": [
+    { "name": "Beep", "provider": "claude", "model": "opus", "tier": "frontier", "route": "fixed" },
+    { "name": "Buzz", "provider": "claude", "model": "sonnet", "tier": "balanced", "route": "jev" },
+    { "name": "Blip", "provider": "claude", "model": "sonnet", "tier": "balanced", "route": "stall" },
+    { "name": "Echo", "provider": "claude", "model": "opus", "tier": "frontier", "route": "fixed" },
+    { "name": "Chip", "provider": "claude", "model": "haiku", "tier": "fast", "route": "jev" },
+    { "name": "Bloops", "provider": "claude", "model": "sonnet", "tier": "balanced", "route": "reflect" }
+  ],
   "pipeline": [
     {
       "kind": "step",
@@ -83,7 +116,7 @@
     {
       "kind": "step",
       "title": "3. Build in an Orca worktree",
-      "body": "Buzz builds in an isolated worktree. Blip runs scripts/fix-loop. When the suite is red, the failure goes back in the same run until it is green. fix_rounds caps that loop and defaults to {{fixRounds}}. A guardrail change waits for you."
+      "body": "Buzz builds in an isolated worktree. Each role uses the provider and model in the factory table. A guardrail change uses the frontier model and waits for you. Blip runs scripts/fix-loop. When the suite is red, the failure goes back in the same run until it is green. fix_rounds caps that loop and defaults to {{fixRounds}}."
     },
     {
       "kind": "step",

@@ -1,0 +1,371 @@
+#!/usr/bin/env python3
+"""Resolve the provider and model for one crew role.
+
+The factory table is the `providers` key in orca.yaml. Orca's parser drops
+that key. This script reads it. orca.project.yaml overrides one field.
+`router` defaults to off. `router: jev` is optional.
+
+Jev is a local proxy (health check on jev_url, default http://127.0.0.1:4000).
+The proxy can pin a tier. It cannot express a floor. This script is the floor:
+a recommendation below the role's tier is ignored, a failed call keeps the
+configured model, and a guardrail uses the frontier model without asking.
+
+ponytail: the only Claude ladder is haiku/sonnet/opus, and the only signal
+read from the proxy is GET /healthz (JSON tier, or the x-jev-tier header).
+Stock jev-router's health check names no tier, so Buzz and Chip stay on
+their floor until a proxy returns one. Upgrade path: a side-effect-free
+recommend call, then map that tier through the same clamp.
+"""
+
+from __future__ import annotations
+
+import importlib.machinery
+import importlib.util
+import json
+import os
+import re
+import shlex
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+# check-site reads these rows. One role per line.
+ROLES = (
+    ("beep", "claude", "opus", "frontier", "fixed"),
+    ("buzz", "claude", "sonnet", "balanced", "jev"),
+    ("blip", "claude", "sonnet", "balanced", "stall"),
+    ("echo", "claude", "opus", "frontier", "fixed"),
+    ("chip", "claude", "haiku", "fast", "jev"),
+    ("bloops", "claude", "sonnet", "balanced", "reflect"),
+)
+
+TIERS = ("fast", "balanced", "frontier")
+TIER_ORDER = {name: index for index, name in enumerate(TIERS)}
+ROUTES = {"fixed", "jev", "stall", "reflect"}
+LADDER = {"claude": {"fast": "haiku", "balanced": "sonnet", "frontier": "opus"}}
+ROLE_NAMES = tuple(row[0] for row in ROLES)
+FIELDS = ("provider", "model", "tier")
+PROVIDER_RE = re.compile(r"^[a-z][a-z0-9_-]{0,40}$")
+MODEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,80}$")
+ENV_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,80}$")
+SECRET_RE = re.compile(r"(sk-|ghp_|github_pat_|xox[baprs]-|Bearer )")
+
+
+def load_bleeps():
+    path = Path(__file__).resolve().parent / "bleeps"
+    loader = importlib.machinery.SourceFileLoader("bleeps_cli_providers", str(path))
+    spec = importlib.util.spec_from_loader("bleeps_cli_providers", loader)
+    if spec is None:
+        raise SystemExit("providers: cannot load scripts/bleeps")
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+def builtin_roles() -> dict[str, dict[str, str]]:
+    return {
+        name: {"provider": provider, "model": model, "tier": tier, "route": route}
+        for name, provider, model, tier, route in ROLES
+    }
+
+
+def factory_path(root: Path) -> Path | None:
+    path = root / "orca.yaml"
+    if not path.exists():
+        return None
+    if path.is_symlink():
+        target = os.readlink(path)
+        if not target.startswith("/"):
+            target = str(path.parent / target)
+        path = Path(target)
+    return path
+
+
+def load_factory(root: Path) -> dict:
+    roles = builtin_roles()
+    table = {"router": "off", "roles": roles}
+    path = factory_path(root)
+    if path is None or not re.search(r"(?m)^providers:", path.read_text()):
+        return table
+    try:
+        import yaml
+    except ImportError:
+        raise SystemExit("python3 -m pip install pyyaml") from None
+    document = yaml.safe_load(path.read_text()) or {}
+    block = document.get("providers")
+    if not isinstance(block, dict):
+        raise SystemExit("providers: orca.yaml providers must be a mapping")
+    raw_router = block.get("router", "off")
+    # PyYAML reads a bare `off` as False. The project file keeps it a string.
+    if raw_router is False:
+        raw_router = "off"
+    elif raw_router is True:
+        raw_router = "on"
+    router = str(raw_router)
+    found = block.get("roles")
+    if not isinstance(found, dict):
+        raise SystemExit("providers: orca.yaml providers.roles must be a mapping")
+    parsed: dict[str, dict[str, str]] = {}
+    for name in ROLE_NAMES:
+        row = found.get(name)
+        if not isinstance(row, dict):
+            raise SystemExit(f"providers: missing role {name}")
+        parsed[name] = {
+            "provider": str(row.get("provider", "")),
+            "model": str(row.get("model", "")),
+            "tier": str(row.get("tier", "")),
+            "route": str(row.get("route", "")),
+        }
+    extra = set(found) - set(ROLE_NAMES)
+    if extra:
+        raise SystemExit(f"providers: unknown role {sorted(extra)}")
+    table["router"] = router
+    table["roles"] = parsed
+    return table
+
+
+def factory_matches_builtin(root: Path) -> bool:
+    loaded = load_factory(root)
+    return loaded["router"] == "off" and loaded["roles"] == builtin_roles()
+
+
+def project_of(root: Path) -> dict[str, str]:
+    return load_bleeps().load_project(root)
+
+
+def configured_router(project: dict[str, str], factory_router: str) -> str:
+    if project.get("router"):
+        return project["router"]
+    return factory_router or project.get("router", "off")
+
+
+def configured_url(project: dict[str, str]) -> str:
+    return project.get("jev_url", "http://127.0.0.1:4000")
+
+
+def override_keys() -> tuple[str, ...]:
+    keys = ["router", "jev_key_env", "jev_url"]
+    for name in ROLE_NAMES:
+        for field in FIELDS:
+            keys.append(f"{name}_{field}")
+    return tuple(keys)
+
+
+def bad_secret(value: str) -> bool:
+    return bool(SECRET_RE.search(value))
+
+
+def validate(root: Path) -> dict:
+    table = load_factory(root)
+    project = project_of(root)
+    router = configured_router(project, table["router"])
+    if router not in {"off", "jev"}:
+        raise SystemExit(f"router must be off or jev, got {router!r}")
+    url = configured_url(project)
+    if project.get("jev_url") or router == "jev":
+        if bad_secret(url) or "@" in url or "?" in url or "#" in url:
+            raise SystemExit("jev_url must be an http(s) URL with no user, query, or secret")
+        if not url.startswith(("http://", "https://")):
+            raise SystemExit("jev_url must start with http:// or https://")
+    key_env = project.get("jev_key_env", "")
+    if key_env and (not ENV_RE.match(key_env) or bad_secret(key_env)):
+        raise SystemExit("jev_key_env must be an environment variable name, not the secret")
+    roles = table["roles"]
+    for name, spec in roles.items():
+        for field in (*FIELDS, "route"):
+            value = project.get(f"{name}_{field}", spec[field]) if field != "route" else spec["route"]
+            if field == "provider" and not PROVIDER_RE.match(value):
+                raise SystemExit(f"{name} provider must be an Orca agent id, got {value!r}")
+            if field == "model" and not MODEL_RE.match(value):
+                raise SystemExit(f"{name} model must be a single token, got {value!r}")
+            if field == "tier" and value not in TIERS:
+                raise SystemExit(f"{name} tier must be fast, balanced, or frontier, got {value!r}")
+            if field == "route" and value not in ROUTES:
+                raise SystemExit(f"{name} route must be fixed, jev, stall, or reflect, got {value!r}")
+            if bad_secret(value):
+                raise SystemExit(f"{name} {field} looks like a secret")
+    chip = project.get("scout_provider", "")
+    if chip and (not PROVIDER_RE.match(chip) or bad_secret(chip)):
+        raise SystemExit("scout_provider must be an Orca agent id")
+    return {"router": router, "url": url, "key_env": key_env, "roles": roles, "project": project}
+
+
+def applied_role(config: dict, name: str) -> dict[str, str]:
+    spec = dict(config["roles"][name])
+    project = config["project"]
+    for field in FIELDS:
+        if project.get(f"{name}_{field}"):
+            spec[field] = project[f"{name}_{field}"]
+    if name == "chip" and project.get("scout_provider"):
+        spec["provider"] = project["scout_provider"]
+    return spec
+
+
+def model_for(provider: str, tier: str, configured_model: str, configured_tier: str) -> str | None:
+    if tier == configured_tier:
+        return configured_model
+    ladder = LADDER.get(provider)
+    if ladder is None:
+        return None
+    return ladder[tier]
+
+
+def consult(url: str, timeout: float) -> str:
+    """Return a tier, 'silent' when the proxy answered without one, or 'failed'."""
+    target = url.rstrip("/") + "/healthz"
+    request = urllib.request.Request(target, method="GET")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            if response.status != 200:
+                return "failed"
+            header = response.headers.get("x-jev-tier", "").strip().lower()
+            body = response.read(4096).decode("utf-8", "replace")
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+        return "failed"
+    if header:
+        return header
+    try:
+        data = json.loads(body) if body.strip() else {}
+    except json.JSONDecodeError:
+        return "silent"
+    if not isinstance(data, dict) or "tier" not in data:
+        return "silent"
+    return str(data["tier"]).strip().lower()
+
+
+def resolve(root: Path, name: str, *, guardrail: bool = False, stalled: bool = False, merge: bool = False, offline: bool = False, timeout: float = 2.0) -> dict:
+    if name not in ROLE_NAMES:
+        raise SystemExit(f"unknown role {name!r}. Expected one of {', '.join(ROLE_NAMES)}.")
+    config = validate(root)
+    if name == "bloops" and merge:
+        return {
+            "role": name,
+            "provider": "",
+            "model": "none",
+            "tier": "",
+            "route": "reflect",
+            "router": config["router"],
+            "reason": "script",
+            "pin": "",
+            "merge": True,
+        }
+    spec = applied_role(config, name)
+    floor = spec["tier"]
+    route = spec["route"]
+    router = config["router"]
+    reason = "configured"
+    tier = floor
+    ask = router == "jev" and not guardrail and (route == "jev" or (route == "stall" and stalled))
+    if guardrail:
+        tier = "frontier"
+        reason = "guardrail"
+    elif ask and not offline:
+        hinted = consult(config["url"], timeout)
+        if hinted == "failed" or hinted not in (*TIERS, "silent"):
+            reason = "fail-open"
+            tier = floor
+        elif hinted == "silent":
+            if route == "stall":
+                reason = "stall"
+                tier = "frontier"
+            else:
+                reason = "floor"
+                tier = floor
+        else:
+            reason = "jev"
+            tier = floor if TIER_ORDER[hinted] < TIER_ORDER[floor] else hinted
+    elif ask and offline:
+        reason = "fail-open"
+    model = model_for(spec["provider"], tier, spec["model"], floor)
+    if model is None:
+        model = spec["model"]
+        tier = floor
+        reason = "guardrail-unmapped" if guardrail else reason
+    pin = ""
+    if router == "jev" and reason != "fail-open" and spec["provider"] in LADDER:
+        pin = f"x-jev-tier: {tier}"
+    return {
+        "role": name,
+        "provider": spec["provider"],
+        "model": model,
+        "tier": tier,
+        "route": route,
+        "router": router,
+        "reason": reason,
+        "pin": pin,
+        "merge": False,
+    }
+
+
+def format_row(row: dict) -> str:
+    if row["merge"]:
+        return "role: bloops\nmerge: scripts/merge-pr\nmodel: none\nreason: script\n"
+    lines = [
+        f"role: {row['role']}",
+        f"provider: {row['provider']}",
+        f"model: {row['model']}",
+        f"tier: {row['tier']}",
+        f"route: {row['route']}",
+        f"router: {row['router']}",
+        f"reason: {row['reason']}",
+        f"worktree: orca worktree create --agent {row['provider']} --model {row['model']}",
+        "automation: --provider {provider} --extra-agent-args={extra}".format(
+            provider=row["provider"],
+            extra=shlex.quote("--model " + row["model"]),
+        ),
+    ]
+    if row["pin"]:
+        lines.append(f"pin: {row['pin']}")
+    return "\n".join(lines) + "\n"
+
+
+def automation_flags(root: Path, name: str = "chip") -> tuple[str, str]:
+    row = resolve(root, name)
+    return row["provider"], row["model"]
+
+
+def cmd_check(root: Path) -> int:
+    validate(root)
+    known = set(load_bleeps().KEYS)
+    missing = [key for key in override_keys() if key not in known]
+    if missing:
+        raise SystemExit(f"scripts/bleeps does not accept {', '.join(missing)}")
+    for name in ROLE_NAMES:
+        sys.stdout.write(format_row(resolve(root, name)))
+    print("ok")
+    return 0
+
+
+def main(argv: list[str]) -> int:
+    root = Path.cwd()
+    if not argv or argv[0] in {"-h", "--help"}:
+        print(
+            "usage: providers check | providers show <role> [--guardrail] [--stalled] [--merge] [--offline]",
+            file=sys.stderr,
+        )
+        return 0 if argv and argv[0] in {"-h", "--help"} else 2
+    if argv[0] == "check":
+        return cmd_check(root)
+    if argv[0] != "show" or len(argv) < 2:
+        print("usage: providers show <role>", file=sys.stderr)
+        return 2
+    flags = set(argv[2:])
+    known = {"--guardrail", "--stalled", "--merge", "--offline"}
+    extra = flags - known
+    if extra:
+        raise SystemExit(f"unknown flag {sorted(extra)}")
+    row = resolve(
+        root,
+        argv[1],
+        guardrail="--guardrail" in flags,
+        stalled="--stalled" in flags,
+        merge="--merge" in flags,
+        offline="--offline" in flags,
+    )
+    sys.stdout.write(format_row(row))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

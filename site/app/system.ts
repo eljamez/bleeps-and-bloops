@@ -20,7 +20,11 @@ type SystemFacts = {
     scout_cap: string;
     scout_schedule: string;
     scout_time: string;
+    router: string;
+    scout_provider: string;
+    jev_url: string;
   };
+  roles: { name: string; provider: string; model: string; tier: string; route: string }[];
   pipeline: Station[];
 };
 

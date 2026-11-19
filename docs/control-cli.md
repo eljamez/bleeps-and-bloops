@@ -15,6 +15,7 @@ bleeps doctor
 bleeps test
 bleeps typecheck
 bleeps fix-loop
+bleeps providers check
 bleeps preview
 bleeps health --sha <commit> [--wait]
 ```
@@ -23,6 +24,7 @@ bleeps health --sha <commit> [--wait]
 - **test.** Run the project tests. Non-zero on failure. No test command is a failure. When `test_unit`, `test_integration`, or `test_e2e` is set, those run. Otherwise the single `test` command runs.
 - **typecheck.** Run the project typecheck. The same command `scripts/orca-verify` runs, so local and CI stay the same check.
 - **fix-loop.** Run `scripts/orca-verify` and count a red result. Exit 0 continues to Echo. Exit 3 sends the failure back in the same run. Exit 2 means `fix_rounds` is spent (default 2): escalate to James with the summary, and do not merge. See [0012](decisions/0012-red-suite-loops.md).
+- **providers.** `providers check` validates the role table. `providers show <role>` prints the provider, model, and launch flags. See [0015](decisions/0015-role-providers.md).
 - **preview.** Start the worktree preview and print the URL. One preview per worktree.
 - **health.** GET the deployed health URL. Pass when `commitSha` equals `--sha`, or uniquely starts with it (7+ hex characters), or is a descendant (`git merge-base --is-ancestor`). A later `develop` deploy still counts. `--wait` polls until that is true or 30 minutes pass. Do not write a sleep loop beside this command.
 
