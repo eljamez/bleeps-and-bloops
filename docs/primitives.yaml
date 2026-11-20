@@ -42,50 +42,59 @@ primitives:
     name: Kick-off command
     summary: >
       Orca issueCommand. Orca sends it when a workspace launches from a
-      linked GitHub issue.
+      linked GitHub issue. Other ticket sources are mirrored onto that issue.
     inputs:
       - A linked GitHub issue. Orca substitutes {{issue}} and {{artifact_url}}.
+      - A normalized ticket from scripts/intake when the issue is a mirror.
     outputs:
       - The ticket run, starting with the spec folder
     invoked_by: Orca, when a person launches a workspace from the issue
     when: Flow step 1, once a GitHub issue exists.
     status: built
     lives: >
-      orca.yaml issueCommand. The home server does not have Orca installed yet.
+      orca.yaml issueCommand. Orca is not installed for this repo yet.
       The 2026-11-11 context pack command is reference only.
     code:
       - orca.yaml
     docs:
       - docs/flow.md
       - docs/roadmap.md
-      - docs/home-server.md
+      - docs/where-it-runs.md
+      - docs/tickets.md
     adrs:
       - docs/decisions/0002-rebuild-factory-clean.md
       - docs/decisions/0007-bleeps-is-built-for-orca.md
+      - docs/decisions/0013-one-ticket-many-sources.md
 
   - id: build-fix-loop
     group: skill
     name: Build / fix loop
     summary: >
-      Build, test, and fix in an isolated Orca worktree, with a round limit,
-      and pause when a change touches a guardrail area.
+      Build in an isolated Orca worktree. A red suite goes back to Buzz or
+      Blip in the same run, up to fix_rounds, and pauses on a guardrail.
     inputs:
       - tasks.md
       - The repo, in an isolated Orca worktree
+      - fix_rounds in orca.project.yaml, default 2
     outputs:
-      - The change on a feature branch
+      - The change on a feature branch when the suite is green
+      - A summary for James when fix_rounds is spent
       - A pause when the change touches a guardrail area
-    invoked_by: The agent on the ticket, inside the worktree
-    when: Flow step 4. The number of rounds is not chosen yet.
-    status: planned
+    invoked_by: >
+      The agent on the ticket, inside the worktree. Blip runs scripts/fix-loop.
+    when: Flow step 4. Two red send-backs, then the next red escalates.
+    status: built
     lives: >
-      Not written. It runs in an isolated Orca worktree.
-      0002 says to write the loop fresh.
+      scripts/fix-loop. The crew still does the editing.
+      0002 said to write the loop fresh. Orca is not installed for this repo yet.
+    code:
+      - scripts/fix-loop
     docs:
       - docs/flow.md
     adrs:
       - docs/decisions/0002-rebuild-factory-clean.md
       - docs/decisions/0003-gitflow-auto-merge-to-develop.md
+      - docs/decisions/0012-red-suite-loops.md
 
   - id: habit-skills
     group: skill
@@ -188,7 +197,7 @@ primitives:
     name: Blip
     summary: >
       Testing agent. Owns unit, integration, and end-to-end suites.
-      Green tests are a hard gate for auto-merge.
+      A red suite loops in the run. Green tests are a hard gate for auto-merge.
     inputs:
       - The project stack and orca.project.yaml test commands
       - The ticket diff, during the build
@@ -205,27 +214,32 @@ primitives:
       coverage or flake finding.
     status: built
     lives: >
-      agents/blip. Orca has no agent-role key, so this directory is the role.
-      The home server is not running Orca yet.
+      agents/blip and scripts/fix-loop. Orca has no agent-role key, so this
+      directory is the role. Orca is not installed for this repo yet.
     code:
       - agents/blip
+      - scripts/fix-loop
     docs:
       - agents/blip/ROLE.md
       - docs/flow.md
     adrs:
       - docs/decisions/0009-testing-is-a-gate-blip-owns-tests.md
+      - docs/decisions/0012-red-suite-loops.md
 
   - id: chip
     group: script
     name: Chip
     summary: >
-      The scout. A scheduled patrol that files bleeps:found issues and starts
+      The scout. A scheduled patrol that files bleeps:found issues, posts
+      each new finding to the project's other ticket sources, and starts
       the normal pipeline, capped so it cannot flood pull requests.
     inputs:
-      - orca.project.yaml proactive, scans, schedule, and cap
+      - orca.project.yaml proactive, host, scans, schedule, cap, and ticket_sources
+      - Chip's provider and model from scripts/providers. Claude Code is the default
       - The worktree and, when gh is available, CI, advisories, and friction issues
     outputs:
       - GitHub issues labelled bleeps:found, with evidence
+      - A copy on each configured source other than plain GitHub issues
       - Orca worktrees for those issues, up to the cap
     invoked_by: An Orca automation. A person can run bleeps scout.
     when: On the project schedule. Default daily at 09:00. Flow step 0.
@@ -237,11 +251,50 @@ primitives:
       - scripts/bleeps-scout
     docs:
       - docs/decisions/0008-bleeps-is-proactive.md
-      - docs/home-server.md
+      - docs/decisions/0014-where-it-runs.md
+      - docs/where-it-runs.md
       - docs/friction-log.md
     adrs:
       - docs/decisions/0008-bleeps-is-proactive.md
       - docs/decisions/0009-testing-is-a-gate-blip-owns-tests.md
+      - docs/decisions/0013-one-ticket-many-sources.md
+      - docs/decisions/0014-where-it-runs.md
+
+  - id: ticket-intake
+    group: script
+    name: Ticket intake
+    summary: >
+      One path from GitHub, a GitHub Project, Jira, Discord, or Linear into
+      kick-off. GitHub access is required on every project. Adapters fetch a
+      ticket and post status and the pull request link where the source allows it.
+    inputs:
+      - ticket_sources and credential env var names in orca.project.yaml
+      - A source id
+      - GitHub access, including when the ticket lives somewhere else
+    outputs:
+      - specs/<issue>-<slug>/ticket.json and ticket.md
+      - A GitHub issue labelled bleeps:intake when the source is not GitHub
+      - A status or pull request link on the source
+    invoked_by: >
+      Beep, at the start of issueCommand. The crew, when a pull request opens.
+      A person can run scripts/intake and scripts/check-ticket-sources.
+    when: Flow step 1, and again at flow step 6 for the pull request link.
+    status: built
+    lives: >
+      scripts/intake and scripts/ticket-*. Fixture tests are scripts/check-tickets.
+      Live API calls need the credentials in docs/tickets.md and have not been run.
+    code:
+      - scripts/intake
+      - scripts/ticketlib.py
+      - scripts/check-ticket-sources
+    docs:
+      - docs/tickets.md
+      - docs/flow.md
+      - docs/using-bleeps.md
+    adrs:
+      - docs/decisions/0013-one-ticket-many-sources.md
+      - docs/decisions/0007-bleeps-is-built-for-orca.md
+      - docs/decisions/0011-scripts-first.md
 
   - id: bleeps
     group: script
@@ -303,7 +356,7 @@ primitives:
     lives: >
       orca.yaml, scripts/orca-setup, and scripts/orca-verify.
       Projects commit orca.project.yaml. Example: examples/orca.project.yaml.
-      The home server does not have Orca installed yet.
+      Orca is not installed for this repo yet.
     code:
       - orca.yaml
       - scripts/orca-setup
@@ -313,7 +366,7 @@ primitives:
     docs:
       - docs/architecture.md
       - docs/roadmap.md
-      - docs/home-server.md
+      - docs/where-it-runs.md
     adrs:
       - docs/decisions/0001-shared-factory-config.md
       - docs/decisions/0002-rebuild-factory-clean.md

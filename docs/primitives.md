@@ -15,7 +15,7 @@ A primitive is one of these kinds:
 
 The shared [`orca.yaml`](../orca.yaml) is the config those pieces live in. Kick-off is `issueCommand`. Setup is `scripts.setup`. Review rules and merge policy stay their own rows, because Orca has no keys for them. A project commits `orca.project.yaml` for install, test, and typecheck. Orca does not merge that file. See [0001](decisions/0001-shared-factory-config.md) and [0007](decisions/0007-bleeps-is-built-for-orca.md).
 
-`status: planned` means the block is specified and nobody can run it yet. `status: built` means a person or an agent can invoke it. Kick-off, the setup hook, `bleeps test` / `bleeps typecheck`, Chip, and Blip are built. The home server is not running Orca yet. The [roadmap](roadmap.md) is the list that moves.
+`status: planned` means the block is specified and nobody can run it yet. `status: built` means a person or an agent can invoke it. Kick-off, the setup hook, `bleeps test` / `bleeps typecheck`, the fix loop, Chip, and Blip are built. Orca is not installed for this repo yet. Where it runs is a [choice](where-it-runs.md). The [roadmap](roadmap.md) is the list that moves.
 
 The machine-readable list is [primitives.yaml](primitives.yaml). Update that file when a primitive is added, removed, or reshaped. Leave its `summary` alone for ordinary feature work. To put this on a repo of your own, read [Using Bleeps](using-bleeps.md).
 
@@ -52,9 +52,9 @@ flowchart TD
 
 **Kind.** Issue command.
 
-**Purpose.** Orca's `issueCommand`. It starts the ticket when a workspace launches from a linked GitHub issue.
+**Purpose.** Orca's `issueCommand`. It starts the ticket when a workspace launches from a linked GitHub issue. A Jira, Discord, Linear, or GitHub Project ticket is mirrored to that issue first. See [tickets](tickets.md).
 
-**Inputs.** The linked issue. Orca substitutes `{{issue}}` and `{{artifact_url}}`.
+**Inputs.** The linked GitHub issue. Orca substitutes `{{issue}}` and `{{artifact_url}}`. `scripts/intake` fills `ticket.md` when the issue is a mirror.
 
 **Outputs.** The ticket run, starting with the spec folder.
 
@@ -62,7 +62,7 @@ flowchart TD
 
 **When.** [Flow](flow.md) step 1, once a GitHub issue exists.
 
-**Status.** Built. The prompt is in [`orca.yaml`](../orca.yaml). The home server does not have Orca installed yet.
+**Status.** Built. The prompt is in [`orca.yaml`](../orca.yaml). Orca is not installed for this repo yet.
 
 **Lives.** `orca.yaml` `issueCommand`. The 2026-11-11 `/bb:kick-off` command is reference only. See [0007](decisions/0007-bleeps-is-built-for-orca.md).
 
@@ -72,19 +72,19 @@ flowchart TD
 
 **Kind.** Skill.
 
-**Purpose.** Build, test, and fix in an isolated Orca worktree, with a round limit, and pause when a change touches a guardrail area.
+**Purpose.** Build in an isolated Orca worktree. A red suite goes back to Buzz or Blip in the same run, up to `fix_rounds`, and pauses when a change touches a guardrail area.
 
-**Inputs.** `tasks.md`, and the repo in an isolated Orca worktree.
+**Inputs.** `tasks.md`, the repo in an isolated Orca worktree, and `fix_rounds` in `orca.project.yaml` (default 2).
 
-**Outputs.** The change on a feature branch. A pause when the change touches a guardrail area.
+**Outputs.** The change on a feature branch when the suite is green. A summary for James when `fix_rounds` is spent. A pause when the change touches a guardrail area.
 
-**Invoked by.** The agent on the ticket, inside the worktree.
+**Invoked by.** The agent on the ticket, inside the worktree. Blip runs `scripts/fix-loop`.
 
-**When.** Flow step 4. The number of rounds is not chosen yet.
+**When.** Flow step 4. Two red send-backs, then the next red escalates. See [0012](decisions/0012-red-suite-loops.md).
 
-**Status.** Planned.
+**Status.** Built. Orca is not installed for this repo yet.
 
-**Lives.** Not written. [0002](decisions/0002-rebuild-factory-clean.md) says to write the loop fresh.
+**Lives.** [`scripts/fix-loop`](../scripts/fix-loop). The crew still does the editing. [0002](decisions/0002-rebuild-factory-clean.md) said to write the loop fresh.
 
 ### Habit skills
 
@@ -164,7 +164,7 @@ flowchart TD
 
 **Kind.** Agent role.
 
-**Purpose.** Owns unit, integration, and end-to-end tests. Green tests are a hard gate for auto-merge.
+**Purpose.** Owns unit, integration, and end-to-end tests. A red suite loops in the run until green or `fix_rounds` escalates to James. Green tests are a hard gate for auto-merge.
 
 **Inputs.** The project stack and the test commands in `orca.project.yaml`. The ticket diff. Scout findings for gaps and flakes.
 
@@ -174,9 +174,9 @@ flowchart TD
 
 **When.** Onboarding, during flow steps 3 and 4, and when the scout files a coverage or flake finding.
 
-**Status.** Built. The home server is not running Orca yet.
+**Status.** Built. Orca is not installed for this repo yet.
 
-**Lives.** [agents/blip](../agents/blip). See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md).
+**Lives.** [agents/blip](../agents/blip) and [`scripts/fix-loop`](../scripts/fix-loop). See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md) and [0012](decisions/0012-red-suite-loops.md).
 
 ## Script or CLI
 
@@ -184,11 +184,11 @@ flowchart TD
 
 **Kind.** Script.
 
-**Purpose.** Chip's patrol. On a schedule, scan the project, file a `bleeps:found` issue per new finding, and start the normal pipeline up to a cap.
+**Purpose.** Chip's patrol. On a schedule, scan the project, file a `bleeps:found` issue per new finding, post that finding to each other configured ticket source, and start the normal pipeline up to a cap.
 
-**Inputs.** `proactive`, scans, schedule, and cap in `orca.project.yaml`. The worktree. GitHub, when `gh` is available.
+**Inputs.** `proactive`, `host`, scans, schedule, cap, and `ticket_sources` in `orca.project.yaml`. Chip's provider and model from `scripts/providers` (Claude Code and `haiku` unless overridden). The worktree. GitHub, when `gh` is available. `host` defaults to `local`.
 
-**Outputs.** Issues labelled `bleeps:found`, with evidence. Orca worktrees for those issues, up to the cap. Open `friction` issues are queued and not filed again.
+**Outputs.** Issues labelled `bleeps:found`, with evidence. A copy on each configured source other than plain GitHub issues. Orca worktrees for those issues, up to the cap. Open `friction` issues are queued and not filed again, and they are not copied.
 
 **Invoked by.** An Orca automation. A person can run `bleeps scout`.
 
@@ -196,7 +196,25 @@ flowchart TD
 
 **Status.** Built. Register the automation with `bleeps scout schedule`. It is not an `orca.yaml` key.
 
-**Lives.** [scripts/bleeps-scout](../scripts/bleeps-scout). See [0008](decisions/0008-bleeps-is-proactive.md).
+**Lives.** [scripts/bleeps-scout](../scripts/bleeps-scout). See [0008](decisions/0008-bleeps-is-proactive.md), [0013](decisions/0013-one-ticket-many-sources.md), and [0014](decisions/0014-where-it-runs.md).
+
+### Ticket intake
+
+**Kind.** Script.
+
+**Purpose.** Fetch a ticket from GitHub, a GitHub Project, Jira, Discord, or Linear, write the same ticket shape, and hand it to kick-off. Post status and the pull request link back when the source supports it.
+
+**Inputs.** `ticket_sources` and credential env var names in `orca.project.yaml`. A source id. GitHub access, which is required even when the ticket lives somewhere else.
+
+**Outputs.** `specs/<issue>-<slug>/ticket.json` and `ticket.md`. A GitHub issue labelled `bleeps:intake` when the source is not GitHub. A status or pull request link on the source.
+
+**Invoked by.** Beep, at the start of `issueCommand`. The crew, when a pull request opens. A person can run `scripts/intake` and `scripts/check-ticket-sources`.
+
+**When.** Flow step 1, and again at flow step 6 for the pull request link.
+
+**Status.** Built for fixture responses. Live calls need the credentials named in [tickets](tickets.md). Those calls have not been run on a machine yet.
+
+**Lives.** [scripts/intake](../scripts/intake), `scripts/ticket-github`, `scripts/ticket-github-project`, `scripts/ticket-jira`, `scripts/ticket-discord`, `scripts/ticket-linear`, and [scripts/check-ticket-sources](../scripts/check-ticket-sources). See [0013](decisions/0013-one-ticket-many-sources.md).
 
 ### bleeps
 
@@ -232,7 +250,7 @@ flowchart TD
 
 **When.** Setup runs when a worktree is created. Verification runs before a pull request is opened, and again in CI when the check is required.
 
-**Status.** Built. The home server does not have Orca installed yet.
+**Status.** Built. Orca is not installed for this repo yet.
 
 **Lives.** [`orca.yaml`](../orca.yaml), [`scripts/orca-setup`](../scripts/orca-setup), and [`scripts/orca-verify`](../scripts/orca-verify). Projects commit `orca.project.yaml`. The example is [examples/orca.project.yaml](../examples/orca.project.yaml).
 
@@ -284,7 +302,7 @@ flowchart TD
 
 **Purpose.** `specs/<issue>-<slug>/` holds `ticket.md`, `spec.md` (draft or approved), optional `design.md`, `tasks.md`, and `verify.md`.
 
-**Inputs.** The GitHub issue.
+**Inputs.** The normalized ticket. For a GitHub issue that is the whole ticket. For another source, the mirror issue plus `ticket.json`.
 
 **Outputs.** `ticket.md`. `spec.md`, with status draft or approved. `design.md` only if the approach is risky. `tasks.md` and `verify.md` are written by their own steps.
 

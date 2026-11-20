@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Section, SiteShell, links, wrap } from "../shell";
+import system, { sourceList } from "../system";
+import { ConfigKeys, Section, SiteShell, links, wrap } from "../shell";
 
 export const dynamic = "force-static";
 
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 const jumps = [
   ["#crew", "Crew"],
-  ["#issue", "Issue"],
+  ["#ticket", "Ticket"],
   ["#spec", "Spec"],
   ["#build", "Build"],
   ["#blip", "Blip"],
@@ -24,15 +25,6 @@ const jumps = [
   ["#patrol", "Patrol"],
 ] as const;
 
-const crew = [
-  ["Beep", "Plans the work and writes the spec."],
-  ["Buzz", "Builds the change in an Orca worktree."],
-  ["Blip", "QA lead. Sets up and maintains the tests."],
-  ["Echo", "Independent verify. Read-only, and a separate session."],
-  ["Chip", "Proactive scout. Files issues for what it finds."],
-  ["Bloops", "Merges through a script, then studies the run and improves every agent's skills."],
-] as const;
-
 export default function UsingBleepsPage() {
   return (
     <SiteShell current="using">
@@ -40,9 +32,9 @@ export default function UsingBleepsPage() {
         <h1>Day to day</h1>
         <p className="lede">
           After either setup, the work is the same. You steer. Bleeps runs the
-          crew from a GitHub issue to a pull request on <code>develop</code>.
-          Bloops merges when the gates pass. You promote <code>develop</code>{" "}
-          to <code>main</code>. The order is the <a href={links.flow}>flow</a>.
+          crew from a ticket to a pull request on <code>develop</code>. Bloops
+          merges when the gates pass. You promote <code>develop</code> to{" "}
+          <code>main</code>. The order is the <a href={links.flow}>flow</a>.
           The blocks are the <a href={links.primitives}>primitives</a>.
         </p>
         <nav aria-label="On this page">
@@ -58,38 +50,82 @@ export default function UsingBleepsPage() {
 
       <Section id="crew" index="01" title="The crew">
         <div className="stack">
-          {/* TODO: Keep these jobs aligned with the role files under agents/. Do not invent extra commands. */}
+          {/* Jobs and the script list are site/system-facts.json. scripts/check-site locks them to the system. */}
           <p>
             Bleeps is the doer. Bleeps runs this crew and gets the work done.
           </p>
           <dl className="habits">
-            {crew.map(([name, job]) => (
-              <div className="habit" key={name}>
-                <dt>{name}</dt>
-                <dd>{job}</dd>
+            {system.crew.map((member) => (
+              <div className="habit" key={member.name}>
+                <dt>{member.name}</dt>
+                <dd>{member.job}</dd>
               </div>
             ))}
           </dl>
           <p>
             Scripts first: common work gets a script so nobody does it by hand
-            or from scratch. Beep runs <code>scripts/kick-off</code>. Echo
-            writes the verdict with <code>scripts/verify</code>. Bloops merges
-            with <code>scripts/merge-pr</code> and reflects with{" "}
-            <code>scripts/bloops-reflect</code>. Chip runs{" "}
-            <code>scripts/bleeps-scout</code>. Tests run through{" "}
-            <code>bleeps test</code>.
+            or from scratch. Tests run through <code>bleeps test</code>. Each
+            role has a provider and a model. <code>router</code> defaults to{" "}
+            {system.defaults.router}. Leave it there and every role uses the
+            model below. Set <code>router: jev</code> only when you want a
+            local Jev proxy to raise Buzz or Chip, or to raise Blip after a
+            fix round has failed. Beep and Echo stay on the frontier model.
+            A change in auth, billing, payments, data deletion, or migrations
+            uses that same frontier model. The proxy address defaults to{" "}
+            <code>{system.defaults.jev_url}</code>. If it does not answer, the
+            role keeps its configured model.
           </p>
+          <ul className="tasks">
+            {system.roles.map((role) => (
+              <li key={role.name}>
+                {role.name}: <code>{role.provider}</code> <code>{role.model}</code>{" "}
+                ({role.tier}
+                {role.route === "fixed"
+                  ? ", fixed"
+                  : role.route === "reflect"
+                    ? ", reflection"
+                    : role.route === "stall"
+                      ? ", up only after a failed fix round"
+                      : ", up only when you opt in"}
+                )
+              </li>
+            ))}
+          </ul>
+          <p>
+            Bloops merges with <code>scripts/merge-pr</code>. That step has no
+            model. The row above is the reflection.
+          </p>
+          <ul className="tasks">
+            {system.scripts.map((script) => (
+              <li key={script.path}>
+                <code>{script.path}</code> ({script.who})
+              </li>
+            ))}
+          </ul>
+          <ConfigKeys />
         </div>
       </Section>
 
-      <Section id="issue" index="02" title="File an issue">
-        <p>
-          A GitHub issue is the ticket. You file it, or Chip files one labelled{" "}
-          <code>bleeps:found</code>. Launch an Orca workspace from that issue.
-          Orca runs <code>issueCommand</code> from the shared{" "}
-          <code>orca.yaml</code>, with the issue number filled in. Whether
-          someone grooms the issue first is still open.
-        </p>
+      <Section id="ticket" index="02" title="File a ticket">
+        <div className="stack">
+          <p>
+            A ticket comes from the sources this project connected:{" "}
+            {sourceList()}.
+            GitHub is required either way. You file it, or Chip files one labelled{" "}
+            <code>bleeps:found</code>. <code>scripts/intake</code> writes one
+            ticket shape and, for anything that is not already a GitHub issue,
+            mirrors it so Orca can start. Launch an Orca workspace from that
+            issue. Orca runs <code>issueCommand</code> from the shared{" "}
+            <code>orca.yaml</code>, with the issue number filled in. Whether
+            someone grooms the issue first is still open. The commands and the
+            env var names are in <a href={links.tickets}>Tickets</a>.
+          </p>
+          <p>
+            When the pull request opens, <code>scripts/intake link-pr</code>{" "}
+            posts the link back. Discord records that as a reply. Jira, Linear,
+            and a GitHub Project update their own status when the names match.
+          </p>
+        </div>
       </Section>
 
       <Section id="spec" index="03" title="Spec and tasks">
@@ -108,15 +144,20 @@ export default function UsingBleepsPage() {
       <Section id="build" index="04" title="Build and verify">
         <div className="stack">
           <p>
-            Buzz builds, tests, and fixes in an isolated Orca worktree, with a
-            round limit. The number of rounds is not chosen yet. When the
-            change touches a guardrail, the loop pauses for you.
+            Buzz builds in an isolated Orca worktree. When the suite is red,
+            Blip runs <code>scripts/fix-loop</code> and sends the failure back
+            in the same run. Buzz fixes the code, or Blip fixes the test when
+            the test is wrong. Blip reruns until green. <code>fix_rounds</code> defaults
+            to {system.fixRounds}. Past that, the run escalates to you
+            with a summary. When the change touches a guardrail, the loop
+            pauses for you.
           </p>
           <p>
             Echo then writes <code>verify.md</code>. Echo is read-only, does
             not share Buzz&apos;s or Blip&apos;s session, and does not edit.
-            The verdict that continues is “Ready to ship”. Any other verdict
-            stops the line before a pull request. <code>verify.md</code>{" "}
+            The verdict that continues is “Ready to ship”, and only when the
+            suite is green. A red suite returns to the fix loop. Any other
+            verdict stops the line before a pull request. <code>verify.md</code>{" "}
             records unit, integration, and end-to-end. End-to-end is not
             applicable only when the project is not a web app.
           </p>
@@ -133,10 +174,16 @@ export default function UsingBleepsPage() {
             coverage skills are in the repo.
           </p>
           <p>
-            Green tests are a hard gate before auto-merge. A failing test
-            leaves the pull request on its branch. Echo&apos;s verdict, the
-            reviews, and guardrail sign-off still have to pass. A missing test
-            command fails <code>bleeps test</code>. It is not a skip.
+            Green tests are a hard gate before auto-merge. A red suite does
+            not stop the run. It goes back in the same run: Buzz fixes the
+            code, or Blip fixes the test when the test is wrong. Blip reruns
+            until the suite is green, then Echo verifies. Nothing merges
+            while tests are red. <code>fix_rounds</code> in{" "}
+            <code>orca.project.yaml</code> caps the loop and defaults to {system.fixRounds}.
+            Past that, the run escalates to you with a summary. Echo&apos;s
+            verdict, the reviews, and guardrail sign-off still have to pass.
+            A missing test command fails <code>bleeps test</code>. It is not
+            a skip.
           </p>
         </div>
       </Section>
@@ -265,16 +312,23 @@ export default function UsingBleepsPage() {
           </p>
           <p>
             The patrol is per project. <code>proactive</code> in{" "}
-            <code>orca.project.yaml</code> defaults to on. Set{" "}
-            <code>proactive: off</code> and Chip skips that project. Issues
-            already open stay open. <code>scout_schedule</code> defaults to
-            daily and <code>scout_time</code> defaults to 09:00.{" "}
-            <code>scout_cap</code> defaults to 2 open pipelines.
+            <code>orca.project.yaml</code> defaults to {system.defaults.proactive}.
+            Set <code>proactive: off</code> and Chip skips that project. Issues
+            already open stay open. <code>host</code> defaults to {system.defaults.host},
+            the computer in front of you. That computer runs Chip only while
+            it is on and Orca is running. A missed run starts once if you wake
+            it inside Orca&apos;s grace window, and is skipped after that.
+            Tickets you filed stay open. Chip does not drain them.{" "}
+            <code>scout_schedule</code> defaults to {system.defaults.scout_schedule} and <code>scout_time</code> defaults
+            to {system.defaults.scout_time}. <code>scout_cap</code> defaults to {system.defaults.scout_cap} open pipelines. Chip files the finding
+            on GitHub, and also posts it to each other source in{" "}
+            <code>ticket_sources</code>. Open friction issues are not copied.
           </p>
           <p>
             The schedule is an Orca automation, not a key inside{" "}
-            <code>orca.yaml</code>. After you set <code>scout_provider</code>,
-            this prints the command and then creates it:
+            <code>orca.yaml</code>. Chip&apos;s provider defaults to{" "}
+            {system.defaults.scout_provider}. This prints the command and then
+            creates it:
           </p>
           <pre>
             <code>{`python3 scripts/bleeps-scout schedule
@@ -282,9 +336,12 @@ python3 scripts/bleeps-scout schedule --install`}</code>
           </pre>
           <p>
             <code>python3 scripts/bleeps-scout --dry-run</code> prints findings
-            and does not file them. The home server is not running that
-            automation yet. <code>scout_provider</code> stays unset until you
-            choose the agent.
+            and does not file them. Register the automation on the machine{" "}
+            <code>host</code> names. For a VPS or a machine at home, reach it
+            on a private network such as Tailscale, and do not open its ports.
+            The steps are in the <a href={links.runs}>where it runs</a> notes.
+            Set <code>scout_provider</code> only when Chip should use a
+            different agent than the table.
           </p>
         </div>
       </Section>

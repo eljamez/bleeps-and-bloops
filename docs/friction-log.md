@@ -34,7 +34,7 @@ No secrets, tokens, or private data.
 
 ## Daily sweep
 
-Chip is the sweep. See [0008](decisions/0008-bleeps-is-proactive.md). Chip runs on the Orca automation schedule, daily at 09:00 unless the project file says otherwise.
+Chip is the sweep. See [0008](decisions/0008-bleeps-is-proactive.md). Chip runs on the Orca automation schedule, on the machine `host` names, daily at 09:00 unless the project file says otherwise. A machine that is off does not replay missed days. See [0014](decisions/0014-where-it-runs.md).
 
 Eligible issues are open, labeled `friction`, and not labeled `friction-skipped`. Chip does not open a second issue for the same gap. Chip starts the normal pipeline for them, under the same cap as `bleeps:found` issues.
 

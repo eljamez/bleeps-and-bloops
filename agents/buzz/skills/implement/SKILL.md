@@ -5,6 +5,6 @@ description: Implement tasks.md in the worktree. Do not certify the result.
 
 # Implement
 
-Work the checklist in `tasks.md`. Stay inside the spec. Run `scripts/bleeps test` and fix failures. Do not delete a test to make it pass.
+Run `scripts/providers show buzz` before a fresh launch. Add `--guardrail` when the diff touches auth, billing, payments, data deletion, or migrations. Work the checklist in `tasks.md`. Stay inside the spec. You may run `scripts/bleeps test` while you work. When Blip sends a red suite back, fix the product code and hand it to Blip. Do not edit a test to make it pass, and do not delete one.
 
-Do not write `verify.md`. Do not merge. When the tasks are done, stop and hand the branch to Echo.
+Do not write `verify.md`. Do not merge. Do not certify the work. When the tasks are done, hand the branch to Blip, then to Echo.

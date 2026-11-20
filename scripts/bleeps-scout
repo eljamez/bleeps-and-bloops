@@ -19,6 +19,7 @@ from __future__ import annotations
 import importlib.machinery
 import importlib.util
 import json
+import shlex
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -40,6 +41,10 @@ def load_script(name: str, filename: str):
 def bleeps():
     return load_script("bleeps_cli", "bleeps")
 
+
+def providers():
+    return load_script("bleeps_providers", "providers")
+
 DEFAULT_SCANS = ("tests", "ci", "lint", "advisories", "debt", "friction", "coverage")
 SCAN_NAMES = DEFAULT_SCANS + ("errors",)
 SKIP_DIRS = {".git", "node_modules", ".next", "dist", "coverage", "out"}
@@ -60,6 +65,25 @@ def proactive_enabled(project: dict[str, str]) -> bool:
     if value not in {"on", "off"}:
         raise SystemExit(f"proactive must be on or off, got {value!r}")
     return value == "on"
+
+
+HOSTS = ("local", "cloud", "home")
+HOST_NOTE = {
+    "local": "Runs on this computer, and only while it is on and Orca is running.",
+    "cloud": "Runs on the VPS. Register the automation there.",
+    "home": "Runs on the home machine. Register the automation there.",
+}
+
+
+def host_choice(project: dict[str, str]) -> str:
+    value = project.get("host", "local")
+    if value not in HOSTS:
+        raise SystemExit(
+            f"host must be local, cloud, or home, got {value!r}. "
+            "Orca schedules Chip on a machine that is running Orca. "
+            "GitHub Actions is not that machine."
+        )
+    return value
 
 
 def scout_cap(project: dict[str, str]) -> int:
@@ -198,12 +222,15 @@ def issue_body(finding: Finding) -> str:
 def automation_command(root: Path, project: dict[str, str]) -> str:
     schedule = project.get("scout_schedule", "daily")
     when = project.get("scout_time", "09:00")
-    provider = project.get("scout_provider", "")
+    provider, model = providers().automation_flags(root)
     script = Path(__file__).resolve()
     trigger = f"--trigger {schedule}"
     if schedule in {"daily", "weekdays", "weekly"}:
         trigger += f" --time {when}"
-    provider_flag = f" --provider {provider}" if provider else ""
+    provider_flag = " --provider {provider} --extra-agent-args={model}".format(
+        provider=provider,
+        model=shlex.quote("--model " + model),
+    )
     prompt = (
         "Run scripts/bleeps-scout in this checkout. "
         "Do not scan a second way. It files bleeps:found issues and starts "
@@ -504,14 +531,11 @@ def cmd_schedule(root: Path, install: bool) -> int:
     if not proactive_enabled(project):
         print("proactive is off")
         return 0
+    choice = host_choice(project)
+    print(f"host: {choice}. {HOST_NOTE[choice]}")
     print(automation_command(root, project))
     if not install:
-        if not project.get("scout_provider"):
-            print("set scout_provider before --install", file=sys.stderr)
         return 0
-    if not project.get("scout_provider"):
-        print("set scout_provider before --install", file=sys.stderr)
-        return 2
     if subprocess.run(["sh", "-c", "command -v orca"], capture_output=True).returncode != 0:
         print("orca is not on PATH", file=sys.stderr)
         return 2
@@ -531,6 +555,7 @@ def main(argv: list[str]) -> int:
     if not proactive_enabled(project):
         print("proactive is off")
         return 0
+    host_choice(project)
     cap = scout_cap(project)
     scans = scout_scans(project)
     findings, friction = collect(root, project, scans, dry_run)
@@ -540,7 +565,18 @@ def main(argv: list[str]) -> int:
         print(f"finding {finding.key} risk={finding.risk}")
         if dry_run:
             print(issue_body(finding))
+    lib = load_script("ticketlib", "ticketlib.py")
+    try:
+        posts = lib.outbound_sources(project)
+    except lib.TicketError as error:
+        print(error, file=sys.stderr)
+        return 2
     if dry_run:
+        # Chip still files the GitHub issue. Other sources get a copy.
+        # Friction issues already exist on GitHub and are not copied.
+        if findings:
+            for source in posts:
+                print(f"would post finding to {source}")
         started = choose(friction, findings, cap, 0)
         print(f"would start {len(started)} of cap {cap}")
         return 0
@@ -553,6 +589,8 @@ def main(argv: list[str]) -> int:
         number = file_issue(finding)
         if number is not None:
             filed.append((finding, number))
+            for note in lib.post_finding(project, finding.title, issue_body(finding), number, root=root):
+                print(note)
     queue = choose(friction, [finding for finding, _number in filed], cap, in_flight())
     numbers = {finding.key: number for finding, number in filed}
     for kind, item in queue:

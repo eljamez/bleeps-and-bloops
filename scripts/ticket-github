@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+"""GitHub Issues adapter. Fetch, post status, link a pull request."""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import ticketlib
+
+raise SystemExit(ticketlib.adapter_main("github", sys.argv[1:]))

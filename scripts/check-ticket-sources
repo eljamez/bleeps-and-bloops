@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""Check GitHub access and each ticket source this project configured.
+
+GitHub is required even when the tickets live in Jira, Discord, Linear, or a
+GitHub Project. Code, pull requests, and CI stay on GitHub. --config-only
+checks orca.project.yaml and does not call the network. Live mode is what
+you run on the machine that will do the work.
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import ticketlib
+
+raise SystemExit(ticketlib.check_main(sys.argv[1:]))

@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""GitHub Projects adapter. The id is the issue number on the configured project.
+
+Status is the project's Status field. The pull request link is a comment on
+the GitHub issue. Draft project items that are not issues are not fetched.
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import ticketlib
+
+raise SystemExit(ticketlib.adapter_main("github-project", sys.argv[1:]))

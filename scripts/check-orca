@@ -11,6 +11,8 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 try:
@@ -27,6 +29,8 @@ ALLOWED = {
     "defaultTabs",
     "environmentRecipes",
     "worktree",
+    # Orca drops this key. scripts/providers reads it. See decision 0015.
+    "providers",
 }
 
 
@@ -59,16 +63,22 @@ def check_yaml() -> dict:
         "main",
         "Ready to ship",
         "scripts/orca-verify",
+        "scripts/fix-loop",
         "scripts/ship-pr",
+        "scripts/intake",
+        "scripts/providers",
         "bleeps:found",
         "Blip",
+        "Exit 3",
+        "fix_rounds",
+        "does not certify",
     ):
         require(needle in prompt, f"issueCommand missing {needle}")
     require("scout" not in document, "schedule is an Orca automation, not an orca.yaml key")
     shared = (document.get("worktree") or {}).get("sharedDirectories") or []
     require("node_modules" in shared, "sharedDirectories should include node_modules")
     example = (ROOT / "examples" / "orca.project.yaml").read_text()
-    require("install:" in example and "health_url:" in example, "example override")
+    require("install:" in example and "health_url:" in example and "ticket_sources:" in example, "example override")
     return document
 
 
@@ -183,6 +193,13 @@ def check_scout() -> None:
     require(len(chosen) == 1 and chosen[0] == ("friction", 7), chosen)
     require(module.scout_cap({}) == 2, "default cap")
     require(module.scout_cap({"scout_cap": "2"}) == 2, "cap 2")
+    require(module.host_choice({}) == "local", "default host")
+    require(module.host_choice({"host": "home"}) == "home", "home host")
+    try:
+        module.host_choice({"host": "actions"})
+        require(False, "actions should fail")
+    except SystemExit as error:
+        require("GitHub Actions" in str(error), str(error))
 
     with tempfile.TemporaryDirectory() as tmp:
         project = Path(tmp)
@@ -214,11 +231,21 @@ def check_scout() -> None:
 
         scheduled = run([sys.executable, str(scout), "schedule"], project)
         require(scheduled.returncode == 0, scheduled.stderr)
+        require("host: local" in scheduled.stdout, scheduled.stdout)
         require("orca automations create" in scheduled.stdout, scheduled.stdout)
         require("--trigger daily" in scheduled.stdout, scheduled.stdout)
+        require("--provider claude" in scheduled.stdout, scheduled.stdout)
+        require("--model haiku" in scheduled.stdout, scheduled.stdout)
         require("--precheck" in scheduled.stdout, scheduled.stdout)
+        require("set scout_provider" not in scheduled.stderr, scheduled.stderr)
         installed = run([sys.executable, str(scout), "schedule", "--install"], project)
-        require(installed.returncode == 2, "install without a provider should fail")
+        require(installed.returncode == 2, installed.stderr)
+        require("orca is not on PATH" in installed.stderr, installed.stderr)
+        require("set scout_provider" not in installed.stderr, installed.stderr)
+
+        (project / "orca.project.yaml").write_text("proactive: on\nhost: actions\n")
+        refused = run([sys.executable, str(scout), "schedule"], project)
+        require(refused.returncode != 0 and "GitHub Actions" in refused.stderr, refused.stderr)
 
         gap = Path(tmp) / "web"
         gap.mkdir()
@@ -273,6 +300,166 @@ def check_scout() -> None:
         require(skill.read_text() == before, "reflect must not edit skills")
 
 
+def check_fix_loop() -> None:
+    script = [sys.executable, str(ROOT / "scripts" / "fix-loop")]
+    with tempfile.TemporaryDirectory() as tmp:
+        project = Path(tmp)
+        (project / "orca.project.yaml").write_text("test: true\ntypecheck: true\n")
+        green = run(script, project)
+        require(green.returncode == 0 and "fix-loop: green" in green.stdout, green.stdout + green.stderr)
+        require(not (project / ".bleeps" / "fix-loop.json").exists(), "green run keeps no state")
+
+        (project / "orca.project.yaml").write_text("test: false\n")
+        first = run(script, project)
+        require(first.returncode == 3 and "round 1 of 2" in first.stdout, first.stdout)
+        second = run(script, project)
+        require(second.returncode == 3 and "round 2 of 2" in second.stdout, second.stdout)
+        third = run(script, project)
+        require(third.returncode == 2 and "Escalate to James" in third.stdout, third.stdout)
+        require("Do not merge" in third.stdout, third.stdout)
+
+        (project / "orca.project.yaml").write_text("test: true\ntypecheck: true\n")
+        again = run(script, project)
+        require(again.returncode == 0, again.stdout + again.stderr)
+        require(not (project / ".bleeps" / "fix-loop.json").exists(), "green clears a spent loop")
+
+        (project / "orca.project.yaml").write_text("test: false\nfix_rounds: 1\n")
+        one = run(script, project)
+        require(one.returncode == 3 and "round 1 of 1" in one.stdout, one.stdout)
+        capped = run(script, project)
+        require(capped.returncode == 2, capped.stdout)
+
+        (project / "orca.project.yaml").write_text("test: false\nfix_rounds: 99\n")
+        huge = run(script, project)
+        require(huge.returncode != 0 and "0-20" in huge.stderr, huge.stderr)
+
+        via = run([sys.executable, str(ROOT / "scripts" / "bleeps"), "fix-loop"], project)
+        require(via.returncode != 0 and "0-20" in via.stderr, via.stderr or via.stdout)
+
+        empty = Path(tmp) / "empty"
+        empty.mkdir()
+        missing = run(script, empty)
+        require(missing.returncode == 3 and "no test command" in missing.stderr, missing.stderr + missing.stdout)
+
+        typed = Path(tmp) / "typed"
+        typed.mkdir()
+        (typed / "orca.project.yaml").write_text("test: true\ntypecheck: false\nfix_rounds: 0\n")
+        red_type = run(script, typed)
+        require(red_type.returncode == 2 and "Escalate to James" in red_type.stdout, red_type.stdout + red_type.stderr)
+
+
+def load_providers():
+    path = ROOT / "scripts" / "providers"
+    loader = importlib.machinery.SourceFileLoader("bleeps_providers_check", str(path))
+    spec = importlib.util.spec_from_loader("bleeps_providers_check", loader)
+    require(spec is not None, "providers import")
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+def serve_tier(body: bytes, status: int = 200, header: str = "") -> HTTPServer:
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            if header:
+                self.send_header("x-jev-tier", header)
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, fmt: str, *args) -> None:
+            return
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
+
+
+def show(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return run([sys.executable, str(ROOT / "scripts" / "providers"), "show", *args], root)
+
+
+def check_providers() -> None:
+    module = load_providers()
+    require(module.factory_matches_builtin(ROOT), "orca.yaml providers drifted from scripts/providers")
+    checked = run([sys.executable, str(ROOT / "scripts" / "providers"), "check"], ROOT)
+    require(checked.returncode == 0, checked.stderr + checked.stdout)
+    require("role: chip" in checked.stdout and "model: haiku" in checked.stdout, checked.stdout)
+
+    beep = show(ROOT, "beep")
+    require(beep.returncode == 0 and "model: opus" in beep.stdout and "reason: configured" in beep.stdout, beep.stdout)
+    merge = show(ROOT, "bloops", "--merge")
+    require(merge.returncode == 0 and "model: none" in merge.stdout and "scripts/merge-pr" in merge.stdout, merge.stdout)
+    guard = show(ROOT, "buzz", "--guardrail")
+    require("model: opus" in guard.stdout and "reason: guardrail" in guard.stdout, guard.stdout)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        project = Path(tmp)
+        (project / "orca.project.yaml").write_text("router: jev\njev_key_env: sk-live\n")
+        leaked = run([sys.executable, str(ROOT / "scripts" / "providers"), "check"], project)
+        require(leaked.returncode != 0 and "environment variable" in leaked.stderr, leaked.stderr)
+
+        (project / "orca.project.yaml").write_text("router: jev\njev_url: http://user:secret@127.0.0.1:4000\n")
+        dirty = run([sys.executable, str(ROOT / "scripts" / "providers"), "check"], project)
+        require(dirty.returncode != 0, dirty.stderr)
+
+        (project / "orca.project.yaml").write_text("router: sometimes\n")
+        bad = run([sys.executable, str(ROOT / "scripts" / "providers"), "check"], project)
+        require(bad.returncode != 0 and "off or jev" in bad.stderr, bad.stderr)
+
+        high = serve_tier(b'{"tier":"frontier"}')
+        low = serve_tier(b'{"tier":"fast"}')
+        quiet = serve_tier(b'{"uptime":1}')
+        try:
+            high_url = f"http://127.0.0.1:{high.server_address[1]}"
+            low_url = f"http://127.0.0.1:{low.server_address[1]}"
+            quiet_url = f"http://127.0.0.1:{quiet.server_address[1]}"
+            (project / "orca.project.yaml").write_text(f"router: jev\njev_url: {high_url}\n")
+            raised = show(project, "buzz")
+            require(raised.returncode == 0, raised.stderr)
+            require("model: opus" in raised.stdout and "reason: jev" in raised.stdout, raised.stdout)
+            fixed = show(project, "beep")
+            require("model: opus" in fixed.stdout and "reason: configured" in fixed.stdout, fixed.stdout)
+            require("pin: x-jev-tier: frontier" in fixed.stdout, fixed.stdout)
+
+            (project / "orca.project.yaml").write_text(f"router: jev\njev_url: {low_url}\n")
+            held = show(project, "buzz")
+            require("model: sonnet" in held.stdout and "tier: balanced" in held.stdout, held.stdout)
+            require("reason: jev" in held.stdout, held.stdout)
+
+            (project / "orca.project.yaml").write_text(f"router: jev\njev_url: {quiet_url}\n")
+            floor = show(project, "chip")
+            require("model: haiku" in floor.stdout and "reason: floor" in floor.stdout, floor.stdout)
+            stalled = show(project, "blip", "--stalled")
+            require("model: opus" in stalled.stdout and "reason: stall" in stalled.stdout, stalled.stdout)
+            waiting = show(project, "blip")
+            require("model: sonnet" in waiting.stdout and "reason: configured" in waiting.stdout, waiting.stdout)
+
+            (project / "orca.project.yaml").write_text("router: jev\njev_url: http://127.0.0.1:9\n")
+            opened = show(project, "buzz")
+            require("model: sonnet" in opened.stdout and "reason: fail-open" in opened.stdout, opened.stdout)
+            signed = show(project, "buzz", "--guardrail")
+            require("model: opus" in signed.stdout and "reason: guardrail" in signed.stdout, signed.stdout)
+
+            (project / "orca.project.yaml").write_text(
+                f"router: jev\njev_url: {high_url}\nbuzz_provider: codex\nbuzz_model: gpt-x\nbuzz_tier: balanced\n"
+            )
+            unmapped = show(project, "buzz", "--guardrail")
+            require("reason: guardrail-unmapped" in unmapped.stdout and "model: gpt-x" in unmapped.stdout, unmapped.stdout)
+        finally:
+            high.shutdown()
+            low.shutdown()
+            quiet.shutdown()
+
+        (project / "orca.project.yaml").write_text("router: off\n")
+        plain = show(project, "chip")
+        require("provider: claude" in plain.stdout and "model: haiku" in plain.stdout, plain.stdout)
+        (project / "orca.project.yaml").write_text("scout_provider: grok\n")
+        override = show(project, "chip")
+        require("provider: grok" in override.stdout and "model: haiku" in override.stdout, override.stdout)
+
+
 def main() -> int:
     for name in (
         "orca-setup",
@@ -285,12 +472,31 @@ def main() -> int:
         "verify",
         "bloops-reflect",
         "bleeps-scout",
+        "fix-loop",
+        "intake",
+        "check-ticket-sources",
+        "check-tickets",
+        "ticket-github",
+        "ticket-github-project",
+        "ticket-jira",
+        "ticket-discord",
+        "ticket-linear",
+        "check-site",
+        "providers",
     ):
         path = ROOT / "scripts" / name
         require(path.stat().st_mode & stat.S_IXUSR, f"{name} is not executable")
     document = check_yaml()
     check_scripts(document["scripts"]["setup"])
     check_scout()
+    check_providers()
+    check_fix_loop()
+    tickets = run([sys.executable, str(ROOT / "scripts" / "check-tickets")], ROOT)
+    require(tickets.returncode == 0, f"check-tickets failed\n{tickets.stdout}\n{tickets.stderr}")
+    site = run([sys.executable, str(ROOT / "scripts" / "check-site")], ROOT)
+    require(site.returncode == 0, f"check-site failed\n{site.stdout}\n{site.stderr}")
+    site_self = run([sys.executable, str(ROOT / "scripts" / "check-site"), "--self-check"], ROOT)
+    require(site_self.returncode == 0, f"check-site self-check failed\n{site_self.stdout}\n{site_self.stderr}")
     print("ok")
     return 0
 

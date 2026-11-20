@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { BlipNote, Section, SiteShell, Step, links, wrap } from "../../shell";
+import system, { sourceList } from "../../system";
+import { BlipNote, ConfigKeys, HostNote, Section, SiteShell, Step, links, wrap } from "../../shell";
 
 export const dynamic = "force-static";
 
@@ -19,9 +20,12 @@ export default function StartNewPage() {
           Create the GitHub repository, then shape it so a ticket can land on{" "}
           <code>develop</code>. These steps follow{" "}
           <a href={links.using}>Using Bleeps</a> and the{" "}
-          <a href={links.primitives}>primitives</a>. The commands that run a
-          ticket are still planned. The pattern files are in{" "}
-          <a href={links.repo}>the Bleeps and Bloops repo</a>.
+          <a href={links.primitives}>primitives</a>. The scripts that run a
+          ticket, including <code>scripts/kick-off</code>,{" "}
+          <code>scripts/intake</code>, <code>scripts/fix-loop</code>, and{" "}
+          <code>scripts/merge-pr</code>, are in{" "}
+          <a href={links.repo}>the Bleeps and Bloops repo</a>. You choose the
+          machine Orca runs on. The default is the computer in front of you.
         </p>
       </header>
 
@@ -29,9 +33,12 @@ export default function StartNewPage() {
         <ol className="flow" aria-label="Setup steps">
           <Step title="Create the repository">
             <p>
-              Create a GitHub repository you administer. GitHub Issues are the
-              ticket source. Linear and Discord can feed the same{" "}
-              <code>ticket.md</code> later. They are not the front door today.
+              Create a GitHub repository you administer. GitHub is required.
+              Code, pull requests, and CI live there, whichever tracker the
+              tickets come from. A project then picks its ticket sources in{" "}
+              <code>orca.project.yaml</code>:{" "}
+              {sourceList()}.
+              The setup is in <a href={links.tickets}>Tickets</a>.
             </p>
           </Step>
           <Step title="Add develop, and protect main">
@@ -96,22 +103,17 @@ cp /path/to/bleeps-and-bloops/examples/orca.project.yaml orca.project.yaml`}</co
           </pre>
           <p>
             Set <code>install</code>, <code>test</code>, and{" "}
-            <code>typecheck</code>. <code>proactive</code> defaults to on, so
-            Chip files issues. Set <code>proactive: off</code> to keep this
-            project out of the patrol. Commit <code>orca.project.yaml</code>.
-            Do not commit secrets.
+            <code>typecheck</code>. <code>proactive</code> defaults to {system.defaults.proactive}, so Chip files issues. Set{" "}
+            <code>proactive: off</code> to keep this project out of the patrol.
+            Set <code>ticket_sources</code> to the trackers this project uses.
+            Credential keys are env var names. Commit{" "}
+            <code>orca.project.yaml</code>. Do not commit secrets. On the
+            machine that will do the work,{" "}
+            <code>python3 scripts/check-ticket-sources</code> fails when GitHub
+            access is missing.
           </p>
-          {/* TODO: The home server is not set up by this repo. Hostname, OS, and clone path are not written. Do not invent them. */}
-          <p>
-            Installing Orca on a machine is still open. The steps that are
-            written are in the <a href={links.home}>home-server notes</a>:
-            clone, approve the setup script, then{" "}
-            <code>orca worktree create --run-hooks</code>. 8&nbsp;GB of RAM is
-            the floor. 16&nbsp;GB is comfortable. Registering Chip&apos;s daily
-            run is <code>python3 scripts/bleeps-scout schedule</code>, then the
-            same command with <code>--install</code>, after{" "}
-            <code>scout_provider</code> is set.
-          </p>
+          <ConfigKeys />
+          <HostNote />
           <BlipNote />
         </div>
       </Section>

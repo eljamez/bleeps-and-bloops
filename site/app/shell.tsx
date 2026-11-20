@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import system from "./system";
 
 export const wrap = "mx-auto w-full max-w-6xl px-5 sm:px-8";
 
@@ -16,9 +17,10 @@ export const links = {
   flow: blob("docs/flow.md"),
   friction: blob("docs/friction-log.md"),
   architecture: blob("docs/architecture.md"),
-  home: blob("docs/home-server.md"),
+  runs: blob("docs/where-it-runs.md"),
   example: blob("examples/orca.project.yaml"),
   blip: blob("agents/blip/ROLE.md"),
+  tickets: blob("docs/tickets.md"),
 };
 
 const nav = [
@@ -146,6 +148,57 @@ export function Step({
   );
 }
 
+export function ConfigKeys() {
+  return (
+    <>
+      <p>
+        Keys in <code>orca.project.yaml</code> this line uses:
+      </p>
+      <ul className="tasks">
+        {system.configKeys.map((key) => (
+          <li key={key}>
+            <code>{key}</code>
+          </li>
+        ))}
+      </ul>
+      <p>
+        A key ending in <code>_env</code> is the name of an environment
+        variable. The file never holds the secret.
+      </p>
+    </>
+  );
+}
+
+export function HostNote() {
+  return (
+    <>
+      <p>
+        <code>host</code> is where Orca runs. It defaults to {system.defaults.host},
+        the computer in front of you. The factory runs there only while that
+        computer is on and Orca is running. If it was asleep at Chip&apos;s
+        time, Orca starts one catch-up after you wake it and leave it awake,
+        and only while the missed-run grace window is still open. A longer
+        outage skips that occurrence. The next run is the next scheduled time.
+        Tickets filed while it was off stay open on GitHub. They wait. The
+        next scout does not drain tickets you filed yourself.
+      </p>
+      <p>
+        <code>host: cloud</code> is a VPS you leave on. <code>host: home</code>{" "}
+        is a machine at home. Same scripts, same <code>orca.yaml</code>. Reach
+        an always-on machine on a private network such as Tailscale. Do not
+        open its ports. GitHub Actions can run the checks. It cannot run Orca,
+        so it is not a value of <code>host</code>. The steps are in the{" "}
+        <a href={links.runs}>where it runs</a> notes. 8&nbsp;GB of RAM is the
+        floor. 16&nbsp;GB is comfortable. Register Chip on that machine with{" "}
+        <code>python3 scripts/bleeps-scout schedule</code>, then{" "}
+        <code>--install</code>. Chip&apos;s agent defaults to{" "}
+        {system.defaults.scout_provider}. Set <code>scout_provider</code> only
+        to pick a different one.
+      </p>
+    </>
+  );
+}
+
 export function BlipNote() {
   return (
     <p>
@@ -154,8 +207,10 @@ export function BlipNote() {
       Put <code>test</code>, or <code>test_unit</code>,{" "}
       <code>test_integration</code>, and <code>test_e2e</code>, in{" "}
       <code>orca.project.yaml</code>. Green tests are a hard gate before
-      auto-merge. A missing test command fails <code>bleeps test</code>. The{" "}
-      <a href={links.blip}>role is in the repo</a>.
+      auto-merge. A red suite does not stop the run. It goes back to be
+      fixed, up to <code>fix_rounds</code> (default {system.fixRounds}), and
+      then the run asks you. A missing test command fails{" "}
+      <code>bleeps test</code>. The <a href={links.blip}>role is in the repo</a>.
     </p>
   );
 }

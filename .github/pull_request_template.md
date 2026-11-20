@@ -24,3 +24,7 @@ Ready to ship | Not ready
 low | medium | high
 
 `high` means this diff touches auth, billing, payments, data deletion, or migrations. High waits for James. Low and medium may auto-merge to `develop` when the gates pass.
+
+## Site
+
+If this PR changes the crew, the pipeline, ticket sources, scripts, config, or the site, `python3 scripts/check-site` is green. See `agents/bloops/skills/update/SKILL.md`.

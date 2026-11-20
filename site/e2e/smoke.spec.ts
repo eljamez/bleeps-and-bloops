@@ -1,5 +1,14 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+
+const facts = JSON.parse(readFileSync(join(process.cwd(), "system-facts.json"), "utf8")) as {
+  crew: { name: string }[];
+  ticketSources: { label: string }[];
+  fixRounds: number;
+  defaults: { host: string };
+};
 
 const REPO = "https://github.com/eljamez/bleeps-and-bloops";
 
@@ -85,18 +94,57 @@ test("setup pages mention Blip and link to day-to-day use", async ({ page }) => 
   }
 });
 
+test("setup pages say where the factory runs", async ({ page }) => {
+  for (const path of ["/start/new", "/start/existing"]) {
+    await page.goto(path);
+    await expect(page.getByText(new RegExp(`defaults to ${facts.defaults.host}`))).toBeVisible();
+    await expect(page.getByRole("link", { name: "where it runs" })).toBeVisible();
+    await expect(page.getByText(/GitHub Actions can run the checks/)).toBeVisible();
+  }
+});
+
+test("setup pages require GitHub and name the other ticket sources", async ({ page }) => {
+  for (const path of ["/start/new", "/start/existing"]) {
+    await page.goto(path);
+    await expect(page.getByText(/GitHub is required/)).toBeVisible();
+    const text = await page.locator("body").innerText();
+    for (const source of facts.ticketSources) {
+      expect(text, source.label).toContain(source.label);
+    }
+    await expect(page.getByRole("link", { name: "Tickets" })).toBeVisible();
+  }
+});
+
+test("usage page explains intake and Chip posting findings", async ({ page }) => {
+  await page.goto("/using-bleeps");
+  await expect(page.getByText(/scripts\/intake writes one/)).toBeVisible();
+  await expect(page.getByText(/also posts it to each other source/)).toBeVisible();
+});
+
+test("home page sends a red suite back into the run", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText(/A red suite goes back to the fix loop/)).toBeVisible();
+  await expect(
+    page.getByText(
+      new RegExp(`fix_rounds caps that loop and defaults to ${facts.fixRounds}`),
+    ),
+  ).toBeVisible();
+});
+
 test("usage page explains Blip and the patrol switch", async ({ page }) => {
   await page.goto("/using-bleeps");
   await expect(page.getByRole("heading", { name: "The crew" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Blip" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "The patrol" })).toBeVisible();
   const crew = page.locator("#crew");
-  for (const name of ["Beep", "Buzz", "Echo", "Chip", "Bloops"]) {
-    await expect(crew.getByText(name, { exact: true })).toBeVisible();
+  for (const member of facts.crew) {
+    await expect(crew.getByText(member.name, { exact: true })).toBeVisible();
   }
   await expect(
     page.getByText(/Scripts first: common work gets a script/),
   ).toBeVisible();
   await expect(page.getByText(/Green tests are a hard gate before auto-merge/)).toBeVisible();
+  await expect(page.getByText(/A red suite does not stop the run/)).toBeVisible();
+  await expect(page.getByText(/Nothing merges while tests are red/)).toBeVisible();
   await expect(page.getByText(/The patrol is per project/)).toBeVisible();
 });
