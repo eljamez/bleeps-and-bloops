@@ -8,6 +8,11 @@ proactive: on
 host: local
 # issue-command (default) is Orca's issueCommand prompt. bots is the optional group.
 runtime: issue-command
+# This repo dogfoods the lane. Other projects leave chore_lane off.
+chore_lane: on
+chore_lane_classes: deps-patch,docs-drift
+review_external: none
+zap: off
 scout_cap: 2
 scout_schedule: daily
 scout_time: "09:00"

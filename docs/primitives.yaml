@@ -185,7 +185,9 @@ primitives:
     invoked_by: Nobody starts it per ticket. It runs as a watch.
     when: Beside flow step 7. The friction sweep is the scout.
     status: planned
-    lives: Described in docs/architecture.md. No bot is running.
+    lives: >
+      Described in docs/architecture.md. No Grok Bot is running.
+      Ping is the review bot when runtime is bots. See 0017.
     docs:
       - docs/architecture.md
       - docs/friction-log.md
@@ -197,7 +199,8 @@ primitives:
     name: Blip
     summary: >
       Testing agent. Owns unit, integration, and end-to-end suites.
-      A red suite loops in the run. Green tests are a hard gate for auto-merge.
+      A red suite loops in the run. A CI failure is flaky or real.
+      A flaky test is never skipped. Green tests are a hard gate before a merge.
     inputs:
       - The project stack and orca.project.yaml test commands
       - The ticket diff, during the build
@@ -233,6 +236,7 @@ primitives:
       The scout. A scheduled patrol that files bleeps:found issues, posts
       each new finding to the project's other ticket sources, and starts
       the normal pipeline, capped so it cannot flood pull requests.
+      A feature finding is filed and not started.
     inputs:
       - orca.project.yaml proactive, host, scans, schedule, cap, and ticket_sources
       - Chip's provider and model from scripts/providers. Claude Code is the default
@@ -403,9 +407,10 @@ primitives:
     group: gate
     name: Merge gates
     summary: >
-      Auto-merge to develop when checks are green, verify says Ready to ship,
-      layered reviews have no blocking findings, and guardrails are signed off.
-      James promotes develop to main. Agents never touch main.
+      A feature pull request waits for the owner. The chore lane is opt-in.
+      scripts/chore-lane passes only a small chore, and a GitHub workflow
+      squash-merges that pass. James promotes develop to main.
+      Agents never touch main.
     inputs:
       - Required checks green
       - Verify verdict "Ready to ship"
@@ -414,16 +419,94 @@ primitives:
     outputs:
       - A merge into develop, or the pull request stays open
       - develop promoted to main only by James
-    invoked_by: The ship-pr script, once it exists
+    invoked_by: >
+      scripts/merge-pr for a merge the owner asked for.
+      The chore-lane workflow for a pass. Neither merges main.
     when: Flow step 8. James's promotion to main is the step after, and agents do not run it.
-    status: planned
+    status: built
     lives: >
-      The rule is in 0003 and docs/flow.md.
-      Branch protection and auto-merge are Phase 3, and are not turned on.
+      scripts/merge-pr, scripts/classify-pr, and scripts/chore-lane.
+      The GitHub settings in docs/chore-lane-setup.md are still manual.
+      scripts/merge-pr --apply does not merge.
+    code:
+      - scripts/merge-pr
+      - scripts/classify-pr
+      - scripts/chore-lane
     docs:
       - docs/flow.md
+      - docs/chore-lane-setup.md
     adrs:
       - docs/decisions/0003-gitflow-auto-merge-to-develop.md
+      - docs/decisions/0017-chore-lane.md
+
+  - id: ping
+    group: agent
+    name: Ping
+    summary: >
+      Reviews every pull request into develop. Posts one summary and
+      risk and lane labels. Does not approve or merge.
+    inputs:
+      - The pull request diff
+      - review_external, default none
+    outputs:
+      - One comment
+      - A risk label and a lane label
+    invoked_by: The Ping bot, when runtime is bots
+    when: A pull request into develop opens, including Renovate.
+    status: built
+    lives: bots/ping and agents/ping. review_external none installs nothing.
+    code:
+      - agents/ping
+      - scripts/classify-pr
+    docs:
+      - docs/bots.md
+    adrs:
+      - docs/decisions/0017-chore-lane.md
+
+  - id: boop
+    group: agent
+    name: Boop
+    summary: >
+      Opens one chore pull request. Files a feature as bleeps:found
+      and does not build it.
+    inputs:
+      - chore_lane and chore_lane_classes
+      - The paths the chore would change
+    outputs:
+      - One pull request, or a bleeps:found issue when the class is feature
+    invoked_by: The Boop bot, nightly at 02:00 Pacific, plus a Monday digest
+    when: Chores only. Not a feature.
+    status: built
+    lives: bots/boop and agents/boop. The soul is the procedure. The script is the gate.
+    code:
+      - agents/boop
+      - scripts/classify-pr
+    docs:
+      - docs/bots.md
+    adrs:
+      - docs/decisions/0017-chore-lane.md
+
+  - id: zap
+    group: agent
+    name: Zap
+    summary: >
+      Optional. Off unless zap is on. Drafts the develop to main notes
+      and a readiness list. Does not merge to main.
+    inputs:
+      - zap, default off
+      - Open pull requests into develop and scripts/check-site
+    outputs:
+      - A draft body on the develop to main pull request
+    invoked_by: The Zap bot, only when zap is on
+    when: Weekdays, beside the release pull request. Never a merge to main.
+    status: built
+    lives: bots/zap and agents/zap. The bot stays uncreated while zap is off.
+    code:
+      - agents/zap
+    docs:
+      - docs/bots.md
+    adrs:
+      - docs/decisions/0017-chore-lane.md
 
   - id: spec-folder
     group: artifact

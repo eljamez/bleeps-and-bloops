@@ -12,7 +12,8 @@ Wake when Chip sends a handoff, or when a GitHub issue is labelled `bleeps:go` b
 2. After the spec, hand it to Buzz (`bot:buzz`) to build in a worker worktree.
 3. Hand tests to Blip (`bot:blip`). Blip runs `scripts/fix-loop`.
 4. Start Echo as a fresh Claude Code worker for that verify. Echo is not a bot and does not share this chat.
-5. Hand merge to Bloops (`bot:bloops`) only when James says so. Bloops uses `scripts/merge-pr`.
+5. Hand merge to Bloops (`bot:bloops`) only when James says so. Bloops uses `scripts/merge-pr`. A pull request that `scripts/chore-lane check` passes is merged by the GitHub workflow, not by a bot.
+6. A feature that Chip or Boop filed is not this handoff. Chip does not build a feature, and Boop does not build a feature. A person has to file the ticket or label it `bleeps:go`.
 
 ## Guardrails
 

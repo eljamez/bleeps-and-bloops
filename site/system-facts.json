@@ -18,11 +18,23 @@
     },
     {
       "name": "Chip",
-      "job": "Scout. Files findings on GitHub and on each other configured source."
+      "job": "Scout. Files findings. A feature is filed and not started."
+    },
+    {
+      "name": "Ping",
+      "job": "Reviews pull requests into develop. One summary. Does not merge."
+    },
+    {
+      "name": "Boop",
+      "job": "Opens one chore pull request. Does not build a feature."
     },
     {
       "name": "Bloops",
-      "job": "Merges through a script, then studies the run and proposes improvements."
+      "job": "Merges through a script when you say so, then studies the run."
+    },
+    {
+      "name": "Zap",
+      "job": "Off unless you set zap on. Drafts develop-to-main notes. Never merges main."
     }
   ],
   "ticketSources": [
@@ -41,6 +53,8 @@
     { "path": "scripts/orca-verify", "who": "Blip" },
     { "path": "scripts/verify", "who": "Echo" },
     { "path": "scripts/merge-pr", "who": "Bloops" },
+    { "path": "scripts/classify-pr", "who": "Ping" },
+    { "path": "scripts/chore-lane", "who": "Bloops" },
     { "path": "scripts/bleeps-scout", "who": "Chip" },
     { "path": "scripts/bloops-reflect", "who": "Bloops" },
     { "path": "scripts/check-ticket-sources", "who": "You" },
@@ -57,6 +71,10 @@
     "proactive",
     "host",
     "runtime",
+    "chore_lane",
+    "chore_lane_classes",
+    "review_external",
+    "zap",
     "scout_cap",
     "scout_schedule",
     "scout_time",
@@ -83,6 +101,15 @@
     "bloops_provider",
     "bloops_model",
     "bloops_tier",
+    "ping_provider",
+    "ping_model",
+    "ping_tier",
+    "boop_provider",
+    "boop_model",
+    "boop_tier",
+    "zap_provider",
+    "zap_model",
+    "zap_tier",
     "ticket_sources",
     "fix_rounds"
   ],
@@ -90,6 +117,10 @@
     "proactive": "on",
     "host": "local",
     "runtime": "issue-command",
+    "chore_lane": "off",
+    "chore_lane_classes": "deps-patch,docs-drift",
+    "review_external": "none",
+    "zap": "off",
     "scout_cap": "2",
     "scout_schedule": "daily",
     "scout_time": "09:00",
@@ -103,7 +134,10 @@
     { "name": "Blip", "provider": "claude", "model": "sonnet", "tier": "balanced", "route": "stall" },
     { "name": "Echo", "provider": "claude", "model": "opus", "tier": "frontier", "route": "fixed" },
     { "name": "Chip", "provider": "claude", "model": "haiku", "tier": "fast", "route": "jev" },
-    { "name": "Bloops", "provider": "claude", "model": "sonnet", "tier": "balanced", "route": "reflect" }
+    { "name": "Ping", "provider": "claude", "model": "sonnet", "tier": "balanced", "route": "fixed" },
+    { "name": "Boop", "provider": "claude", "model": "sonnet", "tier": "balanced", "route": "fixed" },
+    { "name": "Bloops", "provider": "claude", "model": "sonnet", "tier": "balanced", "route": "reflect" },
+    { "name": "Zap", "provider": "claude", "model": "sonnet", "tier": "balanced", "route": "fixed" }
   ],
   "pipeline": [
     {
@@ -135,7 +169,7 @@
     {
       "kind": "step",
       "title": "5. Pull request and review",
-      "body": "The pull request targets develop. This factory does not start CodeRabbit, Devin, or an architecture-fit review. Count a review only when it actually ran. Nothing here watches the queue for you."
+      "body": "The pull request targets develop. Ping reviews it when you run the crew as bots, and posts one summary. review_external defaults to none, which installs nothing. Count a review only when it actually ran."
     },
     {
       "kind": "gate",
@@ -146,12 +180,12 @@
     {
       "kind": "step",
       "title": "6. Merge to develop",
-      "body": "When the gates pass, Bloops reports the merge through scripts/merge-pr, then studies the run. The script does not turn on GitHub auto-merge. That setting is still an open question."
+      "body": "When you say so, Bloops reports the merge through scripts/merge-pr, then studies the run. The script does not merge by itself. chore_lane defaults to off. Set it on and a workflow squash-merges a chore that scripts/chore-lane accepts. Boop opens those chores. A feature waits for you."
     },
     {
       "kind": "step",
       "title": "7. You promote main",
-      "body": "You merge develop into main. The crew never touches main."
+      "body": "You merge develop into main. The crew never touches main. Zap drafts the notes on that pull request when zap is on, and Zap never merges it."
     }
   ]
 }

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "automerge": false,
+  "dependencyDashboard": false,
+  "prConcurrentLimit": 1,
+  "minimumReleaseAge": "3 days",
+  "schedule": ["before 3am on Monday"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": false,
+    "schedule": ["before 3am on Monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Skip pre-1.0 packages.",
+      "matchCurrentVersion": "/^0\\./",
+      "enabled": false
+    },
+    {
+      "description": "Group patch updates weekly. Renovate does not automerge. The chore lane does, when the script passes.",
+      "matchUpdateTypes": ["patch"],
+      "groupName": "all patch dependencies",
+      "groupSlug": "all-patch",
+      "automerge": false,
+      "minimumReleaseAge": "3 days",
+      "labels": ["chore:deps-patch"]
+    },
+    {
+      "description": "Lockfile maintenance is a lane class only after scripts/chore-lane passes. Renovate does not automerge it.",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "automerge": false,
+      "labels": ["chore:deps-patch"]
+    },
+    {
+      "description": "Minor, major, and pin updates stay for a person.",
+      "matchUpdateTypes": ["minor", "major", "pin", "digest", "pinDigest"],
+      "automerge": false
+    }
+  ]
+}

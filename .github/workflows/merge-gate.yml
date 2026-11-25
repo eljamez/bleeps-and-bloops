@@ -1,0 +1,37 @@
+name: merge-gate
+
+on:
+  pull_request:
+    branches: [develop]
+
+# Reports which lane applies. A feature pull request still passes this check.
+# scripts/chore-lane gate is what the lane workflow merges on.
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+
+jobs:
+  merge-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch develop
+        run: git fetch origin develop && git branch -f develop origin/develop
+      - name: Report the lane
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BLEEPS_AUTOMERGE: ${{ vars.BLEEPS_AUTOMERGE }}
+        run: |
+          set -eu
+          python3 scripts/chore-lane report --base develop --pr "${{ github.event.pull_request.number }}" | tee lane-report.json
+          {
+            echo "### merge-gate"
+            python3 -c 'import json; b=json.load(open("lane-report.json")); print("lane:", b.get("lane")); print("class:", b.get("class")); print("pass:", b.get("pass")); print("\n".join("- "+r for r in (b.get("reasons") or [])))'
+          } >> "$GITHUB_STEP_SUMMARY"

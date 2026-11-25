@@ -1,0 +1,443 @@
+#!/usr/bin/env python3
+"""Label a pull request as a chore-lane class, none, or feature.
+
+The lane refuses feature. Chip and Boop may file a bleeps:found issue for a
+feature and must not start building it. This script is that check. It does
+not call GitHub.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+
+# Phase 1 is on unless a project drops it. Phase 2 is known and off.
+PHASE1 = ("deps-patch", "docs-drift")
+PHASE2 = ("lint-format", "site-sync")
+CLASSES = PHASE1 + PHASE2
+OUTCOMES = CLASSES + ("none", "feature")
+
+# Factory files never qualify for a lane class. The factory cannot merge itself.
+FACTORY_PREFIXES = (".github/", "scripts/", "bots/", "agents/", ".agents/")
+LOCKFILES = {
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "npm-shrinkwrap.json",
+    "bun.lock",
+    "bun.lockb",
+    "composer.lock",
+    "cargo.lock",
+    "go.sum",
+    "poetry.lock",
+    "gemfile.lock",
+    "uv.lock",
+}
+DEP_FILES = LOCKFILES | {"package.json"}
+SIGN_OFF = {
+    "auth",
+    "billing",
+    "payment",
+    "payments",
+    "stripe",
+    "migration",
+    "migrations",
+    "data-deletion",
+    "account-deletion",
+    "purge-user",
+}
+SKIP_ADDED = (
+    "it.skip",
+    "test.skip",
+    "describe.skip",
+    "test.fixme",
+    "it.fixme",
+    "xit(",
+    "xdescribe(",
+    "xtest(",
+    "pytest.mark.skip",
+    "pytest.mark.skipif",
+    ".skip(",
+)
+VERSION_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)")
+
+
+def normalize(path: str) -> str:
+    text = path.replace("\\", "/").strip()
+    while text.startswith("./"):
+        text = text[2:]
+    return text
+
+
+def basename(path: str) -> str:
+    return normalize(path).rsplit("/", 1)[-1]
+
+
+def is_lockfile(path: str) -> bool:
+    return basename(path).lower() in LOCKFILES
+
+
+def is_factory(path: str) -> bool:
+    text = normalize(path)
+    if any(text.startswith(prefix) or text == prefix.rstrip("/") for prefix in FACTORY_PREFIXES):
+        return True
+    name = basename(text)
+    if name == "CODEOWNERS":
+        return True
+    if name.startswith("orca") and name.endswith((".yaml", ".yml")):
+        return True
+    return False
+
+
+def is_signoff(path: str) -> bool:
+    return bool(set(Path(normalize(path)).parts) & SIGN_OFF)
+
+
+def is_docs_drift(path: str) -> bool:
+    text = normalize(path)
+    if text.startswith("docs/decisions/"):
+        return False
+    if text == "README.md":
+        return True
+    return text.startswith("docs/") and text.endswith(".md")
+
+
+def is_dep(path: str) -> bool:
+    return basename(path) in DEP_FILES and not is_factory(path)
+
+
+def is_site_sync(path: str) -> bool:
+    return normalize(path) == "site/system-facts.json"
+
+
+def is_test_path(path: str) -> bool:
+    text = normalize(path).lower()
+    name = basename(text)
+    return (
+        "/e2e/" in f"/{text}"
+        or name.startswith("test_")
+        or name.endswith("_test.py")
+        or name.endswith((".test.ts", ".test.tsx", ".test.js", ".spec.ts", ".spec.tsx", ".spec.js"))
+        or "/__tests__/" in f"/{text}"
+    )
+
+
+def is_format_candidate(path: str) -> bool:
+    """A source file a formatter could rewrite. Factory, docs, and deps are not it."""
+    if is_factory(path) or is_docs_drift(path) or is_dep(path) or is_site_sync(path):
+        return False
+    if normalize(path).startswith("docs/decisions/"):
+        return False
+    return True
+
+
+def version_parts(version: str) -> tuple[int, int, int] | None:
+    match = VERSION_RE.match(version.strip())
+    if not match:
+        return None
+    return int(match.group(1)), int(match.group(2)), int(match.group(3))
+
+
+def is_zero(version: str) -> bool:
+    parts = version_parts(version)
+    return bool(parts and parts[0] == 0)
+
+
+def bump_kind(old: str, new: str) -> str:
+    before, after = version_parts(old), version_parts(new)
+    if not before or not after:
+        return "unknown"
+    if after[0] != before[0]:
+        return "major"
+    if after[1] != before[1]:
+        return "minor"
+    if after[2] != before[2]:
+        return "patch"
+    return "same"
+
+
+def dep_changes(diff: str) -> list[tuple[str, str, str]]:
+    """(name, old, new) from a package.json unified diff. Direct deps only."""
+    found: list[tuple[str, str, str]] = []
+    removed: dict[str, str] = {}
+    line_re = re.compile(r'^[+-]\s*"([^"]+)"\s*:\s*"([^"]+)"\s*,?\s*$')
+    for line in diff.splitlines():
+        if line.startswith(("+++", "---", "@@")):
+            continue
+        match = line_re.match(line)
+        if not match:
+            continue
+        name, version = match.group(1), match.group(2)
+        if name.startswith("$") or not version_parts(version):
+            continue
+        if line.startswith("-"):
+            removed[name] = version
+        elif line.startswith("+") and name in removed:
+            found.append((name, removed.pop(name), version))
+    return found
+
+
+def worst_bump(changes: list[tuple[str, str, str]]) -> str:
+    rank = {"unknown": 4, "major": 3, "minor": 2, "patch": 1, "same": 0}
+    kind = "same"
+    for _name, old, new in changes:
+        current = bump_kind(old, new)
+        if rank[current] > rank[kind]:
+            kind = current
+    return kind
+
+
+def adds_skip(diff: str) -> bool:
+    for line in diff.splitlines():
+        if not line.startswith("+") or line.startswith("+++"):
+            continue
+        if any(marker in line for marker in SKIP_ADDED):
+            return True
+    return False
+
+
+def lockfile_adds_zero(diff: str) -> bool:
+    """An added resolved version that starts at 0.x, and was not merely context."""
+    added: set[str] = set()
+    removed: set[str] = set()
+    version_re = re.compile(r"\b(0\.\d+\.\d+(?:[-+][0-9A-Za-z.]+)?)\b")
+    for line in diff.splitlines():
+        if line.startswith(("+++", "---", "@@")) or not line:
+            continue
+        versions = set(version_re.findall(line[1:] if line[0] in "+-" else ""))
+        if line.startswith("+"):
+            added |= versions
+        elif line.startswith("-"):
+            removed |= versions
+    return bool(added - removed)
+
+
+def classify(
+    paths: list[str],
+    *,
+    update_type: str = "",
+    zero_x: bool = False,
+    formatter_match: str = "",
+    generated: bool = False,
+    adds_skip_flag: bool = False,
+    intent: str = "",
+) -> dict:
+    """Return class (a lane class, none, or feature) and reasons."""
+    cleaned = [normalize(path) for path in paths if normalize(path)]
+    reasons: list[str] = []
+
+    def result(kind: str, extra: list[str] | None = None) -> dict:
+        if kind not in OUTCOMES:
+            raise ValueError(kind)
+        why = reasons + (extra or [])
+        return {"class": kind, "reasons": why}
+
+    if adds_skip_flag:
+        return result("feature", ["a chore does not skip a test"])
+    if not cleaned:
+        return result("none", ["no files"])
+    if any(is_signoff(path) for path in cleaned):
+        return result("feature", ["a sign-off path is not a chore"])
+
+    factory = [path for path in cleaned if is_factory(path)]
+    if factory and len(factory) == len(cleaned):
+        return result("none", ["factory files never qualify"])
+    if factory:
+        return result("feature", ["mixes factory files with other paths"])
+
+    # Quarantine drafts are chores Boop may open. They are not a lane class.
+    if intent == "quarantine":
+        if all(is_test_path(path) for path in cleaned):
+            return result("none", ["a flaky-test draft is not a lane class"])
+        return result("feature", ["a quarantine draft may only touch tests"])
+
+    kinds: set[str] = set()
+    other: list[str] = []
+    for path in cleaned:
+        if is_dep(path):
+            kinds.add("deps")
+        elif is_docs_drift(path):
+            kinds.add("docs")
+        elif is_site_sync(path):
+            kinds.add("site")
+        elif normalize(path).startswith("docs/decisions/") or basename(path) == "AGENTS.md":
+            kinds.add("excluded-doc")
+        elif is_format_candidate(path):
+            kinds.add("format")
+        else:
+            kinds.add("other")
+            other.append(path)
+
+    if "format" in kinds and kinds != {"format"}:
+        return result("feature", ["a code change mixed with other paths is a feature"])
+    if "other" in kinds:
+        return result("feature", ["a path is outside every chore class"])
+    if "excluded-doc" in kinds:
+        return result("none", ["decision records are not a lane class"])
+    if len(kinds) != 1:
+        return result("none", ["paths span more than one chore class"])
+
+    only = next(iter(kinds))
+    if only == "docs":
+        return result("docs-drift")
+    if only == "site":
+        if generated:
+            return result("site-sync")
+        return result("none", ["site sync has to be script-generated"])
+    if only == "format":
+        if formatter_match == "exact":
+            return result("lint-format")
+        return result("feature", ["a code change is not an exact formatter diff"])
+    if zero_x:
+        return result("none", ["a pre-1.0 package is not a lane class"])
+    kind = update_type or ""
+    if not kind and all(is_lockfile(path) for path in cleaned):
+        kind = "lockfile"
+    if kind in {"patch", "lockfile"}:
+        return result("deps-patch")
+    if not kind:
+        return result("none", ["update type is not patch or lockfile"])
+    return result("none", [f"update type {kind} is not patch or lockfile"])
+
+
+def self_check() -> int:
+    failures: list[str] = []
+
+    def expect(condition: bool, message: str) -> None:
+        if not condition:
+            failures.append(message)
+
+    docs = classify(["README.md", "docs/flow.md"])
+    expect(docs["class"] == "docs-drift", f"docs {docs}")
+    decision = classify(["docs/decisions/0017-chore-lane.md"])
+    expect(decision["class"] == "none", f"decision {decision}")
+    feature = classify(["site/app/page.tsx"])
+    expect(feature["class"] == "feature", f"page {feature}")
+    mixed = classify(["README.md", "site/app/page.tsx"])
+    expect(mixed["class"] == "feature", f"mixed {mixed}")
+    factory = classify(["scripts/classify-pr", ".github/workflows/orca.yml"])
+    expect(factory["class"] == "none", f"factory {factory}")
+    both = classify(["README.md", "scripts/classify-pr"])
+    expect(both["class"] == "feature", f"factory mix {both}")
+    sign = classify(["src/auth/session.ts"])
+    expect(sign["class"] == "feature", f"signoff {sign}")
+    patch = classify(
+        ["site/package.json", "site/package-lock.json"],
+        update_type="patch",
+    )
+    expect(patch["class"] == "deps-patch", f"patch {patch}")
+    minor = classify(["site/package.json"], update_type="minor")
+    expect(minor["class"] == "none", f"minor {minor}")
+    zero = classify(["site/package.json"], update_type="patch", zero_x=True)
+    expect(zero["class"] == "none", f"zero {zero}")
+    locks = classify(["site/package-lock.json"])
+    expect(locks["class"] == "deps-patch", f"lock {locks}")
+    formatted = classify(["site/app/page.tsx"], formatter_match="exact")
+    expect(formatted["class"] == "lint-format", f"format {formatted}")
+    generated = classify(["site/system-facts.json"], generated=True)
+    expect(generated["class"] == "site-sync", f"site {generated}")
+    hand = classify(["site/system-facts.json"])
+    expect(hand["class"] == "none", f"hand site {hand}")
+    skipped = classify(["site/e2e/smoke.spec.ts"], adds_skip_flag=True)
+    expect(skipped["class"] == "feature", f"skip {skipped}")
+    quarantine = classify(["site/e2e/smoke.spec.ts"], intent="quarantine")
+    expect(quarantine["class"] == "none", f"quarantine {quarantine}")
+    fake_quarantine = classify(["site/app/page.tsx"], intent="quarantine")
+    expect(fake_quarantine["class"] == "feature", f"fake quarantine {fake_quarantine}")
+    expect(bump_kind("1.2.3", "1.2.4") == "patch", "patch bump")
+    expect(bump_kind("1.2.3", "1.3.0") == "minor", "minor bump")
+    expect(bump_kind("0.9.1", "0.9.2") == "patch" and is_zero("0.9.1"), "zero")
+    sample = '\n'.join(
+        [
+            "--- a/site/package.json",
+            "+++ b/site/package.json",
+            '     "next": "15.0.0",',
+            '-    "playwright": "1.40.0",',
+            '+    "playwright": "1.40.1",',
+        ]
+    )
+    changes = dep_changes(sample)
+    expect(changes == [("playwright", "1.40.0", "1.40.1")], f"dep diff {changes}")
+    expect(worst_bump(changes) == "patch", "worst patch")
+    expect(adds_skip("+test.skip('flake', () => {})\n"), "skip marker")
+    expect(not adds_skip(" test.skip is mentioned in a context line\n"), "context skip")
+    expect(lockfile_adds_zero("+foo@0.1.0:\n"), "lock zero")
+    expect(not lockfile_adds_zero("-foo@0.1.0:\n+foo@1.2.3:\n"), "lock upgrade")
+
+    if failures:
+        print("\n".join(failures), file=sys.stderr)
+        return 1
+    print("ok")
+    return 0
+
+
+def parse_args(argv: list[str]) -> dict:
+    flags: dict = {
+        "paths": [],
+        "update-type": "",
+        "zero-x": False,
+        "formatter-match": "",
+        "generated": False,
+        "adds-skip": False,
+        "intent": "",
+    }
+    index = 0
+    while index < len(argv):
+        token = argv[index]
+        if token == "--path" and index + 1 < len(argv):
+            flags["paths"].append(argv[index + 1])
+            index += 2
+            continue
+        if token == "--zero-x":
+            flags["zero-x"] = True
+            index += 1
+            continue
+        if token == "--generated":
+            flags["generated"] = True
+            index += 1
+            continue
+        if token == "--adds-skip":
+            flags["adds-skip"] = True
+            index += 1
+            continue
+        if token.startswith("--") and index + 1 < len(argv):
+            flags[token[2:]] = argv[index + 1]
+            index += 2
+            continue
+        index += 1
+    return flags
+
+
+def main(argv: list[str]) -> int:
+    if not argv or argv[0] in {"-h", "--help"}:
+        print(
+            "usage: classify-pr classify --path <file> [--update-type patch|lockfile|minor|major] "
+            "[--zero-x] [--formatter-match exact] [--generated] [--adds-skip] [--intent quarantine]",
+            file=sys.stderr,
+        )
+        print("       classify-pr --self-check", file=sys.stderr)
+        return 0 if argv and argv[0] in {"-h", "--help"} else 2
+    if argv[0] == "--self-check":
+        return self_check()
+    if argv[0] != "classify":
+        print(f"unknown command {argv[0]}", file=sys.stderr)
+        return 2
+    flags = parse_args(argv[1:])
+    body = classify(
+        flags["paths"],
+        update_type=str(flags.get("update-type") or ""),
+        zero_x=bool(flags.get("zero-x")),
+        formatter_match=str(flags.get("formatter-match") or ""),
+        generated=bool(flags.get("generated")),
+        adds_skip_flag=bool(flags.get("adds-skip")),
+        intent=str(flags.get("intent") or ""),
+    )
+    json.dump(body, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

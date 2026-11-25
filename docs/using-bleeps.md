@@ -25,9 +25,7 @@ Create `develop` if the repository does not have it. This repository already use
 
 Protect `main` so only the owner can merge into it. Agents do not push to `main`, and they do not open a pull request against it.
 
-Auto-merge into `develop` is the goal, and only when the [gates](flow.md) pass: required checks green, verify verdict "Ready to ship", layered reviews with no blocking findings, and no guardrail touched without a human sign-off. Label rules can still keep a ticket from auto-merging.
-
-Turning auto-merge on in GitHub is Phase 3. Leave it off until the checks and the ship-pr script exist. Required checks are one gate. The verify verdict and the deployed SHA are gates of their own.
+A feature pull request targets `develop` and waits for you. The [chore lane](decisions/0017-chore-lane.md) is the only automatic merge, and only when you set `chore_lane: on`. The workflow squash-merges a pass from `scripts/chore-lane`. `scripts/merge-pr --apply` does not merge. The GitHub settings are in [chore lane setup](chore-lane-setup.md). `review_external` defaults to `none`. Zap defaults to off and never merges `main`.
 
 ### Shared config
 

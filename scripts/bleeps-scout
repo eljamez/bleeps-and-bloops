@@ -202,10 +202,15 @@ def drop_known(findings: list[Finding], bodies: list[str]) -> list[Finding]:
     return [finding for finding in findings if finding.key not in known]
 
 
+def may_start(key: str) -> bool:
+    """A feature is filed as bleeps:found and left. A person tickets it before anyone builds it."""
+    return not key.startswith("feature")
+
+
 def choose(friction: list[int], findings: list[Finding], cap: int, in_flight: int) -> list[tuple[str, object]]:
     slots = max(0, cap - in_flight)
     queue: list[tuple[str, object]] = [("friction", number) for number in friction]
-    queue.extend(("finding", finding) for finding in findings)
+    queue.extend(("finding", finding) for finding in findings if may_start(finding.key))
     return queue[:slots]
 
 
@@ -215,9 +220,16 @@ def issue_body(finding: Finding) -> str:
         f"Finding: {finding.key}\n\n"
         f"## Evidence\n\n{finding.evidence.strip()}\n\n"
         f"## Risk\n\n{finding.risk}\n\n"
-        "High means a guardrail path (auth, billing, payments, data deletion, "
-        "or migrations). The pipeline still starts. It waits for James and "
-        "does not auto-merge.\n"
+        + (
+            "This is a feature. It is filed as bleeps:found and not started. "
+            "A person has to file the ticket or label it bleeps:go before anyone builds it. "
+            "Chip does not build a feature.\n"
+            if finding.key.startswith("feature")
+            else
+            "High means a guardrail path (auth, billing, payments, data deletion, "
+            "or migrations). The pipeline still starts. It waits for James and "
+            "does not auto-merge.\n"
+        )
     )
 
 
@@ -236,7 +248,7 @@ def automation_command(root: Path, project: dict[str, str]) -> str:
     prompt = (
         "Run scripts/bleeps-scout in this checkout. "
         "Do not scan a second way. It files bleeps:found issues and starts "
-        "the normal pipeline up to the cap."
+        "the normal pipeline up to the cap. A feature finding is filed and not started."
     )
     return (
         "orca automations create \\\n"

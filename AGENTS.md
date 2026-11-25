@@ -14,7 +14,8 @@ Open the page that owns the task:
 - [Architecture](docs/architecture.md)
 - [Decisions](docs/decisions/README.md) — veto list; read it before proposing a new primitive
 - [Orca config](orca.yaml) — factory config, built for Orca. See [0007](docs/decisions/0007-bleeps-is-built-for-orca.md)
-- [Crew](docs/decisions/0010-bleeps-runs-the-crew-bloops-reflects.md) — Beep, Buzz, Blip, Echo, Chip, Bloops
+- [Crew](docs/decisions/0010-bleeps-runs-the-crew-bloops-reflects.md) — Beep, Buzz, Blip, Echo, Chip, Ping, Boop, Bloops, Zap
+- [Chore lane](docs/decisions/0017-chore-lane.md) — opt-in. The workflow merges a pass. No unticketed features.
 - [Beep](agents/beep/ROLE.md) — plans. No product code.
 - [Buzz](agents/buzz/ROLE.md) — implements. Does not certify.
 - [Blip](agents/blip/ROLE.md) — tests. A red suite loops in the run. Green tests still gate the merge.

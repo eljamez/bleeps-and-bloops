@@ -1,0 +1,846 @@
+#!/usr/bin/env python3
+"""Decide whether a pull request may take the chore lane.
+
+check prints pass or fail and the reasons. The GitHub workflow merges only
+on pass. This script does not merge. main is never in scope.
+
+A project opts in with chore_lane: on. The default is off. Phase 1 classes
+are deps-patch and docs-drift. lint-format and site-sync are known and off
+until chore_lane_classes names them.
+
+ponytail: a lockfile-only refresh uses the pull request's age as the release
+age, because transitive registry times are not read. Upgrade path: look up
+each added resolved version. Direct package.json bumps use the registry when
+gate or report can reach it, and fail closed when they cannot.
+"""
+
+from __future__ import annotations
+
+import importlib.machinery
+import importlib.util
+import json
+import os
+import subprocess
+import sys
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+PT = ZoneInfo("America/Los_Angeles")
+CAP_PER_DAY = 3
+FILE_CAP = 10
+LINE_CAP = 200
+MIN_RELEASE_AGE_DAYS = 3
+DEFAULT_CLASSES = "deps-patch,docs-drift"
+HOLD_LABEL = "bleeps:hold"
+MERGED_LABEL = "lane:merged"
+IN_FLIGHT_LABEL = "bleeps:merging"
+
+
+def load_script(filename: str):
+    path = Path(__file__).resolve().parent / filename
+    loader = importlib.machinery.SourceFileLoader(f"lane_{filename}", str(path))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    if spec is None:
+        raise SystemExit(f"cannot load scripts/{filename}")
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+def classify_mod():
+    return load_script("classify-pr")
+
+
+def bleeps():
+    return load_script("bleeps")
+
+
+def author_ok(author: str) -> bool:
+    name = author.lower().replace("[bot]", "").strip().strip("/")
+    if "/" in name:
+        name = name.rsplit("/", 1)[-1]
+    return name in {"boop", "renovate"}
+
+
+def parse_time(value: str) -> datetime:
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    parsed = datetime.fromisoformat(text)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def in_window(now: datetime) -> bool:
+    local = now.astimezone(PT)
+    return local.weekday() < 5 and 8 <= local.hour < 18
+
+
+def same_pt_day(left: datetime, right: datetime) -> bool:
+    return left.astimezone(PT).date() == right.astimezone(PT).date()
+
+
+def enabled_classes(raw: str) -> list[str]:
+    known = set(classify_mod().CLASSES)
+    found: list[str] = []
+    for item in raw.split(","):
+        name = item.strip()
+        if not name:
+            continue
+        if name not in known:
+            raise SystemExit(
+                f"chore_lane_classes has unknown class {name!r}. "
+                f"Expected {', '.join(classify_mod().CLASSES)}."
+            )
+        if name not in found:
+            found.append(name)
+    return found
+
+
+def project_settings(root: Path) -> dict[str, str]:
+    project = bleeps().load_project(root)
+    return {
+        "chore_lane": project.get("chore_lane", "off"),
+        "chore_lane_classes": project.get("chore_lane_classes", "deps-patch,docs-drift"),
+        "review_external": project.get("review_external", "none"),
+        "zap": project.get("zap", "off"),
+    }
+
+
+def review_external(value: str) -> str:
+    if value not in {"none", "coderabbit", "copilot"}:
+        raise SystemExit(
+            f"review_external must be none, coderabbit, or copilot, got {value!r}. none installs nothing."
+        )
+    return value
+
+
+def zap_choice(value: str) -> str:
+    if value not in {"off", "on"}:
+        raise SystemExit(f"zap must be off or on, got {value!r}. The default is off.")
+    return value
+
+
+def lane_choice(value: str) -> str:
+    if value not in {"off", "on"}:
+        raise SystemExit(f"chore_lane must be off or on, got {value!r}. The default is off.")
+    return value
+
+
+def evaluate(facts: dict) -> tuple[dict, int]:
+    """All gates. Exit 0 is a pass. Exit 1 is a fail with reasons. main never passes."""
+    reasons: list[str] = []
+    classified = facts.get("class") or "none"
+    base = facts.get("base") or ""
+    if base == "main":
+        reasons.append("main is never in scope")
+    elif base != "develop":
+        reasons.append("base must be develop")
+    if lane_choice(str(facts.get("chore_lane") or "off")) != "on":
+        reasons.append("chore_lane is off")
+    enabled = enabled_classes(str(facts.get("classes") or DEFAULT_CLASSES))
+    if classified == "feature":
+        reasons.append("classified as a feature")
+    elif classified not in enabled:
+        reasons.append(f"class {classified} is not an enabled lane class")
+    if str(facts.get("automerge") or "") != "on":
+        reasons.append("BLEEPS_AUTOMERGE is not on")
+    labels = [str(label) for label in facts.get("labels") or []]
+    if HOLD_LABEL in labels:
+        reasons.append("bleeps:hold is set")
+    if not facts.get("up_to_date"):
+        reasons.append("branch is not up to date with develop")
+    if not facts.get("check_green") or not facts.get("e2e_green"):
+        reasons.append("check and e2e are not both green")
+    if facts.get("guardrails") != "pass":
+        reasons.append("guardrails did not pass")
+    paths = [classify_mod().normalize(path) for path in facts.get("paths") or []]
+    if not paths:
+        reasons.append("no paths to check")
+    else:
+        for path in paths:
+            if not _allowed(classified, path):
+                reasons.append(f"{path} is not on the {classified} allowlist")
+                break
+    counted = [path for path in paths if not classify_mod().is_lockfile(path)]
+    files = facts.get("files")
+    lines = facts.get("lines")
+    if files is None:
+        files = len(counted)
+    if lines is None:
+        lines = 0
+    if int(files) > FILE_CAP:
+        reasons.append(f"more than {FILE_CAP} files")
+    if int(lines) > LINE_CAP:
+        reasons.append(f"more than {LINE_CAP} lines")
+    risk = str(facts.get("risk") or "")
+    if risk != "low":
+        reasons.append("risk is not low")
+    if not author_ok(str(facts.get("author") or "")):
+        reasons.append("author is not Boop or Renovate")
+    if facts.get("adds_skip"):
+        reasons.append("a flaky test is never skipped")
+    _release_gate(facts, classified, reasons)
+    if classified == "lint-format" and facts.get("formatter_match") != "exact":
+        reasons.append("lint-format diff is not the formatter output")
+    if classified == "site-sync" and not facts.get("generated"):
+        reasons.append("site-sync is not script-generated")
+    now = facts.get("now")
+    if not isinstance(now, datetime):
+        now = parse_time(str(now)) if now else datetime.now(timezone.utc)
+    if not in_window(now):
+        reasons.append("outside weekdays 8 AM to 6 PM PT")
+    if not facts.get("merges_known"):
+        reasons.append("the daily merge count is unknown")
+    else:
+        stamps = facts.get("merged_at") or []
+        count = sum(1 for stamp in stamps if same_pt_day(parse_time(str(stamp)), now))
+        if count >= CAP_PER_DAY:
+            reasons.append(f"daily cap of {CAP_PER_DAY} is spent")
+    in_flight = facts.get("in_flight")
+    if in_flight is None:
+        reasons.append("the in-flight count is unknown")
+    elif int(in_flight) >= 1:
+        reasons.append("one lane merge at a time")
+
+    passed = not reasons
+    lane = classified if passed else "none"
+    if classified == "feature":
+        lane_label = "lane:feature"
+    elif classified in classify_mod().CLASSES:
+        lane_label = f"lane:{classified}"
+    else:
+        lane_label = "lane:none"
+    body = {
+        "pass": passed,
+        "lane": lane,
+        "class": classified,
+        "reasons": reasons,
+        "labels": [f"risk:{risk or 'unknown'}", lane_label],
+        "wouldMerge": passed,
+        "into": "develop" if passed else base,
+    }
+    return body, 0 if passed else 1
+
+
+def _release_gate(facts: dict, classified: str, reasons: list[str]) -> None:
+    verdict = facts.get("verdict") or ""
+    if classified != "deps-patch":
+        if verdict != "Ready to ship":
+            reasons.append("verdict is not Ready to ship")
+        return
+    if facts.get("zero_x"):
+        reasons.append("a pre-1.0 package is excluded")
+    age = facts.get("release_age_days")
+    age_ok = age is not None and int(age) >= MIN_RELEASE_AGE_DAYS and not facts.get("zero_x")
+    checks_ok = bool(facts.get("check_green") and facts.get("e2e_green"))
+    if verdict == "Ready to ship":
+        if age is not None and int(age) < MIN_RELEASE_AGE_DAYS:
+            reasons.append(f"release is younger than {MIN_RELEASE_AGE_DAYS} days")
+        return
+    if checks_ok and age_ok:
+        return
+    reasons.append(
+        "deps-patch needs Ready to ship, or green check and e2e plus a release at least "
+        f"{MIN_RELEASE_AGE_DAYS} days old"
+    )
+
+
+def _allowed(classified: str, path: str) -> bool:
+    mod = classify_mod()
+    if mod.is_factory(path) or mod.is_signoff(path):
+        return False
+    if classified == "docs-drift":
+        return mod.is_docs_drift(path)
+    if classified == "deps-patch":
+        return mod.is_dep(path)
+    if classified == "lint-format":
+        return mod.is_format_candidate(path)
+    if classified == "site-sync":
+        return mod.is_site_sync(path)
+    return False
+
+
+def passing_facts(**overrides) -> dict:
+    now = datetime(2026, 11, 25, 18, 0, tzinfo=timezone.utc)  # 10:00 PT
+    facts = {
+        "base": "develop",
+        "class": "docs-drift",
+        "chore_lane": "on",
+        "classes": DEFAULT_CLASSES,
+        "automerge": "on",
+        "labels": [],
+        "up_to_date": True,
+        "check_green": True,
+        "e2e_green": True,
+        "guardrails": "pass",
+        "paths": ["docs/flow.md"],
+        "files": 1,
+        "lines": 10,
+        "risk": "low",
+        "author": "renovate[bot]",
+        "verdict": "Ready to ship",
+        "release_age_days": 4,
+        "zero_x": False,
+        "formatter_match": "",
+        "generated": False,
+        "adds_skip": False,
+        "now": now,
+        "merges_known": True,
+        "merged_at": [],
+        "in_flight": 0,
+    }
+    facts.update(overrides)
+    return facts
+
+
+def self_check() -> int:
+    failures: list[str] = []
+
+    def expect(condition: bool, message: str) -> None:
+        if not condition:
+            failures.append(message)
+
+    ok, code = evaluate(passing_facts(author="boop"))
+    expect(code == 0 and ok["pass"] and ok["lane"] == "docs-drift", f"docs pass {ok}")
+    deps, deps_code = evaluate(
+        passing_facts(
+            class_="ignored",
+            **{
+                "class": "deps-patch",
+                "paths": ["site/package.json", "site/package-lock.json"],
+                "files": 1,
+                "verdict": "",
+                "release_age_days": 3,
+                "author": "renovate[bot]",
+            },
+        )
+    )
+    expect(deps_code == 0 and deps["pass"], f"deps stand-in {deps}")
+    young, _young_code = evaluate(
+        passing_facts(**{"class": "deps-patch", "paths": ["site/package.json"], "verdict": "", "release_age_days": 2})
+    )
+    expect(not young["pass"] and any("3 days" in reason for reason in young["reasons"]), f"young {young}")
+    feature, _feature_code = evaluate(passing_facts(**{"class": "feature", "paths": ["site/app/page.tsx"]}))
+    expect(not feature["pass"] and "lane:feature" in feature["labels"], f"feature {feature}")
+    held, _held = evaluate(passing_facts(labels=[HOLD_LABEL]))
+    expect(not held["pass"] and any("bleeps:hold" in reason for reason in held["reasons"]), f"hold {held}")
+    off, _off = evaluate(passing_facts(chore_lane="off"))
+    expect(not off["pass"], f"off {off}")
+    switch, _switch = evaluate(passing_facts(automerge="off"))
+    expect(not switch["pass"] and any("BLEEPS_AUTOMERGE" in reason for reason in switch["reasons"]), switch)
+    weekend, _weekend = evaluate(
+        passing_facts(now=datetime(2026, 11, 28, 20, 0, tzinfo=timezone.utc))
+    )
+    expect(not weekend["pass"] and any("weekdays" in reason for reason in weekend["reasons"]), weekend)
+    evening, _evening = evaluate(
+        passing_facts(now=datetime(2026, 11, 26, 2, 0, tzinfo=timezone.utc))
+    )
+    expect(not evening["pass"], f"evening {evening}")
+    morning, morning_code = evaluate(
+        passing_facts(now=datetime(2026, 11, 25, 16, 0, tzinfo=timezone.utc))
+    )
+    expect(morning_code == 0, f"morning {morning}")
+    capped, _capped = evaluate(
+        passing_facts(merged_at=["2026-11-25T16:00:00Z", "2026-11-25T17:00:00Z", "2026-11-25T18:00:00Z"])
+    )
+    expect(not capped["pass"] and any("daily cap" in reason for reason in capped["reasons"]), capped)
+    yesterday, yesterday_code = evaluate(passing_facts(merged_at=["2026-11-24T18:00:00Z"] * 3))
+    expect(yesterday_code == 0, f"yesterday cap {yesterday}")
+    flying, _flying = evaluate(passing_facts(in_flight=1))
+    expect(not flying["pass"], f"in flight {flying}")
+    stranger, _stranger = evaluate(passing_facts(author="buzz"))
+    expect(not stranger["pass"] and any("author" in reason for reason in stranger["reasons"]), stranger)
+    expect(author_ok("Boop") and author_ok("boop[bot]") and author_ok("renovate"), "authors")
+    expect(not author_ok("eljamez") and not author_ok("bleeps[bot]"), "not authors")
+    wide, _wide = evaluate(passing_facts(files=11))
+    expect(not wide["pass"], f"files {wide}")
+    long, _long = evaluate(passing_facts(lines=201))
+    expect(not long["pass"], f"lines {long}")
+    locks, locks_code = evaluate(
+        passing_facts(
+            **{
+                "class": "deps-patch",
+                "paths": ["site/package.json", "site/package-lock.json"],
+                "files": 1,
+                "lines": 10,
+            }
+        )
+    )
+    expect(locks_code == 0, f"lock excluded {locks}")
+    main, _main = evaluate(passing_facts(base="main"))
+    expect(not main["pass"] and any("main" in reason for reason in main["reasons"]), main)
+    stale, _stale = evaluate(passing_facts(up_to_date=False))
+    expect(not stale["pass"], f"stale {stale}")
+    guard, _guard = evaluate(passing_facts(guardrails="fail"))
+    expect(not guard["pass"], f"guard {guard}")
+    script, _script = evaluate(passing_facts(paths=["docs/flow.md", "scripts/chore-lane"]))
+    expect(not script["pass"] and any("allowlist" in reason for reason in script["reasons"]), script)
+    lint, _lint = evaluate(
+        passing_facts(
+            **{
+                "class": "lint-format",
+                "classes": "deps-patch,docs-drift,lint-format",
+                "paths": ["site/app/page.tsx"],
+                "formatter_match": "exact",
+            }
+        )
+    )
+    expect(lint["pass"], f"lint enabled {lint}")
+    lint_off, _lint_off = evaluate(
+        passing_facts(**{"class": "lint-format", "paths": ["site/app/page.tsx"], "formatter_match": "exact"})
+    )
+    expect(not lint_off["pass"] and any("not an enabled" in reason for reason in lint_off["reasons"]), lint_off)
+    site, _site = evaluate(
+        passing_facts(
+            **{
+                "class": "site-sync",
+                "classes": "site-sync",
+                "paths": ["site/system-facts.json"],
+                "generated": True,
+            }
+        )
+    )
+    expect(site["pass"], f"site enabled {site}")
+    no_echo, _no_echo = evaluate(passing_facts(verdict=""))
+    expect(not no_echo["pass"], f"docs need echo {no_echo}")
+    unknown, _unknown = evaluate(passing_facts(merges_known=False))
+    expect(not unknown["pass"], f"unknown count {unknown}")
+    high, _high = evaluate(passing_facts(risk="high"))
+    expect(not high["pass"], f"risk {high}")
+    expect(review_external("none") == "none", "review default")
+    try:
+        review_external("graphite")
+        expect(False, "bad reviewer should fail")
+    except SystemExit as error:
+        expect("none" in str(error), str(error))
+    try:
+        enabled_classes("deps-patch,nope")
+        expect(False, "bad class should fail")
+    except SystemExit as error:
+        expect("unknown class" in str(error), str(error))
+
+    if failures:
+        print("\n".join(failures), file=sys.stderr)
+        return 1
+    print("ok")
+    return 0
+
+
+def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["git", *args], cwd=root, check=False, capture_output=True, text=True)
+
+
+def _run(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(args, cwd=cwd, check=False, capture_output=True, text=True)
+
+
+def numstat(root: Path, base: str) -> tuple[list[str], int, int]:
+    diff = _git(root, "diff", "--numstat", f"{base}...HEAD")
+    if diff.returncode != 0:
+        diff = _git(root, "diff", "--numstat", base)
+    paths: list[str] = []
+    lines = 0
+    mod = classify_mod()
+    for row in diff.stdout.splitlines():
+        parts = row.split("\t")
+        if len(parts) < 3:
+            continue
+        added, deleted, path = parts[0], parts[1], parts[2]
+        paths.append(path)
+        if mod.is_lockfile(path):
+            continue
+        if added == "-" or deleted == "-":
+            lines += LINE_CAP + 1
+            continue
+        lines += int(added) + int(deleted)
+    files = len([path for path in paths if not mod.is_lockfile(path)])
+    return paths, files, lines
+
+
+def up_to_date(root: Path, base: str) -> bool:
+    return _git(root, "merge-base", "--is-ancestor", base, "HEAD").returncode == 0
+
+
+def guardrails_status(root: Path) -> str:
+    result = _run([sys.executable, str(Path(__file__).resolve().parent / "guardrails")], root)
+    return "pass" if result.returncode == 0 else "fail"
+
+
+def gh_json(args: list[str], root: Path):
+    result = _run(["gh", *args], root)
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None
+
+
+def release_age_days(package: str, version: str, now: datetime) -> int | None:
+    quoted = package.replace("/", "%2f")
+    url = f"https://registry.npmjs.org/{quoted}"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as response:
+            payload = json.loads(response.read().decode())
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError):
+        return None
+    stamp = (payload.get("time") or {}).get(version)
+    if not stamp:
+        return None
+    try:
+        released = parse_time(stamp)
+    except ValueError:
+        return None
+    return (now - released).days
+
+
+def ages_from_diffs(root: Path, base: str, paths: list[str], now: datetime) -> tuple[int | None, bool, str]:
+    """Minimum release age, whether a 0.x package is in the bump, and the update type."""
+    mod = classify_mod()
+    changes: list[tuple[str, str, str]] = []
+    zero = False
+    saw_manifest = False
+    for path in paths:
+        if mod.basename(path) != "package.json":
+            continue
+        saw_manifest = True
+        diff = _git(root, "diff", f"{base}...HEAD", "--", path)
+        text = diff.stdout if diff.returncode == 0 else ""
+        found = mod.dep_changes(text)
+        changes.extend(found)
+        if any(mod.is_zero(old) or mod.is_zero(new) for _name, old, new in found):
+            zero = True
+    lock_only = (not saw_manifest) and any(mod.is_lockfile(path) for path in paths)
+    if lock_only:
+        for path in paths:
+            if not mod.is_lockfile(path):
+                continue
+            diff = _git(root, "diff", f"{base}...HEAD", "--", path)
+            if mod.lockfile_adds_zero(diff.stdout):
+                zero = True
+        return None, zero, "lockfile"
+    if not changes:
+        return None, zero, ""
+    kind = mod.worst_bump(changes)
+    ages: list[int] = []
+    for package, _old, new in changes:
+        age = release_age_days(package, new, now)
+        if age is None:
+            return None, zero, kind
+        ages.append(age)
+    return (min(ages) if ages else None), zero, kind
+
+
+def event_pull_request() -> dict:
+    path = os.environ.get("GITHUB_EVENT_PATH")
+    if not path:
+        return {}
+    try:
+        data = json.loads(Path(path).read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data.get("pull_request") or {}
+
+
+def checks_green(root: Path, number: str) -> tuple[bool, bool]:
+    payload = gh_json(["pr", "view", number, "--json", "statusCheckRollup"], root)
+    if not payload:
+        return False, False
+    rollup = payload.get("statusCheckRollup") or []
+    states = {}
+    for check in rollup:
+        name = check.get("name") or ""
+        state = (check.get("conclusion") or check.get("state") or "").upper()
+        states[name] = state == "SUCCESS"
+    return states.get("check", False), states.get("e2e", False)
+
+
+def gather(root: Path, base: str, number: str) -> dict:
+    """Facts for one pull request. Missing GitHub data fails closed inside evaluate."""
+    settings = project_settings(root)
+    lane_choice(settings["chore_lane"])
+    review_external(settings["review_external"])
+    zap_choice(settings["zap"])
+    paths, files, lines = numstat(root, base)
+    now = datetime.now(timezone.utc)
+    pr = event_pull_request()
+    author = ""
+    labels: list[str] = []
+    verdict = ""
+    created = None
+    if pr:
+        author = ((pr.get("user") or {}).get("login") or "")
+        labels = [item.get("name", "") for item in pr.get("labels") or []]
+        if not number:
+            number = str(pr.get("number") or "")
+    if number:
+        viewed = gh_json(
+            ["pr", "view", number, "--json", "author,labels,body,createdAt,title"],
+            root,
+        )
+        if viewed:
+            author = ((viewed.get("author") or {}).get("login") or author)
+            labels = [item.get("name", "") for item in viewed.get("labels") or []] or labels
+            created = viewed.get("createdAt")
+            body = viewed.get("body") or ""
+            if "Ready to ship" in body:
+                verdict = "Ready to ship"
+            title = viewed.get("title") or ""
+        else:
+            title = ""
+            body = ""
+    else:
+        title = ""
+        body = ""
+    check_ok, e2e_ok = (False, False)
+    if number:
+        check_ok, e2e_ok = checks_green(root, number)
+    age, zero_x, update_type = ages_from_diffs(root, base, paths, now)
+    mod = classify_mod()
+    if update_type == "lockfile" and created:
+        try:
+            opened = parse_time(created)
+        except ValueError:
+            opened = None
+        if opened is not None:
+            age = (now - opened).days
+    if "lock file maintenance" in title.lower() or "lock file maintenance" in body.lower():
+        update_type = update_type or "lockfile"
+    diff = _git(root, "diff", f"{base}...HEAD")
+    classified = mod.classify(
+        paths,
+        update_type=update_type if update_type in {"patch", "lockfile", "minor", "major"} else "",
+        zero_x=zero_x,
+        formatter_match="",
+        generated=False,
+        adds_skip_flag=mod.adds_skip(diff.stdout),
+    )
+    risk = "low" if "risk:low" in labels else ""
+    for label in labels:
+        if label.startswith("risk:"):
+            risk = label.split(":", 1)[1]
+    merges_known = False
+    merged_at: list[str] = []
+    in_flight = None
+    if number or os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"):
+        merged = gh_json(
+            ["pr", "list", "--state", "merged", "--base", base, "--limit", "30", "--json", "mergedAt,labels"],
+            root,
+        )
+        if merged is not None:
+            merges_known = True
+            for item in merged:
+                names = [label.get("name", "") for label in item.get("labels") or []]
+                if MERGED_LABEL in names and item.get("mergedAt"):
+                    merged_at.append(item["mergedAt"])
+        flying = gh_json(
+            ["pr", "list", "--state", "open", "--limit", "30", "--json", "number,labels"],
+            root,
+        )
+        if flying is not None:
+            in_flight = sum(
+                1
+                for item in flying
+                if str(item.get("number")) != str(number)
+                and IN_FLIGHT_LABEL in [label.get("name", "") for label in item.get("labels") or []]
+            )
+    automerge = os.environ.get("BLEEPS_AUTOMERGE", "")
+    return {
+        "base": base,
+        "class": classified["class"],
+        "classify_reasons": classified["reasons"],
+        "chore_lane": settings["chore_lane"],
+        "classes": settings["chore_lane_classes"],
+        "review_external": settings["review_external"],
+        "automerge": automerge,
+        "labels": labels,
+        "up_to_date": up_to_date(root, base),
+        "check_green": check_ok,
+        "e2e_green": e2e_ok,
+        "guardrails": guardrails_status(root),
+        "paths": paths,
+        "files": files,
+        "lines": lines,
+        "risk": risk,
+        "author": author,
+        "verdict": verdict,
+        "release_age_days": age,
+        "zero_x": zero_x,
+        "formatter_match": "",
+        "generated": False,
+        "adds_skip": mod.adds_skip(diff.stdout),
+        "now": now,
+        "merges_known": merges_known,
+        "merged_at": merged_at,
+        "in_flight": in_flight,
+        "pr": number,
+    }
+
+
+def merge_pr_body(facts: dict) -> dict:
+    """Report scripts/merge-pr. A deps stand-in does not make this script merge."""
+    script = Path(__file__).resolve().parent / "merge-pr"
+    args = [
+        sys.executable,
+        str(script),
+        "check",
+        "--base",
+        str(facts.get("base") or "develop"),
+        "--risk",
+        str(facts.get("risk") or "unknown"),
+        "--verdict",
+        str(facts.get("verdict") or ""),
+    ]
+    if facts.get("check_green") and facts.get("e2e_green"):
+        args.append("--tests-passed")
+    result = _run(args, Path.cwd())
+    try:
+        body = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        body = {"wouldMerge": False, "reason": "merge-pr did not return JSON"}
+    body["exit"] = result.returncode
+    return body
+
+
+def emit(facts: dict, gate: dict, code: int) -> dict:
+    """JSON uses strings. Datetimes stay out of the report."""
+    shown = {key: value for key, value in facts.items() if key != "now"}
+    shown["now"] = facts["now"].astimezone(PT).isoformat() if isinstance(facts.get("now"), datetime) else facts.get("now")
+    return {
+        "mergePr": merge_pr_body(facts),
+        "class": facts.get("class"),
+        "lane": gate.get("lane"),
+        "pass": gate.get("pass"),
+        "reasons": gate.get("reasons"),
+        "labels": gate.get("labels"),
+        "review_external": facts.get("review_external"),
+        "choreLane": gate,
+        "facts": shown,
+        "exit": code,
+    }
+
+
+def cmd_check(argv: list[str]) -> int:
+    facts = passing_facts()
+    # A bare check fails closed. Flags replace the sample that self-check uses.
+    facts.update(
+        {
+            "chore_lane": "off",
+            "automerge": "off",
+            "up_to_date": False,
+            "check_green": False,
+            "e2e_green": False,
+            "guardrails": "fail",
+            "paths": [],
+            "risk": "",
+            "author": "",
+            "verdict": "",
+            "merges_known": False,
+            "in_flight": None,
+            "class": "none",
+        }
+    )
+    index = 0
+    paths: list[str] = []
+    merged: list[str] = []
+    while index < len(argv):
+        token = argv[index]
+        if token == "--path" and index + 1 < len(argv):
+            paths.append(argv[index + 1])
+            index += 2
+            continue
+        if token == "--merged-at" and index + 1 < len(argv):
+            merged.append(argv[index + 1])
+            index += 2
+            continue
+        if token == "--label" and index + 1 < len(argv):
+            facts.setdefault("labels", [])
+            facts["labels"].append(argv[index + 1])
+            index += 2
+            continue
+        if token in {"--up-to-date", "--check-green", "--e2e-green", "--zero-x", "--generated", "--adds-skip", "--merges-known"}:
+            key = token[2:].replace("-", "_")
+            facts[key] = True
+            index += 1
+            continue
+        if token.startswith("--") and index + 1 < len(argv):
+            key = token[2:].replace("-", "_")
+            facts[key] = argv[index + 1]
+            index += 2
+            continue
+        index += 1
+    if paths:
+        facts["paths"] = paths
+    if merged:
+        facts["merged_at"] = merged
+        facts["merges_known"] = True
+    if facts.get("now") and not isinstance(facts["now"], datetime):
+        facts["now"] = parse_time(str(facts["now"]))
+    for key in ("files", "lines", "in_flight", "release_age_days"):
+        if facts.get(key) not in {None, ""} and not isinstance(facts[key], int):
+            facts[key] = int(facts[key])
+    if isinstance(facts.get("classes"), str):
+        enabled_classes(facts["classes"])
+    body, code = evaluate(facts)
+    json.dump(body, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return code
+
+
+def cmd_report(root: Path, base: str, number: str) -> int:
+    facts = gather(root, base, number)
+    body, code = evaluate(facts)
+    json.dump(emit(facts, body, code), sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 0
+
+
+def cmd_gate(root: Path, base: str, number: str) -> int:
+    facts = gather(root, base, number)
+    body, code = evaluate(facts)
+    json.dump(emit(facts, body, code), sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return code
+
+
+def main(argv: list[str]) -> int:
+    if not argv or argv[0] in {"-h", "--help"}:
+        print(
+            "usage: chore-lane check [flags] | chore-lane report [--base develop] [--pr N] "
+            "| chore-lane gate [--base develop] [--pr N] | chore-lane --self-check",
+            file=sys.stderr,
+        )
+        return 0 if argv and argv[0] in {"-h", "--help"} else 2
+    if argv[0] == "--self-check":
+        return self_check()
+    if argv[0] == "check":
+        return cmd_check(argv[1:])
+    if argv[0] in {"report", "gate"}:
+        base = "develop"
+        number = ""
+        args = argv[1:]
+        index = 0
+        while index < len(args):
+            if args[index] == "--base" and index + 1 < len(args):
+                base = args[index + 1]
+                index += 2
+                continue
+            if args[index] == "--pr" and index + 1 < len(args):
+                number = args[index + 1]
+                index += 2
+                continue
+            index += 1
+        if argv[0] == "report":
+            return cmd_report(Path.cwd(), base, number)
+        return cmd_gate(Path.cwd(), base, number)
+    print(f"unknown command {argv[0]}", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

@@ -11,7 +11,7 @@ Orca Bots shipped in 1.4.265 on 2026-11-19. A bot is a standing agent in Orca's 
 
 `runtime` in `orca.project.yaml` is `issue-command` (the default) or `bots`. Omitting the key means `issue-command`. Bots are an optional runtime. They do not replace the prompt, the scripts, or the gates.
 
-The group is one Orca group: Bleeps coordinates, Beep plans, Buzz builds, Blip leads QA, Chip scouts and takes the scheduled scout automation, and Bloops merges and reflects. Echo stays a fresh Claude Code worker started per verify, not a bot, so the verifier does not share the writer's chat.
+The group is one Orca group: Bleeps coordinates, Beep plans, Buzz builds, Blip leads QA, Chip scouts and takes the scheduled scout automation, and Bloops merges and reflects. [0017](0017-chore-lane.md) adds Ping, Boop, and an optional Zap. Echo stays a fresh Claude Code worker started per verify, not a bot, so the verifier does not share the writer's chat.
 
 The gate scripts stay the real gates: `scripts/intake`, `scripts/guardrails`, `scripts/fix-loop`, `scripts/orca-verify`, `scripts/verify`, `scripts/merge-pr`, `scripts/providers`, `scripts/check-site`. The writer never certifies. Nothing merges while the suite is red. Pull requests target `develop` only. `main` is James's. Sign-off areas need James. Bloops merges only through `scripts/merge-pr`, and only when James says so. Reflection changes go out as pull requests to repo skills, never into bot memory.
 

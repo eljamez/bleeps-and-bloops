@@ -26,14 +26,17 @@ BOTS = (
     ("bleeps", "Coordinates the crew in one group and does not do their jobs."),
     ("beep", "Plans the ticket into spec.md and tasks.md and writes no product code."),
     ("buzz", "Implements the tasks in a worker worktree and does not certify the result."),
-    ("blip", "Owns the suites and runs the fix loop while the suite is red."),
-    ("chip", "Scouts on a schedule, files bleeps:found issues, and does not merge."),
-    ("bloops", "Merges through scripts/merge-pr only when the owner asks, then proposes improvements as pull requests."),
+    ("blip", "Owns the suites, runs the fix loop, and triages a CI failure as flaky or real."),
+    ("chip", "Scouts on a schedule, files bleeps:found issues, and does not build a feature."),
+    ("ping", "Reviews every pull request into develop, posts one summary, and does not approve or merge."),
+    ("boop", "Opens one chore pull request at a time and does not build a feature."),
+    ("bloops", "Merges when the owner asks, or leaves a qualifying chore to the lane workflow, then reflects."),
+    ("zap", "Drafts the develop to main release notes when zap is on, and does not merge to main."),
 )
-LOOK_OFF = ("beep", "buzz", "blip", "bloops")
+LOOK_OFF = ("beep", "buzz", "blip", "ping", "boop", "bloops", "zap")
 LOOK_ON = ("bleeps", "chip")
 # Code work is a worker. Bloops' merge is the script; the worker is reflection.
-WORKER_ROLES = ("beep", "buzz", "blip", "echo", "chip", "bloops")
+WORKER_ROLES = ("beep", "buzz", "blip", "echo", "chip", "ping", "boop", "bloops", "zap")
 # Substrings every SOUL.md must contain. The writer never certifies, and the gates stay the scripts.
 SHARED_NEEDLES = (
     "The writer never certifies.",
@@ -43,12 +46,20 @@ SHARED_NEEDLES = (
     "James",
 )
 ROLE_NEEDLES = {
-    "bleeps": ("bot:beep", "Echo", "fresh", "bleeps:go", "scripts/merge-pr"),
+    "bleeps": ("bot:beep", "Echo", "fresh", "bleeps:go", "scripts/merge-pr", "does not build a feature"),
     "beep": ("scripts/kick-off", "no product code", "bot:buzz"),
     "buzz": ("verify.md", "bot:blip", "scripts/providers"),
-    "blip": ("scripts/fix-loop", "verify.md"),
-    "chip": ("scripts/bleeps-scout", "bleeps:found", "bot:bleeps"),
-    "bloops": ("scripts/merge-pr", "only when James says so", "MEMORY.md", "repo skills"),
+    "blip": ("scripts/fix-loop", "verify.md", "flaky", "never skipped", "Buzz"),
+    "chip": ("scripts/bleeps-scout", "bleeps:found", "bot:bleeps", "does not build a feature"),
+    "ping": ("scripts/classify-pr", "scripts/guardrails", "does not approve", "risk:", "lane:", "review_external", "Echo"),
+    "boop": ("scripts/classify-pr", "bleeps:found", "does not build a feature", "one pull request"),
+    "bloops": ("scripts/merge-pr", "only when James says so", "MEMORY.md", "repo skills", "scripts/chore-lane", "workflow"),
+    "zap": ("zap: on", "does not merge", "main"),
+}
+# Souls can say the rule and a skill can drift. Check both.
+SKILL_NEEDLES = {
+    "agents/chip/skills/patrol/SKILL.md": ("bleeps:found", "does not build a feature"),
+    "agents/boop/skills/chore/SKILL.md": ("bleeps:found", "does not build a feature", "scripts/classify-pr"),
 }
 FRONTMATTER = re.compile(r"^---\n(.*?)\n---", re.S)
 
@@ -110,10 +121,88 @@ def send_lines() -> list[str]:
     return [
         send_line("beep", "Plan", "Plan the ticket. Run scripts/kick-off or scripts/intake. Write no product code."),
         send_line("buzz", "Build", "Implement tasks.md in a worker worktree. Do not certify."),
-        send_line("blip", "Test", "Run scripts/fix-loop. A red suite stays in this run."),
-        send_line("bloops", "Merge", "Merge only through scripts/merge-pr, and only because the owner asked."),
-        send_line("bleeps", "Issue", "A scout finding is ready. Run the crew. Do not start issueCommand."),
+        send_line("blip", "Test", "Run scripts/fix-loop. A red suite stays in this run. Triage a CI failure as flaky or real. Never skip a flaky test."),
+        send_line("ping", "Review", "Review the pull request. Run scripts/classify-pr and scripts/guardrails. Start Echo if there is no verdict. Post one summary. Do not approve or merge."),
+        send_line("boop", "Chore", "Open one chore pull request. Run scripts/classify-pr. If the class is feature, file bleeps:found and stop. Do not build a feature."),
+        send_line("bloops", "Merge", "Bring the pull request up to date with develop and run scripts/merge-pr check. Merge only when the owner asked. If scripts/chore-lane check passes, the workflow merges, not you."),
+        send_line("zap", "Release", "If zap is off, stop. Draft the develop to main notes. Do not merge to main."),
+        send_line("bleeps", "Issue", "A scout finding is ready. Run the crew. Do not start issueCommand. If it is a feature, do not build it."),
     ]
+
+
+def automation(bot: str, name: str, trigger: str, prompt: str) -> str:
+    return (
+        "orca automations create \\\n"
+        f"  --bot {bot} \\\n"
+        f"  --name {json.dumps(name)} \\\n"
+        f"  {trigger} \\\n"
+        f"  --prompt {json.dumps(prompt)} \\\n"
+        "  --disabled"
+    )
+
+
+def ping_automations() -> list[str]:
+    own = (
+        "Review this pull request into develop. Run scripts/guardrails and scripts/classify-pr. "
+        "Start Echo if there is no Ready to ship verdict. "
+        "Gather external findings only when review_external is coderabbit or copilot. "
+        "Post one summary comment and the risk and lane labels. Do not approve or merge."
+    )
+    other = (
+        "Review this pull request into develop if you did not open it. "
+        "Run scripts/guardrails and scripts/classify-pr. "
+        "Start Echo if there is no Ready to ship verdict. "
+        "Gather external findings only when review_external is coderabbit or copilot. "
+        "Post one summary comment and the risk and lane labels. Do not approve or merge."
+    )
+    return [
+        automation("ping", "Ping review mine", '--on "github.pr_opened in=<owner/repo> from=me"', own),
+        automation("ping", "Ping review others", '--on "github.pr_opened in=<owner/repo>"', other),
+    ]
+
+
+def boop_automations() -> list[str]:
+    nightly = (
+        "Run one chore. scripts/classify-pr decides the class. "
+        "If the class is feature, file a bleeps:found issue and stop. "
+        "Do not build a feature. Open at most one pull request. Do not merge."
+    )
+    digest = "Post the Monday chore digest. Do not open a pull request from the digest. Do not build a feature."
+    return [
+        automation("boop", "Boop nightly", "--trigger daily --time 02:00", nightly),
+        automation("boop", "Boop Monday digest", "--trigger weekly --time 09:00", digest),
+    ]
+
+
+def blip_digest() -> str:
+    return automation(
+        "blip",
+        "Blip flaky digest",
+        "--trigger weekly --time 09:00",
+        "Post the weekly flaky-test digest. A flaky test is never skipped. Do not quarantine by skipping.",
+    )
+
+
+def bloops_ready() -> str:
+    return automation(
+        "bloops",
+        "Bloops ready",
+        '--on "github.labeled in=<owner/repo> label=bleeps:ready"',
+        "Bring this pull request up to date with develop. Run scripts/merge-pr check. "
+        "Merge only when James says so. If scripts/chore-lane check passes, do not merge. "
+        "The workflow merges the lane. Then reflect.",
+    )
+
+
+def zap_automation() -> str:
+    return automation(
+        "zap",
+        "Zap release notes",
+        "--trigger weekdays --time 09:00",
+        "zap is off unless orca.project.yaml sets zap: on. If it is off, stop. "
+        "Keep the develop to main pull request body as draft notes and a readiness list. "
+        "Do not merge to main.",
+    )
 
 
 def go_automation() -> str:
@@ -141,7 +230,8 @@ def chip_automation(root: Path, project: dict[str, str]) -> str:
         trigger += f" --time {when}"
     prompt = (
         "Run scripts/bleeps-scout in this checkout. Do not scan a second way. "
-        "It files bleeps:found issues. With runtime bots it hands each started "
+        "It files bleeps:found issues. A feature finding is filed and not handed off. "
+        "Chip does not build a feature. With runtime bots it hands each started "
         "issue to Bleeps and does not start an issueCommand worktree."
     )
     return (
@@ -191,6 +281,11 @@ def commands(root: Path, project: dict[str, str]) -> list[str]:
         *look_lines(),
         go_automation(),
         chip_automation(root, project),
+        *ping_automations(),
+        *boop_automations(),
+        blip_digest(),
+        bloops_ready(),
+        zap_automation(),
         *send_lines(),
     ]
     found.extend(worker_line(root, role) for role in WORKER_ROLES)
@@ -228,7 +323,8 @@ def render(root: Path, project: dict[str, str]) -> str:
         "There is no documented CLI flag for that link. orca repo list shows the projects Orca knows.",
         "",
         "Group. No documented CLI creates one. In the app: Bots, +, New bot or group, New group.",
-        "Name it Bleeps. Members: bleeps, beep, buzz, blip, chip, bloops. Echo is not a member.",
+        "Name it Bleeps. Members: bleeps, beep, buzz, blip, chip, ping, boop, bloops.",
+        "Zap joins only when zap is on. Echo is not a member.",
         "Host it on the computer `host` names. At least one member lives on that computer.",
         "Bots run only while that computer is awake and Orca is running. Pair a server you leave on",
         "when you want them reachable. Create each bot on that machine. A paired window cannot",
@@ -243,6 +339,25 @@ def render(root: Path, project: dict[str, str]) -> str:
         "When runtime is bots, `python3 scripts/bleeps-scout schedule` prints this and not the provider form.",
         chip_automation(root, project),
         "",
+        "Ping reviews pull requests you open, and pull requests other people open (Renovate).",
+        "Run trigger-options --bot ping first. Save both disabled. from=me is the one that hears your own pull requests.",
+        "The second rule is for everyone else. If both fire, post the one summary and stop.",
+        *ping_automations(),
+        "",
+        "Boop's night run is 02:00 on the host clock. Set that clock to Pacific Time.",
+        "Monday is a digest. Save both disabled until the bot exists.",
+        *boop_automations(),
+        "",
+        "Blip's Monday digest lists flaky tests. A flaky test is never skipped.",
+        "Confirm the event with trigger-options --bot blip before you enable a CI rule. This one is the digest.",
+        blip_digest(),
+        "",
+        "Bloops wakes on bleeps:ready. Run trigger-options --bot bloops first.",
+        bloops_ready(),
+        "",
+        "Skip this Zap automation unless zap is on.",
+        zap_automation(),
+        "",
         "Handoff order in the group. @Name in the room, or:",
         *send_lines(),
         "",
@@ -251,9 +366,19 @@ def render(root: Path, project: dict[str, str]) -> str:
         *(worker_line(root, role) for role in WORKER_ROLES),
         "Echo's line is a fresh Claude Code worker per verify, not a bot and not a reused chat.",
         "Bloops merges with scripts/merge-pr and no model. The bloops worker is reflection only.",
+        "Skip Zap's create command and Zap's worker unless orca.project.yaml sets zap: on.",
+        "The host clock for Boop's 02:00 run is Pacific Time.",
         "",
-        "Gates stay the scripts: intake, guardrails, fix-loop, orca-verify, verify, merge-pr, providers, check-site.",
+        "Ping reviews every pull request into develop, including Renovate. One comment. risk and lane labels.",
+        "review_external is none, coderabbit, or copilot. none is the default and installs nothing.",
+        "Boop opens chores only. A feature is a bleeps:found issue. Boop does not build a feature.",
+        "Blip triages a red check as flaky or real. A flaky test is never skipped.",
+        "",
+        "Gates stay the scripts: intake, guardrails, fix-loop, orca-verify, verify, merge-pr,",
+        "classify-pr, chore-lane, providers, check-site.",
         "Nothing merges while the suite is red. develop only. main is the owner's. Sign-off areas wait.",
+        "The chore lane is off unless chore_lane is on. The workflow merges a pass. Bloops does not.",
+        "scripts/chore-lane refuses a feature. Chip and Boop file it and stop.",
     ]
     return "\n".join(blocks) + "\n"
 
@@ -334,6 +459,15 @@ def problems(root: Path) -> list[str]:
         for needle in (*SHARED_NEEDLES, *ROLE_NEEDLES[name]):
             if needle not in text:
                 found.append(f"bots/{name}/SOUL.md is missing {needle!r}")
+    for relative, needles in SKILL_NEEDLES.items():
+        skill = root / relative
+        if not skill.exists():
+            found.append(f"missing {relative}")
+            continue
+        text = skill.read_text()
+        for needle in needles:
+            if needle not in text:
+                found.append(f"{relative} is missing {needle!r}")
 
     try:
         skills = skill_dirs(root)

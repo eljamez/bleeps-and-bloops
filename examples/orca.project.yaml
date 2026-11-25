@@ -31,6 +31,15 @@ host: local
 # issue-command is Orca's issueCommand prompt. bots runs the crew as Orca
 # bots in one group. Echo stays a fresh worker. See docs/bots.md.
 runtime: issue-command
+# chore_lane is off unless you opt in. on lets the workflow merge phase 1.
+# Phase 1 is deps-patch and docs-drift. lint-format and site-sync stay off
+# until you add them to chore_lane_classes. See docs/chore-lane-setup.md.
+chore_lane: off
+chore_lane_classes: deps-patch,docs-drift
+# Ping's outside reviewer. none, coderabbit, or copilot. none installs nothing.
+review_external: none
+# Release-notes bot. off leaves Zap out of the group.
+zap: off
 scout_cap: 2
 scout_schedule: daily
 scout_time: "09:00"
@@ -61,6 +70,15 @@ scout_scans: tests, ci, lint, advisories, debt, friction, coverage
 # bloops_provider: claude
 # bloops_model: sonnet
 # bloops_tier: balanced
+# ping_provider: claude
+# ping_model: sonnet
+# ping_tier: balanced
+# boop_provider: claude
+# boop_model: sonnet
+# boop_tier: balanced
+# zap_provider: claude
+# zap_model: sonnet
+# zap_tier: balanced
 # error_tracking: a command that prints findings. Unset means that scan is skipped.
 # fix_rounds: how many times a red suite goes back to be fixed in the same
 # run. Default 2. The next red escalates to the owner. Integer 0-20.
