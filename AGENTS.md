@@ -22,6 +22,7 @@ Open the page that owns the task:
 - [Chip](agents/chip/ROLE.md) — scout.
 - [Bloops](agents/bloops/ROLE.md) — merges and reflects.
 - [Where it runs](docs/where-it-runs.md)
+- [Orca bots](docs/bots.md) — optional. `runtime` defaults to `issue-command`. See [0016](docs/decisions/0016-orca-bots.md)
 - [Primitives](docs/primitives.md)
 - [Using Bleeps](docs/using-bleeps.md)
 - [Tickets](docs/tickets.md) — GitHub, GitHub Projects, Jira, Discord, Linear. One intake path.

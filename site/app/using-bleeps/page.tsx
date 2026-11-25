@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import system, { sourceList } from "../system";
-import { ConfigKeys, Section, SiteShell, links, wrap } from "../shell";
+import { BotsNote, ConfigKeys, Section, SiteShell, links, wrap } from "../shell";
 
 export const dynamic = "force-static";
 
@@ -22,6 +22,7 @@ const jumps = [
   ["#main", "Main"],
   ["#guardrails", "Guardrails"],
   ["#friction", "Friction"],
+  ["#bots", "Bots"],
   ["#patrol", "Patrol"],
 ] as const;
 
@@ -197,11 +198,9 @@ export default function UsingBleepsPage() {
             issue.
           </p>
           <p>
-            Layered review is CodeRabbit for style and obvious bugs, Devin
-            optionally for an end-to-end pass after its noise is calibrated,
-            and Claude Code for architecture fit. Grok Bot watches the
-            pull-request queue, failing CI, and review nudges. That layer is
-            Phase 2. The bot is planned.
+            This factory does not start CodeRabbit, Devin, or an
+            architecture-fit review. Count a review only when it actually
+            ran. Nothing here watches the queue for you.
           </p>
         </div>
       </Section>
@@ -299,7 +298,11 @@ export default function UsingBleepsPage() {
         </div>
       </Section>
 
-      <Section id="patrol" index="11" title="The patrol">
+      <Section id="bots" index="11" title="Optional: run the crew as Orca bots">
+        <BotsNote />
+      </Section>
+
+      <Section id="patrol" index="12" title="The patrol">
         <div className="stack">
           <p>
             Chip patrols on a schedule. The scans are failing tests, a test
@@ -327,7 +330,10 @@ export default function UsingBleepsPage() {
           <p>
             The schedule is an Orca automation, not a key inside{" "}
             <code>orca.yaml</code>. Chip&apos;s provider defaults to{" "}
-            {system.defaults.scout_provider}. This prints the command and then
+            {system.defaults.scout_provider}. When <code>runtime</code> is{" "}
+            {system.defaults.runtime}, this prints a project automation. Set{" "}
+            <code>runtime: bots</code> and the same command prints Chip&apos;s
+            bot automation instead. This prints the command and then
             creates it:
           </p>
           <pre>

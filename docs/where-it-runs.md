@@ -125,6 +125,8 @@ The setup script follows one symlink to find `scripts/`. A nested symlink is not
 
 A checkout-local prompt override is `.orca/issue-command`. Orca prefers it over `issueCommand`. Orca gitignores `.orca`.
 
+`runtime` defaults to `issue-command`, which is that prompt. `runtime: bots` runs the crew as Orca bots in one group on the same machine `host` names. Bots run only while that computer is awake and Orca is running. A paired server you leave on is the always-on choice. Create the bots on that machine. See [bots](bots.md).
+
 Optional: `ln -s /path/to/bleeps-and-bloops/scripts/bleeps bleeps` so the CLI name matches [control CLI](control-cli.md). The hooks call the script by its path in the factory, so the symlink is for people and agents typing `bleeps`.
 
 ## What is still open
@@ -133,7 +135,7 @@ Optional: `ln -s /path/to/bleeps-and-bloops/scripts/bleeps bleeps` so the CLI na
 - `scripts/bleeps-scout schedule` does not set a grace. Orca's 12 hour default is what a `local` machine gets. A longer window for a laptop that sleeps all weekend is not chosen.
 - `scripts/merge-pr` reports the gates and does not turn on GitHub auto-merge.
 - `bleeps preview` refuses. `bleeps health` prints `no health URL` when `health_url` is unset, and refuses when one is set, until the deployed-SHA check exists.
-- CodeRabbit, Devin, and Grok Bot are not started by `orca.yaml`.
+- CodeRabbit, Devin, and an architecture-fit review are not started by `orca.yaml`. Nothing in this factory watches the pull-request queue.
 - Branch protection and auto-merge are GitHub settings. See [roadmap](roadmap.md) Phase 3.
 - Orca cannot run a command only for worktrees created from a pull request. [stablyai/orca#6917](https://github.com/stablyai/orca/issues/6917).
 

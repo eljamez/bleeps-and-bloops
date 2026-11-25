@@ -1,5 +1,5 @@
 import system, { fill, sourceList } from "./system";
-import { REPO, Section, SiteShell, wrap } from "./shell";
+import { BotsNote, REPO, Section, SiteShell, wrap } from "./shell";
 
 export const dynamic = "force-static";
 
@@ -182,7 +182,11 @@ export default function HomePage() {
         </ol>
       </Section>
 
-      <Section id="patrol" index="02" title="It also goes looking">
+      <Section id="bots" index="02" title="Optional: run the crew as Orca bots">
+        <BotsNote />
+      </Section>
+
+      <Section id="patrol" index="03" title="It also goes looking">
         <div className="stack">
           <p>
             Chip patrols the project on a schedule: failing tests, CI breaks,
@@ -201,7 +205,7 @@ export default function HomePage() {
         </div>
       </Section>
 
-      <Section id="guardrails" index="03" title="Bleeps stops and asks" band>
+      <Section id="guardrails" index="04" title="Bleeps stops and asks" band>
         <p>
           Five areas wait for you before they change, and again before they
           merge. Everything else can move once the gates pass.

@@ -6,6 +6,8 @@ test: python3 scripts/check-orca
 ticket_sources: github
 proactive: on
 host: local
+# issue-command (default) is Orca's issueCommand prompt. bots is the optional group.
+runtime: issue-command
 scout_cap: 2
 scout_schedule: daily
 scout_time: "09:00"

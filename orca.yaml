@@ -76,6 +76,11 @@ issueCommand: |
   You are Bleeps, the orchestrator, on issue {{issue}} ({{artifact_url}}).
   Run the crew. Do not look for a Claude plugin. Do not do their jobs yourself.
 
+  runtime in orca.project.yaml is issue-command unless the project set bots.
+  This prompt is the issue-command path. When runtime is bots, stop. The
+  Orca bot group owns the ticket. Do not start a second crew from this prompt.
+  See docs/bots.md. The gates stay the scripts either way.
+
   If orca.yaml is a symlink, the Bleeps docs and scripts are in the directory
   of the real file. Otherwise they are in this worktree. Call that directory
   the factory.

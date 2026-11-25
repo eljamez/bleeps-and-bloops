@@ -67,6 +67,8 @@ def check_yaml() -> dict:
         "scripts/ship-pr",
         "scripts/intake",
         "scripts/providers",
+        "runtime",
+        "docs/bots.md",
         "bleeps:found",
         "Blip",
         "Exit 3",
@@ -246,6 +248,21 @@ def check_scout() -> None:
         (project / "orca.project.yaml").write_text("proactive: on\nhost: actions\n")
         refused = run([sys.executable, str(scout), "schedule"], project)
         require(refused.returncode != 0 and "GitHub Actions" in refused.stderr, refused.stderr)
+
+        (project / "orca.project.yaml").write_text("proactive: on\nruntime: bots\nhost: local\n")
+        bots_sched = run([sys.executable, str(scout), "schedule"], project)
+        require(bots_sched.returncode == 0, bots_sched.stderr)
+        require("runtime: bots" in bots_sched.stdout and "--bot chip" in bots_sched.stdout, bots_sched.stdout)
+        require("--provider" not in bots_sched.stdout, bots_sched.stdout)
+        (project / "orca.project.yaml").write_text("proactive: on\nruntime: sometimes\n")
+        bad_runtime = run([sys.executable, str(scout), "schedule"], project)
+        require(bad_runtime.returncode != 0 and "issue-command or bots" in bad_runtime.stderr, bad_runtime.stderr)
+        (project / "orca.project.yaml").write_text(
+            "proactive: on\nruntime: bots\nscout_cap: 1\nscout_scans: tests\ntest: true\n"
+        )
+        handed = run([sys.executable, str(scout), "--dry-run"], project)
+        require(handed.returncode == 0, handed.stderr)
+        require("would hand issues to the group" in handed.stdout, handed.stdout)
 
         gap = Path(tmp) / "web"
         gap.mkdir()
@@ -483,6 +500,7 @@ def main() -> int:
         "ticket-linear",
         "check-site",
         "providers",
+        "bots",
     ):
         path = ROOT / "scripts" / name
         require(path.stat().st_mode & stat.S_IXUSR, f"{name} is not executable")
@@ -491,6 +509,13 @@ def main() -> int:
     check_scout()
     check_providers()
     check_fix_loop()
+    bots = run([sys.executable, str(ROOT / "scripts" / "bots"), "check"], ROOT)
+    require(bots.returncode == 0, f"bots check failed\n{bots.stdout}\n{bots.stderr}")
+    printed = run([sys.executable, str(ROOT / "scripts" / "bots"), "print"], ROOT)
+    require(printed.returncode == 0, printed.stderr)
+    require("These commands are not run" in printed.stdout, printed.stdout)
+    require("orca bot create --offer" in printed.stdout and "label=bleeps:go" in printed.stdout, printed.stdout)
+    require("bot group create" not in printed.stdout, printed.stdout)
     tickets = run([sys.executable, str(ROOT / "scripts" / "check-tickets")], ROOT)
     require(tickets.returncode == 0, f"check-tickets failed\n{tickets.stdout}\n{tickets.stderr}")
     site = run([sys.executable, str(ROOT / "scripts" / "check-site")], ROOT)

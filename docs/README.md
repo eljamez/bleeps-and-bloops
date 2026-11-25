@@ -13,6 +13,7 @@ Plan for Bleeps, the orchestrator behind the Bleeps and Bloops brand. Bloops mer
 - [Primitives](primitives.md)
 - [Using Bleeps](using-bleeps.md)
 - [Where it runs](where-it-runs.md)
+- [Orca bots](bots.md) — optional runtime. The default stays `issueCommand`
 - [Ship a PR](ship-pr.md)
 - [Friction log](friction-log.md)
 - [Control CLI](control-cli.md)
