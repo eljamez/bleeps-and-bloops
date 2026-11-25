@@ -17,6 +17,7 @@ type SystemFacts = {
   defaults: {
     proactive: string;
     host: string;
+    runtime: string;
     scout_cap: string;
     scout_schedule: string;
     scout_time: string;

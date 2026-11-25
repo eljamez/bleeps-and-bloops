@@ -8,7 +8,7 @@
 - The crew is Beep, Buzz, Blip, Echo, Chip, and Bloops. Bleeps runs them. See [0010](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md).
 - Repeated work is a script. See [0011](decisions/0011-scripts-first.md).
 - Project install, test, and typecheck live in `orca.project.yaml`. Orca does not merge that file. The setup script reads it.
-- Grok Bot on the side for long-running watches (PR queue, failing CI, review nudges).
+- No watcher bot runs on the pull-request queue. CodeRabbit, Devin, and an architecture-fit review are not started by `orca.yaml`. Count a review only when it actually ran.
 - Layered reviewers: CodeRabbit (style + obvious bugs), Devin (end-to-end), Claude Code (architecture fit).
 - Orca is the harness (MIT). It runs Claude Code, Grok, and others in isolated worktrees. The factory default is Claude Code, one model per role. See [0015](decisions/0015-role-providers.md).
 - Where it runs is a choice. `host` in `orca.project.yaml` is `local` (default, the computer in front of you), `cloud` (a VPS), or `home` (a machine at home). A home server is optional. GitHub Actions can run checks. It cannot run Orca. See [0014](decisions/0014-where-it-runs.md) and [where it runs](where-it-runs.md). RAM: 8GB floor, 16GB comfortable, on the machine that runs the agents.

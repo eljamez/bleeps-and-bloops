@@ -3,6 +3,8 @@
 
 Orca does not store a schedule in orca.yaml. Register the run with
 `bleeps-scout schedule`, which prints `orca automations create`.
+When runtime is bots, that command is a Chip bot automation, and a
+started issue is handed to Bleeps instead of an issueCommand worktree.
 The project keys live in orca.project.yaml. Orca does not parse that file.
 
 A missing `proactive` key means on. `off` skips the run.
@@ -491,6 +493,22 @@ def file_issue(finding: Finding) -> int | None:
 
 
 def start_pipeline(number: int, dry_run: bool) -> None:
+    project = bleeps().load_project(Path.cwd())
+    bots = load_script("bleeps_bots", "bots")
+    if bots.runtime_choice(project) == "bots":
+        command = bots.handoff_argv(number)
+        shown = " ".join(command)
+        if dry_run or subprocess.run(["sh", "-c", "command -v orca"], capture_output=True).returncode != 0:
+            print(f"runtime: bots. would hand #{number} to Bleeps")
+            print("would run: " + shown)
+            return
+        result = subprocess.run(command, text=True, capture_output=True)
+        if result.returncode != 0:
+            print(result.stderr.strip(), file=sys.stderr)
+            print("would run: " + shown)
+            return
+        print(f"handed #{number} to Bleeps")
+        return
     command = [
         "orca",
         "worktree",
@@ -533,7 +551,12 @@ def cmd_schedule(root: Path, install: bool) -> int:
         return 0
     choice = host_choice(project)
     print(f"host: {choice}. {HOST_NOTE[choice]}")
-    print(automation_command(root, project))
+    bots = load_script("bleeps_bots", "bots")
+    if bots.runtime_choice(project) == "bots":
+        print("runtime: bots. Chip's scout is an automation on the Chip bot.")
+        print(bots.chip_automation(root, project))
+    else:
+        print(automation_command(root, project))
     if not install:
         return 0
     if subprocess.run(["sh", "-c", "command -v orca"], capture_output=True).returncode != 0:
@@ -579,6 +602,8 @@ def main(argv: list[str]) -> int:
                 print(f"would post finding to {source}")
         started = choose(friction, findings, cap, 0)
         print(f"would start {len(started)} of cap {cap}")
+        if load_script("bleeps_bots", "bots").runtime_choice(project) == "bots":
+            print("runtime: bots. would hand issues to the group, not start an issueCommand worktree")
         return 0
     if subprocess.run(["sh", "-c", "command -v gh"], capture_output=True).returncode != 0:
         print("gh is not on PATH; nothing filed", file=sys.stderr)

@@ -7,7 +7,7 @@ description: When the system changes, update the docs, decisions, config, script
 
 Any agent who changes how the system works follows this. A crew member, a script, a ticket source, a config key, or a pipeline step that moves in one place and not the others leaves the site lying.
 
-The public site reads `site/system-facts.json`. `scripts/check-site` derives the same facts from the decision tables, `scripts/ticketlib.py`, `scripts/fix-loop`, `scripts/bleeps-scout`, `scripts/providers`, and `examples/orca.project.yaml`. It fails when they disagree, and when a page stops rendering the file.
+The public site reads `site/system-facts.json`. `scripts/check-site` derives the same facts from the decision tables, `scripts/ticketlib.py`, `scripts/fix-loop`, `scripts/bleeps-scout`, `scripts/bots`, `scripts/providers`, and `examples/orca.project.yaml`. It fails when they disagree, and when a page stops rendering the file.
 
 ## Update together
 
@@ -17,8 +17,8 @@ Touch only the rows this change actually affects.
 - A pipeline change: `docs/flow.md`, `orca.yaml` `issueCommand`, the role skill that runs the step, and `site/system-facts.json` `pipeline`.
 - A ticket source: `scripts/ticketlib.py` `SOURCES`, an adapter under `scripts/`, `docs/tickets.md`, decision 0013 if the set changed, the label needle in `scripts/check-site`, and `site/system-facts.json` `ticketSources`. GitHub stays required.
 - A crew script: the script under `scripts/`, the "Scripts in place" line in decision 0011, the role that runs it, and `site/system-facts.json` `scripts`.
-- A config key: `examples/orca.project.yaml` and `orca.project.yaml` when this repo uses it, `docs/tickets.md` or `docs/using-bleeps.md` for the key's meaning, and `site/system-facts.json` `configKeys`. `health_url` and `preview` stay off the site until the commands run. Credential keys stay env var names. Never put a secret in the yaml or on the site.
-- A default (`fix_rounds`, `proactive`, `host`, `scout_cap`, `scout_schedule`, `scout_time`, `router`, `scout_provider`, `jev_url`): the `project.get` default in the script, then `site/system-facts.json`. `scout_provider` is Chip's provider in `scripts/providers`. Do not hardcode the number in a page.
+- A config key: `examples/orca.project.yaml` and `orca.project.yaml` when this repo uses it, `docs/tickets.md` or `docs/using-bleeps.md` for the key's meaning, and `site/system-facts.json` `configKeys`. `runtime` is `issue-command` or `bots`. See [bots](../../../../docs/bots.md). `health_url` and `preview` stay off the site until the commands run. Credential keys stay env var names. Never put a secret in the yaml or on the site.
+- A default (`fix_rounds`, `proactive`, `host`, `runtime`, `scout_cap`, `scout_schedule`, `scout_time`, `router`, `scout_provider`, `jev_url`): the `project.get` default in the script, then `site/system-facts.json`. `runtime` lives in `scripts/bots`. `scout_provider` is Chip's provider in `scripts/providers`. Do not hardcode the number in a page.
 - A decision that changes an old one: the next number, and mark the old record superseded. Do not renumber.
 
 ## Site copy

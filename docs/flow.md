@@ -5,13 +5,13 @@ Ticket-to-merge pipeline. Bleeps runs the crew. Bloops merges and reflects. Merg
 ## Steps
 
 0. On a schedule, on the machine `host` names (default `local`), Chip scans the project and files a GitHub issue labelled `bleeps:found` for each new finding. When the project lists another ticket source, Chip also creates that finding there. Open `friction` issues join the GitHub queue and are not filed again, and they are not copied. Each GitHub issue then enters step 1. A machine that is off does not replay missed days. See [0008](decisions/0008-bleeps-is-proactive.md), [0013](decisions/0013-one-ticket-many-sources.md), and [0014](decisions/0014-where-it-runs.md).
-1. A ticket arrives from GitHub Issues, a GitHub Project, Jira, Discord, or Linear. The project chooses its sources. GitHub access is required either way. `scripts/intake` turns the ticket into one shape and, for a non-GitHub source, a GitHub issue labelled `bleeps:intake`. Orca's `issueCommand` takes that issue (`{{issue}}` and `{{artifact_url}}`). Beep plans with `scripts/kick-off`.
+1. A ticket arrives from GitHub Issues, a GitHub Project, Jira, Discord, or Linear. The project chooses its sources. GitHub access is required either way. `scripts/intake` turns the ticket into one shape and, for a non-GitHub source, a GitHub issue labelled `bleeps:intake`. Orca's `issueCommand` takes that issue (`{{issue}}` and `{{artifact_url}}`) when `runtime` is `issue-command` (the default). `runtime: bots` runs the same gates from an Orca bot group instead. See [bots](bots.md). Beep plans with `scripts/kick-off`.
 2. Write `spec.md` in `specs/<issue>-<slug>/`. Write `design.md` only if the approach is risky.
 3. Write `tasks.md` as a checklist. Test tasks are included. Blip owns them. See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md).
 4. Build in an isolated Orca worktree. Each role's provider and model come from `scripts/providers`. A guardrail change uses the frontier model. Blip writes or extends the tests and runs `scripts/fix-loop`. A red suite does not stop the run. Buzz fixes product code, or Blip fixes the test when the test itself is wrong, then Blip reruns. `fix_rounds` in `orca.project.yaml` defaults to 2. The next red escalates to James with a summary, and that run does not merge. Pause for human approval when a change touches a guardrail area: auth, billing, payments, data deletion, or migrations. See [0012](decisions/0012-red-suite-loops.md).
 5. An independent read-only reviewer writes `verify.md`. It records unit, integration, and end-to-end. End-to-end is not applicable only when the project is not a web app. Only a "Ready to ship" verdict proceeds, and only when those layers are green. A red suite returns to step 4. A missing test command is not green. Any other not-ready verdict does not proceed.
 6. Open a PR against `develop`, comment on the issue, and link the PR on the ticket source with `scripts/intake link-pr`.
-7. Layered review: CodeRabbit, optionally Devin, and Claude Code for architecture fit. Grok Bot watches the PR queue, failing CI, and review nudges.
+7. Layered review is not started by `orca.yaml`. CodeRabbit, Devin, and an architecture-fit pass count only when they actually ran. Nothing in this factory watches the pull-request queue.
 8. Auto-merge into `develop` when all gates pass: required checks green, verify verdict "Ready to ship", layered reviews passed with no blocking findings, and no guardrail area touched without human sign-off.
 9. James promotes `develop` to `main`. Agents never touch `main`.
 
@@ -33,7 +33,7 @@ flowchart TD
   hold["Does not proceed"]
   limit["fix_rounds spent: escalate to James. Do not merge"]
   s6["6. PR opened against develop. Comment on the issue"]
-  s7["7. Layered review: CodeRabbit, optionally Devin, Claude Code architecture fit. Grok Bot watches the PR queue, failing CI, and review nudges"]
+  s7["7. Reviews count only when they actually ran. Nothing in this factory watches the queue"]
   gates{"All gates pass?"}
   s8["8. Auto-merge into develop"]
   s9["9. James promotes develop to main"]

@@ -7,7 +7,7 @@ const facts = JSON.parse(readFileSync(join(process.cwd(), "system-facts.json"), 
   crew: { name: string }[];
   ticketSources: { label: string }[];
   fixRounds: number;
-  defaults: { host: string };
+  defaults: { host: string; runtime: string };
 };
 
 const REPO = "https://github.com/eljamez/bleeps-and-bloops";
@@ -115,6 +115,17 @@ test("setup pages require GitHub and name the other ticket sources", async ({ pa
   }
 });
 
+test("home and day-to-day pages explain the optional bots runtime", async ({ page }) => {
+  for (const path of ["/", "/using-bleeps"]) {
+    await page.goto(path);
+    await expect(
+      page.getByRole("heading", { name: "Optional: run the crew as Orca bots" }),
+    ).toBeVisible();
+    await expect(page.getByText(new RegExp(`defaults to ${facts.defaults.runtime}`)).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "how to run the crew as bots" })).toBeVisible();
+  }
+});
+
 test("usage page explains intake and Chip posting findings", async ({ page }) => {
   await page.goto("/using-bleeps");
   await expect(page.getByText(/scripts\/intake writes one/)).toBeVisible();
@@ -133,7 +144,7 @@ test("home page sends a red suite back into the run", async ({ page }) => {
 
 test("usage page explains Blip and the patrol switch", async ({ page }) => {
   await page.goto("/using-bleeps");
-  await expect(page.getByRole("heading", { name: "The crew" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The crew", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Blip" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "The patrol" })).toBeVisible();
   const crew = page.locator("#crew");
@@ -145,6 +156,6 @@ test("usage page explains Blip and the patrol switch", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByText(/Green tests are a hard gate before auto-merge/)).toBeVisible();
   await expect(page.getByText(/A red suite does not stop the run/)).toBeVisible();
-  await expect(page.getByText(/Nothing merges while tests are red/)).toBeVisible();
+    await expect(page.locator("#blip").getByText(/Nothing merges while tests are red/)).toBeVisible();
   await expect(page.getByText(/The patrol is per project/)).toBeVisible();
 });

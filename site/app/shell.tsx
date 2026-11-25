@@ -18,6 +18,7 @@ export const links = {
   friction: blob("docs/friction-log.md"),
   architecture: blob("docs/architecture.md"),
   runs: blob("docs/where-it-runs.md"),
+  bots: blob("docs/bots.md"),
   example: blob("examples/orca.project.yaml"),
   blip: blob("agents/blip/ROLE.md"),
   tickets: blob("docs/tickets.md"),
@@ -187,7 +188,10 @@ export function HostNote() {
         is a machine at home. Same scripts, same <code>orca.yaml</code>. Reach
         an always-on machine on a private network such as Tailscale. Do not
         open its ports. GitHub Actions can run the checks. It cannot run Orca,
-        so it is not a value of <code>host</code>. The steps are in the{" "}
+        so it is not a value of <code>host</code>. <code>runtime</code> defaults
+        to {system.defaults.runtime}, which keeps today&apos;s issue prompt.
+        Set <code>runtime: bots</code> only when you want the crew as Orca
+        bots in one group. The steps are in the{" "}
         <a href={links.runs}>where it runs</a> notes. 8&nbsp;GB of RAM is the
         floor. 16&nbsp;GB is comfortable. Register Chip on that machine with{" "}
         <code>python3 scripts/bleeps-scout schedule</code>, then{" "}
@@ -196,6 +200,50 @@ export function HostNote() {
         to pick a different one.
       </p>
     </>
+  );
+}
+
+export function BotsNote() {
+  return (
+    <div className="stack">
+      <p>
+        <code>runtime</code> defaults to {system.defaults.runtime}. Leave it
+        there and Orca starts the crew from <code>issueCommand</code> when a
+        workspace launches from a GitHub issue.
+      </p>
+      <p>
+        Set <code>runtime: bots</code> when you want the crew as Orca bots in
+        one group. Bleeps coordinates. Beep plans. Buzz builds. Blip runs the
+        suites. Chip scouts. Bloops merges. Echo stays a fresh worker for each
+        verify, so the verifier does not share the writer&apos;s chat.{" "}
+        <code>python3 scripts/bots print</code> shows the create, automation,
+        and handoff commands. It does not run them. The guide is{" "}
+        <a href={links.bots}>how to run the crew as bots</a>.
+      </p>
+      <p>
+        The gates do not move. Intake, guardrails, the fix loop, verify, and
+        merge stay the scripts. Nothing merges while tests are red. Pull
+        requests target <code>develop</code>. You promote <code>main</code>.
+        A sign-off area waits for you. Bloops merges only through{" "}
+        <code>scripts/merge-pr</code>, and only when you say so.
+      </p>
+      <p>
+        Bots run on the machine <code>host</code> names, and only while that
+        computer is awake and Orca is running. Pair a server you leave on
+        when you want them reachable. Link the repository in each bot&apos;s
+        settings. Leave Look around on for Bleeps and Chip, and turn it off
+        for the others. A new bot starts in Full access. Switch a bot that
+        reads issues or messages to Ask for approval, and a worker session
+        to Accept edits.
+      </p>
+      <p>
+        The start label is <code>bleeps:go</code>. A bot can stop partway
+        after a restart or a usage limit. GitHub work uses your <code>gh</code>{" "}
+        login, so <code>verify.md</code> names the writer and the verifier.
+        Orca tells a bot to merge only when you ask. That line is a prompt.
+        The script is what blocks the merge.
+      </p>
+    </div>
   );
 }
 

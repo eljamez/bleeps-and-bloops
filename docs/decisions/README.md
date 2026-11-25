@@ -6,7 +6,7 @@ These are product-shaped choices already made, usually a no. Each record has a r
 
 [Flow](../flow.md) and [architecture](../architecture.md) describe how Bleeps works today. This folder records what we already settled.
 
-A record is about half a page: context, the decision, consequences, and a revisit-if. Copy [0000-template.md](0000-template.md) to the next unused number (`0016` is next). Do not renumber old files.
+A record is about half a page: context, the decision, consequences, and a revisit-if. Copy [0000-template.md](0000-template.md) to the next unused number (`0017` is next). Do not renumber old files.
 
 Write a record when the next agent would otherwise re-propose the same thing. Skip layout tweaks, library picks the code already encodes, and notes that a PR shipped.
 
@@ -29,3 +29,4 @@ When a later record changes a decision, mark the old one `superseded by NNNN`. L
 - [0013: One ticket, many sources](0013-one-ticket-many-sources.md) — GitHub, GitHub Projects, Jira, Discord, and Linear share one intake path. GitHub access stays required.
 - [0014: Where it runs is a choice](0014-where-it-runs.md) — `host` is `local` (default), `cloud`, or `home`. A home server is optional. GitHub Actions is not a host.
 - [0015: A provider and model per role](0015-role-providers.md) — Claude Code is the default. Jev is opt-in and cannot go below a role's floor.
+- [0016: Orca bots are an optional runtime](0016-orca-bots.md) — `runtime` is `issue-command` (default) or `bots`. The gates stay the scripts. Echo stays a fresh worker.

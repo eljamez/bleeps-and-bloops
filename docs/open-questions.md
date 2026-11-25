@@ -7,6 +7,10 @@
 - Secrets stay on the machine that runs Orca (`gh` auth, the agent login). They are not in `orca.yaml`.
 - Which timezone the daily 09:00 scout should use. The automation uses that machine's clock until a timezone is set.
 - Whether `scripts/bleeps-scout schedule` should pass a longer `--missed-run-grace-minutes` for `host: local`. Orca's create default is 720 minutes, so a laptop closed all weekend misses that run.
+- Whether `bleeps:go` stays the GitHub label that starts the bot group. A label the owner's own GitHub login adds does not start the bot, because the bot acts as that login. Chip hands the issue across instead. See [bots](bots.md).
+- Whether Linear's `bot:<handle>` label should start the crew, or stay a way to ask one bot. This factory does not mirror tickets onto that label.
+- Whether Slack should become a ticket source. A bot can be reached from Slack. Slack is not an intake source. Discord is.
+- Which machine hosts the bot group when `host` is `local` and that computer sleeps. A paired server is the always-on choice, and this repo does not record its name.
 - The site has no Playwright suite yet. Blip's onboard skill is the path that adds it.
 - Whether to turn on GitHub's auto-merge setting. Bloops' script checks the gates and does not flip that setting. See [0010](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md).
 - Per-source credentials and names James still has to provide before a live check can pass. The file stores env var names only. See [tickets](tickets.md).
@@ -30,4 +34,5 @@
 - **Ticket sources.** [0013](decisions/0013-one-ticket-many-sources.md): GitHub, GitHub Projects, Jira, Discord, and Linear share `scripts/intake`. GitHub access stays required. Live calls against those APIs are not verified in this repo.
 - **Where it runs.** [0014](decisions/0014-where-it-runs.md): `host` is `local` (default), `cloud`, or `home`. A home server is optional. GitHub Actions is not a host. An environment recipe does not replace the machine.
 - **Which agent Orca launches.** [0015](decisions/0015-role-providers.md): each role has a provider and a model. Claude Code is the default. Chip's schedule uses that provider, so install does not wait for `scout_provider`.
+- **Orca bots.** [0016](decisions/0016-orca-bots.md): `runtime` is `issue-command` (default) or `bots`. The group is optional. The gates stay the scripts. Echo stays a fresh worker.
 - **Jev.** [0015](decisions/0015-role-providers.md): optional. `router: jev` asks a local proxy. It cannot pick below the role's floor. A failed call uses the configured model. The factory runs with `router` left off.

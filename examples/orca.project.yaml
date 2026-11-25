@@ -27,6 +27,10 @@ proactive: on
 # Where Orca runs. local (default), cloud, or home.
 # GitHub Actions is not a host. See docs/where-it-runs.md.
 host: local
+# runtime is issue-command (default) or bots. bots is optional.
+# issue-command is Orca's issueCommand prompt. bots runs the crew as Orca
+# bots in one group. Echo stays a fresh worker. See docs/bots.md.
+runtime: issue-command
 scout_cap: 2
 scout_schedule: daily
 scout_time: "09:00"

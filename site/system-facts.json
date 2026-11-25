@@ -44,7 +44,8 @@
     { "path": "scripts/bleeps-scout", "who": "Chip" },
     { "path": "scripts/bloops-reflect", "who": "Bloops" },
     { "path": "scripts/check-ticket-sources", "who": "You" },
-    { "path": "scripts/providers", "who": "Crew" }
+    { "path": "scripts/providers", "who": "Crew" },
+    { "path": "scripts/bots", "who": "You" }
   ],
   "configKeys": [
     "install",
@@ -55,6 +56,7 @@
     "test_e2e",
     "proactive",
     "host",
+    "runtime",
     "scout_cap",
     "scout_schedule",
     "scout_time",
@@ -87,6 +89,7 @@
   "defaults": {
     "proactive": "on",
     "host": "local",
+    "runtime": "issue-command",
     "scout_cap": "2",
     "scout_schedule": "daily",
     "scout_time": "09:00",
@@ -132,7 +135,7 @@
     {
       "kind": "step",
       "title": "5. Pull request and review",
-      "body": "The pull request targets develop. CodeRabbit, optionally Devin, and Claude Code review it. Grok Bot watches the queue, failing CI, and review nudges."
+      "body": "The pull request targets develop. This factory does not start CodeRabbit, Devin, or an architecture-fit review. Count a review only when it actually ran. Nothing here watches the queue for you."
     },
     {
       "kind": "gate",

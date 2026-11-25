@@ -3,7 +3,7 @@
 
 The site renders site/system-facts.json. This script derives the same
 facts from the crew table, ticketlib, the fix loop, decision 0011, the
-scout, scripts/providers, and examples/orca.project.yaml, then compares. It also checks
+scout, scripts/bots, scripts/providers, and examples/orca.project.yaml, then compares. It also checks
 that the pages actually render that file.
 
 ponytail: label needles for ticket sources are a short map, not a
@@ -164,6 +164,7 @@ def provider_roles() -> list[dict[str, str]]:
 
 def derive() -> dict:
     scout = ROOT / "scripts" / "bleeps-scout"
+    bots = ROOT / "scripts" / "bots"
     providers = ROOT / "scripts" / "providers"
     roles = provider_roles()
     chip = next(role for role in roles if role["name"] == "Chip")
@@ -176,6 +177,7 @@ def derive() -> dict:
         "defaults": {
             "proactive": get_default(scout, "proactive"),
             "host": get_default(scout, "host"),
+            "runtime": get_default(bots, "runtime"),
             "scout_cap": get_default(scout, "scout_cap"),
             "scout_schedule": get_default(scout, "scout_schedule"),
             "scout_time": get_default(scout, "scout_time"),
@@ -262,6 +264,8 @@ def problems(facts: dict, derived: dict) -> list[str]:
     for token in ("{{sources}}", "{{fixRounds}}", "scripts/fix-loop", "scripts/merge-pr", "Ready to ship"):
         if token not in pipeline:
             bad(f"pipeline is missing {token}")
+    if "Grok Bot" in pipeline:
+        bad("pipeline still says a Grok Bot watches the queue")
     for name in derived["crew"]:
         if name not in pipeline:
             bad(f"pipeline does not name {name}")
@@ -301,6 +305,14 @@ def page_problems() -> list[str]:
     need(shell, "system.defaults.host")
     need(shell, "function HostNote")
     need(using, "system.defaults.host")
+    need(shell, "system.defaults.runtime")
+    need(shell, "function BotsNote")
+    need(using, "Optional: run the crew as Orca bots")
+    need(using, "BotsNote")
+    need(home, "Optional: run the crew as Orca bots")
+    need(home, "BotsNote")
+    if "Grok Bot watches" in read(ROOT / "docs" / "flow.md"):
+        found.append("docs/flow.md still says Grok Bot watches the queue")
     for name in ("new", "existing"):
         page = app / "start" / name / "page.tsx"
         renders_sources(page)

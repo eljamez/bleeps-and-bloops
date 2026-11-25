@@ -31,7 +31,7 @@ Turning auto-merge on in GitHub is Phase 3. Leave it off until the checks and th
 
 ### Shared config
 
-One shared [`orca.yaml`](../orca.yaml) is the factory config. `issueCommand` is the kick-off. `scripts.setup` installs dependencies when Orca creates a worktree. Orca does not merge a second yaml. Your repository symlinks `orca.yaml` and commits `orca.project.yaml` for install, test, typecheck, and `host`. Copy [examples/orca.project.yaml](../examples/orca.project.yaml). See [0001](decisions/0001-shared-factory-config.md), [0007](decisions/0007-bleeps-is-built-for-orca.md), and [where it runs](where-it-runs.md).
+One shared [`orca.yaml`](../orca.yaml) is the factory config. `issueCommand` is the kick-off. `scripts.setup` installs dependencies when Orca creates a worktree. Orca does not merge a second yaml. Your repository symlinks `orca.yaml` and commits `orca.project.yaml` for install, test, typecheck, `host`, and `runtime`. `runtime` defaults to `issue-command`. `bots` is optional and runs the crew as Orca bots in one group. Copy [examples/orca.project.yaml](../examples/orca.project.yaml). See [0001](decisions/0001-shared-factory-config.md), [0007](decisions/0007-bleeps-is-built-for-orca.md), [0016](decisions/0016-orca-bots.md), and [where it runs](where-it-runs.md).
 
 The 2026-11-11 Claude plugins stay reference. `/bb:kick-off` is now `issueCommand`. `/bb:sdd-init` is the setup hook. The spec, task, and verify stages are steps in that prompt. The pack's ship step never merged; merge policy is [0003](decisions/0003-gitflow-auto-merge-to-develop.md), and `scripts/ship-pr` is still a stub. The full map is in [0007](decisions/0007-bleeps-is-built-for-orca.md).
 
@@ -77,7 +77,7 @@ These are the steps in [flow](flow.md). Kick-off is `issueCommand`. The ship-pr 
 4. The agent builds in an isolated Orca worktree. Blip runs `scripts/fix-loop`. A red suite goes back in the same run: Buzz fixes the code, or Blip fixes the test when the test is wrong. Blip reruns until green. `fix_rounds` defaults to 2. The next red escalates to the owner with a summary and does not merge. When the change touches a guardrail, the loop pauses for a human.
 5. A separate read-only reviewer writes `verify.md`. It does not share the implementer's context, and it does not edit. Only "Ready to ship" continues, and only when the suite is green. A red suite returns to step 4. Any other verdict stops the line before a pull request.
 6. The agent opens a pull request against `develop` and comments on the issue. The description includes the recap.
-7. Layered review runs: CodeRabbit, optionally Devin, and Claude Code for architecture fit. Grok Bot watches the queue, failing CI, and review nudges. That layer is Phase 2, and the bot is planned.
+7. Layered review is not started by `orca.yaml`. CodeRabbit, Devin, and an architecture-fit pass count only when they actually ran. Nothing in this factory watches the queue.
 8. The pull request auto-merges into `develop` when every gate passes. The ship-pr text judges risk, what to fix, and when to stop. `scripts/ship-pr` will walk CI, reviews, memory, merge, and health. Today it refuses to merge. Low and medium risk may merge once that procedure exists. High risk waits. See [Ship a PR](ship-pr.md).
 9. The owner promotes `develop` to `main`. Here, that owner is James. On your project, it is you. Agents never touch `main`.
 
