@@ -19,6 +19,7 @@ export const links = {
   architecture: blob("docs/architecture.md"),
   runs: blob("docs/where-it-runs.md"),
   bots: blob("docs/bots.md"),
+  lane: blob("docs/chore-lane-setup.md"),
   example: blob("examples/orca.project.yaml"),
   blip: blob("agents/blip/ROLE.md"),
   tickets: blob("docs/tickets.md"),
@@ -214,10 +215,11 @@ export function BotsNote() {
       <p>
         Set <code>runtime: bots</code> when you want the crew as Orca bots in
         one group. Bleeps coordinates. Beep plans. Buzz builds. Blip runs the
-        suites. Chip scouts. Bloops merges. Echo stays a fresh worker for each
-        verify, so the verifier does not share the writer&apos;s chat.{" "}
-        <code>python3 scripts/bots print</code> shows the create, automation,
-        and handoff commands. It does not run them. The guide is{" "}
+        suites. Chip scouts. Ping reviews. Boop opens chores. Bloops merges.
+        Echo stays a fresh worker for each verify, so the verifier does not
+        share the writer&apos;s chat. Zap joins only when <code>zap</code> is
+        on. <code>python3 scripts/bots print</code> shows the create,
+        automation, and handoff commands. It does not run them. The guide is{" "}
         <a href={links.bots}>how to run the crew as bots</a>.
       </p>
       <p>
@@ -225,7 +227,15 @@ export function BotsNote() {
         merge stay the scripts. Nothing merges while tests are red. Pull
         requests target <code>develop</code>. You promote <code>main</code>.
         A sign-off area waits for you. Bloops merges only through{" "}
-        <code>scripts/merge-pr</code>, and only when you say so.
+        <code>scripts/merge-pr</code>, and only when you say so.{" "}
+        <code>chore_lane</code> defaults to {system.defaults.chore_lane}. Set
+        it to on and a workflow merges a chore{" "}
+        <code>scripts/chore-lane</code> accepts. The classes that start
+        enabled are {system.defaults.chore_lane_classes}. Boop does not build
+        a feature, and neither does Chip. <code>review_external</code> defaults
+        to {system.defaults.review_external}, which installs nothing.{" "}
+        <code>zap</code> defaults to {system.defaults.zap}. The checklist is
+        the <a href={links.lane}>chore lane setup</a>.
       </p>
       <p>
         Bots run on the machine <code>host</code> names, and only while that

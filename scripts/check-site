@@ -59,6 +59,15 @@ EXTRA_KEYS = {
     "bloops_provider",
     "bloops_model",
     "bloops_tier",
+    "ping_provider",
+    "ping_model",
+    "ping_tier",
+    "boop_provider",
+    "boop_model",
+    "boop_tier",
+    "zap_provider",
+    "zap_model",
+    "zap_tier",
 }
 
 LABEL_NEEDLES = {
@@ -166,6 +175,7 @@ def derive() -> dict:
     scout = ROOT / "scripts" / "bleeps-scout"
     bots = ROOT / "scripts" / "bots"
     providers = ROOT / "scripts" / "providers"
+    lane = ROOT / "scripts" / "chore-lane"
     roles = provider_roles()
     chip = next(role for role in roles if role["name"] == "Chip")
     return {
@@ -184,6 +194,10 @@ def derive() -> dict:
             "router": get_default(providers, "router"),
             "scout_provider": chip["provider"],
             "jev_url": get_default(providers, "jev_url"),
+            "chore_lane": get_default(lane, "chore_lane"),
+            "chore_lane_classes": get_default(lane, "chore_lane_classes"),
+            "review_external": get_default(lane, "review_external"),
+            "zap": get_default(lane, "zap"),
         },
     }
 
@@ -306,6 +320,9 @@ def page_problems() -> list[str]:
     need(shell, "function HostNote")
     need(using, "system.defaults.host")
     need(shell, "system.defaults.runtime")
+    need(shell, "system.defaults.chore_lane")
+    need(shell, "system.defaults.review_external")
+    need(shell, "system.defaults.zap")
     need(shell, "function BotsNote")
     need(using, "Optional: run the crew as Orca bots")
     need(using, "BotsNote")

@@ -37,7 +37,10 @@ ROLES = (
     ("blip", "claude", "sonnet", "balanced", "stall"),
     ("echo", "claude", "opus", "frontier", "fixed"),
     ("chip", "claude", "haiku", "fast", "jev"),
+    ("ping", "claude", "sonnet", "balanced", "fixed"),
+    ("boop", "claude", "sonnet", "balanced", "fixed"),
     ("bloops", "claude", "sonnet", "balanced", "reflect"),
+    ("zap", "claude", "sonnet", "balanced", "fixed"),
 )
 
 TIERS = ("fast", "balanced", "frontier")

@@ -12,7 +12,6 @@
 - Whether Slack should become a ticket source. A bot can be reached from Slack. Slack is not an intake source. Discord is.
 - Which machine hosts the bot group when `host` is `local` and that computer sleeps. A paired server is the always-on choice, and this repo does not record its name.
 - The site has no Playwright suite yet. Blip's onboard skill is the path that adds it.
-- Whether to turn on GitHub's auto-merge setting. Bloops' script checks the gates and does not flip that setting. See [0010](decisions/0010-bleeps-runs-the-crew-bloops-reflects.md).
 - Per-source credentials and names James still has to provide before a live check can pass. The file stores env var names only. See [tickets](tickets.md).
   - GitHub: confirm `gh auth login` or the token env, and `github_repo` when `origin` is not the repo.
   - GitHub Project: owner (user or org), project number, and the Status option names if they are not Todo, In Progress, and Done.
@@ -24,7 +23,7 @@
 
 ## Resolved
 
-- **Merge policy.** Resolved in [0003: Gitflow auto-merge to develop](decisions/0003-gitflow-auto-merge-to-develop.md). Feature PRs from agents target `develop` and may auto-merge once verified safe. Only James merges `develop` into `main`. Agents never touch `main`. Label rules can still restrict which tickets auto-merge.
+- **Merge policy.** Resolved in [0003: Gitflow auto-merge to develop](decisions/0003-gitflow-auto-merge-to-develop.md) and narrowed by [0017](decisions/0017-chore-lane.md). Feature pull requests target `develop` and wait for the owner. The chore lane is the workflow merge, and only when the project opts in. Only the owner merges `develop` into `main`. Agents never touch `main`.
 - **Runtime.** Resolved in [0007: Bleeps is built for Orca](decisions/0007-bleeps-is-built-for-orca.md). The factory config is `orca.yaml`. The 2026-11-11 Claude plugins stay reference, including the `engineering` plugin and any newer `spec-driven-workflow` on a machine. Their ideas map onto Orca keys in that decision.
 - **Core `orca.yaml`.** It is at the repository root. Setup installs dependencies. Orca has no verification key. `scripts/orca-verify` runs the checks, and a required GitHub check is what can block a pull request.
 - **A missing test command.** [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md): it fails. It is not a skip.
@@ -35,4 +34,5 @@
 - **Where it runs.** [0014](decisions/0014-where-it-runs.md): `host` is `local` (default), `cloud`, or `home`. A home server is optional. GitHub Actions is not a host. An environment recipe does not replace the machine.
 - **Which agent Orca launches.** [0015](decisions/0015-role-providers.md): each role has a provider and a model. Claude Code is the default. Chip's schedule uses that provider, so install does not wait for `scout_provider`.
 - **Orca bots.** [0016](decisions/0016-orca-bots.md): `runtime` is `issue-command` (default) or `bots`. The group is optional. The gates stay the scripts. Echo stays a fresh worker.
+- **Chore lane.** [0017](decisions/0017-chore-lane.md): `chore_lane` is off unless the project opts in. The workflow merges a pass. `scripts/merge-pr --apply` does not merge. Chip and Boop do not build a feature. `review_external` defaults to `none`. Zap defaults to off. The outside reviewer is still a price question. The key stays `none` until that is chosen.
 - **Jev.** [0015](decisions/0015-role-providers.md): optional. `router: jev` asks a local proxy. It cannot pick below the role's floor. A failed call uses the configured model. The factory runs with `router` left off.

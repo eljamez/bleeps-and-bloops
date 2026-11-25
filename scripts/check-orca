@@ -263,6 +263,10 @@ def check_scout() -> None:
         handed = run([sys.executable, str(scout), "--dry-run"], project)
         require(handed.returncode == 0, handed.stderr)
         require("would hand issues to the group" in handed.stdout, handed.stdout)
+        feature = module.Finding("feature:idea", "a feature", "", "low")
+        parked = module.choose([], [feature], 2, 0)
+        require(parked == [], "a feature finding is filed and not started")
+        require("does not build a feature" in module.issue_body(feature), module.issue_body(feature))
 
         gap = Path(tmp) / "web"
         gap.mkdir()
@@ -501,6 +505,8 @@ def main() -> int:
         "check-site",
         "providers",
         "bots",
+        "classify-pr",
+        "chore-lane",
     ):
         path = ROOT / "scripts" / name
         require(path.stat().st_mode & stat.S_IXUSR, f"{name} is not executable")
@@ -509,6 +515,10 @@ def main() -> int:
     check_scout()
     check_providers()
     check_fix_loop()
+    classified = run([sys.executable, str(ROOT / "scripts" / "classify-pr"), "--self-check"], ROOT)
+    require(classified.returncode == 0, f"classify-pr self-check failed\n{classified.stdout}\n{classified.stderr}")
+    lane = run([sys.executable, str(ROOT / "scripts" / "chore-lane"), "--self-check"], ROOT)
+    require(lane.returncode == 0, f"chore-lane self-check failed\n{lane.stdout}\n{lane.stderr}")
     bots = run([sys.executable, str(ROOT / "scripts" / "bots"), "check"], ROOT)
     require(bots.returncode == 0, f"bots check failed\n{bots.stdout}\n{bots.stderr}")
     printed = run([sys.executable, str(ROOT / "scripts" / "bots"), "print"], ROOT)

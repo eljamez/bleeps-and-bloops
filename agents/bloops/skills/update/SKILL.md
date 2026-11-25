@@ -16,9 +16,9 @@ Touch only the rows this change actually affects.
 - A new or renamed crew member: `agents/<name>/ROLE.md`, the table in decision 0010, `orca.yaml` `issueCommand`, `AGENTS.md`, and `site/system-facts.json` `crew`.
 - A pipeline change: `docs/flow.md`, `orca.yaml` `issueCommand`, the role skill that runs the step, and `site/system-facts.json` `pipeline`.
 - A ticket source: `scripts/ticketlib.py` `SOURCES`, an adapter under `scripts/`, `docs/tickets.md`, decision 0013 if the set changed, the label needle in `scripts/check-site`, and `site/system-facts.json` `ticketSources`. GitHub stays required.
-- A crew script: the script under `scripts/`, the "Scripts in place" line in decision 0011, the role that runs it, and `site/system-facts.json` `scripts`.
+- A crew script: the script under `scripts/`, the "Scripts in place" line in decision 0011, the role that runs it, and `site/system-facts.json` `scripts`. `scripts/classify-pr` and `scripts/chore-lane` are the lane.
 - A config key: `examples/orca.project.yaml` and `orca.project.yaml` when this repo uses it, `docs/tickets.md` or `docs/using-bleeps.md` for the key's meaning, and `site/system-facts.json` `configKeys`. `runtime` is `issue-command` or `bots`. See [bots](../../../../docs/bots.md). `health_url` and `preview` stay off the site until the commands run. Credential keys stay env var names. Never put a secret in the yaml or on the site.
-- A default (`fix_rounds`, `proactive`, `host`, `runtime`, `scout_cap`, `scout_schedule`, `scout_time`, `router`, `scout_provider`, `jev_url`): the `project.get` default in the script, then `site/system-facts.json`. `runtime` lives in `scripts/bots`. `scout_provider` is Chip's provider in `scripts/providers`. Do not hardcode the number in a page.
+- A default (`fix_rounds`, `proactive`, `host`, `runtime`, `scout_cap`, `scout_schedule`, `scout_time`, `router`, `scout_provider`, `jev_url`, `chore_lane`, `chore_lane_classes`, `review_external`, `zap`): the `project.get` default in the script, then `site/system-facts.json`. `runtime` lives in `scripts/bots`. The lane defaults live in `scripts/chore-lane`. `scout_provider` is Chip's provider in `scripts/providers`. Do not hardcode the number in a page.
 - A decision that changes an old one: the next number, and mark the old record superseded. Do not renumber.
 
 ## Site copy

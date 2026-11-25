@@ -198,9 +198,10 @@ export default function UsingBleepsPage() {
             issue.
           </p>
           <p>
-            This factory does not start CodeRabbit, Devin, or an
-            architecture-fit review. Count a review only when it actually
-            ran. Nothing here watches the queue for you.
+            Ping posts one summary on a pull request into <code>develop</code>{" "}
+            when you run the crew as bots. <code>review_external</code> defaults
+            to {system.defaults.review_external}. That installs nothing. Count
+            a review only when it actually ran.
           </p>
         </div>
       </Section>
@@ -222,10 +223,12 @@ export default function UsingBleepsPage() {
             those files in place.
           </p>
           <p>
-            <code>scripts/merge-pr</code> reports whether the gates passed. It
-            does not turn on GitHub auto-merge. Whether that setting is on is
-            still an open question. <code>--apply</code> does not merge. High
-            risk waits for you.
+            <code>scripts/merge-pr</code> reports whether the gates passed.
+            <code>--apply</code> does not merge. High risk waits for you.{" "}
+            <code>chore_lane</code> defaults to {system.defaults.chore_lane}.
+            Turn it on and the workflow squash-merges a chore the script
+            accepts. You still merge everything else. The steps are the{" "}
+            <a href={links.lane}>chore lane setup</a>.
           </p>
           <p>
             After a real merge, the script asks <code>bleeps health</code> for

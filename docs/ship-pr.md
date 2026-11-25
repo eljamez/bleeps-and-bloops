@@ -1,6 +1,6 @@
 # Ship a PR
 
-Bloops owns this. The thin skill is [agents/bloops/skills/merge/SKILL.md](../agents/bloops/skills/merge/SKILL.md). [`scripts/merge-pr`](../scripts/merge-pr) checks the gates. [`scripts/ship-pr`](../scripts/ship-pr) calls it. The script does not turn on GitHub auto-merge. That setting is still an open question. The procedure below is what the gates mean.
+Bloops owns this. The thin skill is [agents/bloops/skills/merge/SKILL.md](../agents/bloops/skills/merge/SKILL.md). [`scripts/merge-pr`](../scripts/merge-pr) checks the gates. [`scripts/ship-pr`](../scripts/ship-pr) calls it. The script does not merge. A qualifying chore is merged by the lane workflow. See [0017](decisions/0017-chore-lane.md). The procedure below is what the gates mean.
 
 Shipping splits in two. The skill is judgment, about 150 words. A script does the procedure the same way on every call. A long prose skill gets a fresh interpretation each session. See [0005](decisions/0005-adopt-kody-inspired-practices.md).
 

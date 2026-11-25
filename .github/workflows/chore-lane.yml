@@ -1,0 +1,211 @@
+name: chore-lane
+
+on:
+  workflow_run:
+    workflows: [merge-gate, orca, site]
+    types: [completed]
+
+# The app token merges, so the push to develop starts check and e2e.
+# GITHUB_TOKEN would not. Missing app secrets skip the merge and log why.
+# A red develop after a lane merge fails closed if the kill switch cannot be set.
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+  actions: read
+
+concurrency:
+  group: bleeps-chore-lane
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    if: >
+      github.event.workflow_run.name == 'merge-gate' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_branch != 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kill switch
+        id: kill
+        run: |
+          if [ "${{ vars.BLEEPS_AUTOMERGE }}" != "on" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "chore-lane: skip. BLEEPS_AUTOMERGE is not on."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: App secrets
+        id: secrets
+        if: steps.kill.outputs.enabled == 'true'
+        env:
+          APP_ID: ${{ secrets.BLEEPS_APP_ID }}
+          APP_KEY: ${{ secrets.BLEEPS_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APP_ID" ] || [ -z "$APP_KEY" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "chore-lane: skip. BLEEPS_APP_ID or BLEEPS_APP_PRIVATE_KEY is missing, so no app token is minted."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/create-github-app-token@v1
+        if: steps.secrets.outputs.present == 'true'
+        id: app
+        with:
+          app-id: ${{ secrets.BLEEPS_APP_ID }}
+          private-key: ${{ secrets.BLEEPS_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.present == 'true'
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        if: steps.secrets.outputs.present == 'true'
+        with:
+          python-version: "3.12"
+      - name: Fetch develop
+        if: steps.secrets.outputs.present == 'true'
+        run: git fetch origin develop && git branch -f develop origin/develop
+      - name: Gate
+        id: gate
+        if: steps.secrets.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          BLEEPS_AUTOMERGE: ${{ vars.BLEEPS_AUTOMERGE }}
+        run: |
+          set +e
+          PR="${{ github.event.workflow_run.pull_requests[0].number }}"
+          if [ -z "$PR" ]; then
+            PR=$(gh api "repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/pulls" --jq '.[0].number')
+          fi
+          if [ -z "$PR" ] || [ "$PR" = "null" ]; then
+            echo "chore-lane: skip. No pull request for ${{ github.event.workflow_run.head_sha }}."
+            echo "code=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          base=$(gh pr view "$PR" --json baseRefName --jq .baseRefName)
+          if [ "$base" != "develop" ]; then
+            echo "chore-lane: skip. Base is $base. main is never in scope."
+            echo "code=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          gh label create bleeps:merging --color FBCA04 --description "Chore lane merge in flight" --force
+          gh pr edit "$PR" --add-label bleeps:merging
+          python3 scripts/chore-lane gate --base develop --pr "$PR" > lane-gate.json
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "pr=$PR" >> "$GITHUB_OUTPUT"
+          cat lane-gate.json
+          if [ "$code" -gt 1 ]; then
+            exit "$code"
+          fi
+      - name: Comment and squash-merge
+        if: steps.gate.outputs.code == '0'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          set -eu
+          PR="${{ steps.gate.outputs.pr }}"
+          class=$(python3 -c 'import json; print(json.load(open("lane-gate.json")).get("lane") or "none")')
+          gh label create lane:merged --color 0E8A16 --description "Merged by the chore lane" --force
+          gh pr comment "$PR" --body "$(printf 'chore-lane gate\n\n```json\n%s\n```\n' "$(cat lane-gate.json)")"
+          gh pr edit "$PR" --add-label lane:merged
+          gh pr merge "$PR" --squash --subject "chore(${class}): lane merge" --body "Lane-Class: ${class}"
+      - name: Clear the in-flight label
+        if: always() && steps.gate.outputs.pr != ''
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: gh pr edit "${{ steps.gate.outputs.pr }}" --remove-label bleeps:merging || true
+
+  revert:
+    if: >
+      github.event.workflow_run.conclusion == 'failure' &&
+      (github.event.workflow_run.name == 'orca' || github.event.workflow_run.name == 'site') &&
+      github.event.workflow_run.head_branch == 'develop'
+    runs-on: ubuntu-latest
+    steps:
+      - name: App secrets
+        id: secrets
+        env:
+          APP_ID: ${{ secrets.BLEEPS_APP_ID }}
+          APP_KEY: ${{ secrets.BLEEPS_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APP_ID" ] || [ -z "$APP_KEY" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "chore-lane: BLEEPS_APP_ID or BLEEPS_APP_PRIVATE_KEY is missing. The lane cannot be switched off with an app token."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/create-github-app-token@v1
+        if: steps.secrets.outputs.present == 'true'
+        id: app
+        with:
+          app-id: ${{ secrets.BLEEPS_APP_ID }}
+          private-key: ${{ secrets.BLEEPS_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+      - name: Revert a lane merge and fail closed
+        env:
+          APP_TOKEN: ${{ steps.app.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          sha="${{ github.event.workflow_run.head_sha }}"
+          msg=$(git log -1 --format=%B "$sha")
+          case "$msg" in
+            *Lane-Class:*) ;;
+            *)
+              echo "chore-lane: develop is red and ${sha} is not a lane merge. Not reverting."
+              exit 0
+              ;;
+          esac
+          owner="${{ github.repository_owner }}"
+          branch="chore-lane-revert-${sha}"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "chore-lane: revert branch ${branch} already exists."
+            already=yes
+          else
+            already=no
+          fi
+          switched=no
+          token="${APP_TOKEN}"
+          if [ -n "$token" ]; then
+            if GH_TOKEN="$token" gh variable set BLEEPS_AUTOMERGE --body off; then
+              switched=yes
+              echo "chore-lane: BLEEPS_AUTOMERGE set to off."
+            else
+              echo "chore-lane: could not set BLEEPS_AUTOMERGE=off."
+            fi
+          fi
+          title="Chore lane off: develop went red after a lane merge"
+          existing=$(gh issue list --search "Chore lane off in:title is:open" --json number --jq '.[0].number')
+          body=$(printf '@%s\n\n`develop` went red after lane merge `%s`.\n\nBLEEPS_AUTOMERGE switched off: %s.\n\nThe lane stays off until you set the variable back to `on`.\n' "$owner" "$sha" "$switched")
+          if [ -n "$existing" ] && [ "$existing" != "null" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
+          if [ -z "$token" ]; then
+            echo "chore-lane: fail closed. No app token, so the revert pull request was not opened and the variable was not changed."
+            exit 1
+          fi
+          export GH_TOKEN="$token"
+          if [ "$already" = "no" ]; then
+            git config user.email "bleeps-bot@users.noreply.github.com"
+            git config user.name "bleeps"
+            git checkout -b "$branch"
+            git revert --no-edit "$sha"
+            gh auth setup-git
+            git push origin "HEAD:${branch}"
+          fi
+          open=$(gh pr list --head "$branch" --base develop --json number --jq '.[0].number')
+          if [ -z "$open" ] || [ "$open" = "null" ]; then
+            GH_TOKEN="$token" gh pr create --base develop --head "$branch" --title "Revert lane merge ${sha}" --body "Revert of lane merge \`${sha}\`. Base is develop. main is out of scope."
+          fi
+          if [ "$switched" != "yes" ]; then
+            echo "chore-lane: fail closed. The revert pull request is open and BLEEPS_AUTOMERGE was not switched off."
+            exit 1
+          fi

@@ -14,6 +14,7 @@ Plan for Bleeps, the orchestrator behind the Bleeps and Bloops brand. Bloops mer
 - [Using Bleeps](using-bleeps.md)
 - [Where it runs](where-it-runs.md)
 - [Orca bots](bots.md) — optional runtime. The default stays `issueCommand`
+- [Chore lane setup](chore-lane-setup.md) — the GitHub settings the lane needs. The script does not turn them on
 - [Ship a PR](ship-pr.md)
 - [Friction log](friction-log.md)
 - [Control CLI](control-cli.md)

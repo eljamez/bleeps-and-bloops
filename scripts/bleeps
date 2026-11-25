@@ -5,7 +5,8 @@ Project commands come from orca.project.yaml in the worktree. Orca does not
 read that file. Keys: install, test, typecheck, health_url, preview,
 proactive, host, runtime, scout_schedule, scout_time, scout_cap, scout_scans,
 scout_provider, router, jev_key_env, jev_url, a provider/model/tier per role
-(beep, buzz, blip, echo, chip, bloops), error_tracking, fix_rounds, and the
+(beep, buzz, blip, echo, chip, ping, boop, bloops, zap), error_tracking,
+fix_rounds, chore_lane, chore_lane_classes, review_external, zap, and the
 ticket source keys read by scripts/intake (names of env vars, never the secrets).
 fix_rounds caps scripts/fix-loop. Default 2. Integer 0-20.
 """
@@ -56,6 +57,19 @@ KEYS = (
     "bloops_provider",
     "bloops_model",
     "bloops_tier",
+    "ping_provider",
+    "ping_model",
+    "ping_tier",
+    "boop_provider",
+    "boop_model",
+    "boop_tier",
+    "zap_provider",
+    "zap_model",
+    "zap_tier",
+    "chore_lane",
+    "chore_lane_classes",
+    "review_external",
+    "zap",
     "error_tracking",
     "test_unit",
     "test_integration",

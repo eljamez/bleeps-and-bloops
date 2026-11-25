@@ -19,7 +19,7 @@ The shared [`orca.yaml`](../orca.yaml) is the config those pieces live in. Kick-
 
 The machine-readable list is [primitives.yaml](primitives.yaml). Update that file when a primitive is added, removed, or reshaped. Leave its `summary` alone for ordinary feature work. To put this on a repo of your own, read [Using Bleeps](using-bleeps.md).
 
-CodeRabbit, Devin, and Claude Code are the layered reviewers in [flow](flow.md) step 7. They are tools on the line, not rows here. Devin is optional.
+Ping is the review bot when you run the crew as bots. `review_external` defaults to `none` and installs nothing. CodeRabbit or Copilot count only when that key names them and the review actually ran.
 
 ## Where they sit
 

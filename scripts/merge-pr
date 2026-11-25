@@ -50,7 +50,7 @@ def evaluate(flags: dict[str, str]) -> tuple[dict, int]:
         "reason": "",
     }
     if flags.get("apply") == "yes":
-        body["reason"] = "GitHub auto-merge is an open question. --apply does not merge."
+        body["reason"] = "The chore lane workflow merges a qualifying chore. --apply does not merge."
         return body, 2
     if base == "main":
         body["reason"] = "refuses main"
@@ -72,7 +72,7 @@ def evaluate(flags: dict[str, str]) -> tuple[dict, int]:
         return body, 2
     body["wouldMerge"] = True
     body["into"] = "develop"
-    body["reason"] = "gates passed; GitHub auto-merge stays an open question"
+    body["reason"] = "gates passed; this script does not merge. A qualifying chore is merged by the lane workflow."
     return body, 0
 
 

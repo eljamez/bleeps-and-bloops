@@ -135,9 +135,18 @@ issueCommand: |
   docs/reference/context-pack-2026-11-11 are reference, not the runtime.
   The short form is on the primitives page in the factory.
 
-  An issue labelled bleeps:found was filed by Chip. Use the same steps.
+  An issue labelled bleeps:found was filed by Chip or Boop. If the body says
+  it is a feature, stop. A feature starts only when a person filed the ticket
+  or labelled it bleeps:go. scripts/classify-pr is the check. Chip and Boop
+  do not build a feature. They file the issue and stop.
   If the issue body says Risk: high, it touches a guardrail. Wait for James
   and do not merge.
+
+  The chore lane is scripts/chore-lane. It is off unless the project sets
+  chore_lane: on. Phase 1 is dependency patches and docs drift. A GitHub
+  workflow merges a pass. Do not merge it from this prompt. main is never
+  in that lane. review_external defaults to none and installs nothing.
+  Zap drafts release notes only when zap is on, and Zap does not merge.
 
   The provider and model for each role are the providers table below.
   Orca drops that key. Run <factory>/scripts/providers show <role> and
@@ -207,8 +216,23 @@ providers:
       model: haiku
       tier: fast
       route: jev
+    ping:
+      provider: claude
+      model: sonnet
+      tier: balanced
+      route: fixed
+    boop:
+      provider: claude
+      model: sonnet
+      tier: balanced
+      route: fixed
     bloops:
       provider: claude
       model: sonnet
       tier: balanced
       route: reflect
+    zap:
+      provider: claude
+      model: sonnet
+      tier: balanced
+      route: fixed

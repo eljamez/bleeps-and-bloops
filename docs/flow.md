@@ -11,9 +11,9 @@ Ticket-to-merge pipeline. Bleeps runs the crew. Bloops merges and reflects. Merg
 4. Build in an isolated Orca worktree. Each role's provider and model come from `scripts/providers`. A guardrail change uses the frontier model. Blip writes or extends the tests and runs `scripts/fix-loop`. A red suite does not stop the run. Buzz fixes product code, or Blip fixes the test when the test itself is wrong, then Blip reruns. `fix_rounds` in `orca.project.yaml` defaults to 2. The next red escalates to James with a summary, and that run does not merge. Pause for human approval when a change touches a guardrail area: auth, billing, payments, data deletion, or migrations. See [0012](decisions/0012-red-suite-loops.md).
 5. An independent read-only reviewer writes `verify.md`. It records unit, integration, and end-to-end. End-to-end is not applicable only when the project is not a web app. Only a "Ready to ship" verdict proceeds, and only when those layers are green. A red suite returns to step 4. A missing test command is not green. Any other not-ready verdict does not proceed.
 6. Open a PR against `develop`, comment on the issue, and link the PR on the ticket source with `scripts/intake link-pr`.
-7. Layered review is not started by `orca.yaml`. CodeRabbit, Devin, and an architecture-fit pass count only when they actually ran. Nothing in this factory watches the pull-request queue.
-8. Auto-merge into `develop` when all gates pass: required checks green, verify verdict "Ready to ship", layered reviews passed with no blocking findings, and no guardrail area touched without human sign-off.
-9. James promotes `develop` to `main`. Agents never touch `main`.
+7. Ping reviews a pull request into `develop` when `runtime` is `bots`, including Renovate. One summary, with `risk:` and `lane:` labels. Ping does not approve or merge. `review_external` defaults to `none` and installs nothing. CodeRabbit or Copilot count only when that key names them and the review actually ran.
+8. Bloops merges into `develop` when the owner says so and `scripts/merge-pr check` passes. `scripts/merge-pr --apply` does not merge. A project may set `chore_lane: on`. Then the GitHub workflow squash-merges a pull request `scripts/chore-lane check` accepts. Feature work is not that lane. See [0017](decisions/0017-chore-lane.md).
+9. James promotes `develop` to `main`. Agents never touch `main`. Zap may draft the notes when `zap` is `on`. Zap does not merge.
 
 ## Open
 
@@ -33,10 +33,10 @@ flowchart TD
   hold["Does not proceed"]
   limit["fix_rounds spent: escalate to James. Do not merge"]
   s6["6. PR opened against develop. Comment on the issue"]
-  s7["7. Reviews count only when they actually ran. Nothing in this factory watches the queue"]
-  gates{"All gates pass?"}
-  s8["8. Auto-merge into develop"]
-  s9["9. James promotes develop to main"]
+  s7["7. Ping reviews when runtime is bots. review_external defaults to none"]
+  gates{"Owner said go, or the chore lane passed?"}
+  s8["8. Owner merge, or the lane workflow"]
+  s9["9. James promotes develop to main. Zap does not"]
 
   s0 --> s1 --> s2 --> s3 --> s4
   s4 -->|green| s5 --> ready

@@ -18,6 +18,10 @@ type SystemFacts = {
     proactive: string;
     host: string;
     runtime: string;
+    chore_lane: string;
+    chore_lane_classes: string;
+    review_external: string;
+    zap: string;
     scout_cap: string;
     scout_schedule: string;
     scout_time: string;
