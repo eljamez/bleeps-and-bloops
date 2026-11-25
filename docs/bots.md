@@ -2,6 +2,8 @@
 
 Optional. The default stays `issueCommand`: Orca sends that prompt when a workspace launches from a GitHub issue. Set `runtime: bots` in `orca.project.yaml` when you want the crew as [Orca Bots](https://orca.dev/docs/bots) in one group. `runtime` omitted means `issue-command`.
 
+The steps for a project of yours are [Set up the crew as Orca bots](bots-setup.md). This page is the command reference those steps follow. The prompt you paste into Bleeps is [bots/bootstrap-prompt.md](../bots/bootstrap-prompt.md). `python3 scripts/bots prompt` prints it.
+
 Bots launched in Orca 1.4.265 on 2026-11-19. They live in Orca's store on one computer (`SOUL.md`, `MEMORY.md`, chats), not in `orca.yaml`. This repo holds starter souls and the skills a linked project exposes. `python3 scripts/bots print` prints the commands below and does not run them. `python3 scripts/bots check` fails when a soul, a skill link, or a command in this page drifts.
 
 On this repo the owner is James. On yours, you are. The scripts still say James where they already escalate to the owner.

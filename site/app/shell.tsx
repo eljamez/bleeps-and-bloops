@@ -19,6 +19,7 @@ export const links = {
   architecture: blob("docs/architecture.md"),
   runs: blob("docs/where-it-runs.md"),
   bots: blob("docs/bots.md"),
+  botsSetup: blob("docs/bots-setup.md"),
   lane: blob("docs/chore-lane-setup.md"),
   example: blob("examples/orca.project.yaml"),
   blip: blob("agents/blip/ROLE.md"),
@@ -28,6 +29,7 @@ export const links = {
 const nav = [
   { href: "/start/new", id: "new", label: "New project" },
   { href: "/start/existing", id: "existing", label: "Existing project" },
+  { href: "/start/bots", id: "bots", label: "Bots" },
   { href: "/using-bleeps", id: "using", label: "Day to day" },
 ] as const;
 
@@ -92,6 +94,8 @@ export function SiteShell({
             <a href="/start/new">Start a new project</a>
             {" · "}
             <a href="/start/existing">Add it to an existing project</a>
+            {" · "}
+            <a href="/start/bots">Set up the bots</a>
             {" · "}
             <a href="/using-bleeps">Day to day</a>
           </p>
@@ -218,8 +222,10 @@ export function BotsNote() {
         suites. Chip scouts. Ping reviews. Boop opens chores. Bloops merges.
         Echo stays a fresh worker for each verify, so the verifier does not
         share the writer&apos;s chat. Zap joins only when <code>zap</code> is
-        on. <code>python3 scripts/bots print</code> shows the create,
-        automation, and handoff commands. It does not run them. The guide is{" "}
+        on.         <code>python3 scripts/bots print</code> shows the create,
+        automation, and handoff commands. It does not run them. Create Bleeps,
+        then paste one prompt. The steps are{" "}
+        <a href="/start/bots">Set up the bots</a>. The command list is{" "}
         <a href={links.bots}>how to run the crew as bots</a>.
       </p>
       <p>

@@ -335,8 +335,15 @@ def page_problems() -> list[str]:
         renders_sources(page)
         need(page, "ConfigKeys")
         need(page, "HostNote")
+        need(page, "/start/bots")
         if "GitHub is required" not in read(page):
             found.append(f"start/{name} must say GitHub is required")
+    bots_page = app / "start" / "bots" / "page.tsx"
+    need(bots_page, "bots/bootstrap-prompt.md")
+    need(bots_page, "readFileSync")
+    need(bots_page, "CopyPrompt")
+    need(bots_page, "Ask for approval")
+    need(shell, "/start/bots")
 
     number = re.compile(r"defaults? to \d+|\(default \d+\)")
     for path in app.rglob("*.tsx"):

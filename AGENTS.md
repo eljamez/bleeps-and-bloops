@@ -24,6 +24,7 @@ Open the page that owns the task:
 - [Bloops](agents/bloops/ROLE.md) — merges and reflects.
 - [Where it runs](docs/where-it-runs.md)
 - [Orca bots](docs/bots.md) — optional. `runtime` defaults to `issue-command`. See [0016](docs/decisions/0016-orca-bots.md)
+- [Set up the bots](docs/bots-setup.md) — create Bleeps, then paste `bots/bootstrap-prompt.md`
 - [Primitives](docs/primitives.md)
 - [Using Bleeps](docs/using-bleeps.md)
 - [Tickets](docs/tickets.md) — GitHub, GitHub Projects, Jira, Discord, Linear. One intake path.
