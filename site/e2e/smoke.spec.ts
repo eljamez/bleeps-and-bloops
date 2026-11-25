@@ -16,6 +16,7 @@ const pages = [
   { path: "/", heading: "Bleeps and Bloops" },
   { path: "/start/new", heading: "Start a new project" },
   { path: "/start/existing", heading: "Add Bleeps to an existing project" },
+  { path: "/start/bots", heading: "Set up the bots" },
   { path: "/using-bleeps", heading: "Day to day" },
 ] as const;
 
@@ -113,6 +114,28 @@ test("setup pages require GitHub and name the other ticket sources", async ({ pa
     }
     await expect(page.getByRole("link", { name: "Tickets" })).toBeVisible();
   }
+});
+
+test("setup pages link to the bots setup", async ({ page }) => {
+  for (const path of ["/start/new", "/start/existing"]) {
+    await page.goto(path);
+    await page.locator("#bots").getByRole("link", { name: "Set up the bots" }).click();
+    await expect(page).toHaveURL("/start/bots");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Set up the bots");
+  }
+});
+
+test("bots setup page shows the bootstrap prompt and copies it", async ({ page }) => {
+  await page.goto("/start/bots");
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  const prompt = page.getByText(/You are setting up the rest of the Bleeps and Bloops crew/);
+  await expect(prompt).toBeVisible();
+  await page.getByRole("button", { name: "Copy prompt" }).click();
+  await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain("orca bot create --offer");
+  expect(copied).toContain("Echo is a fresh Claude Code worker");
+  expect(copied).not.toContain("James");
 });
 
 test("home and day-to-day pages explain the optional bots runtime", async ({ page }) => {

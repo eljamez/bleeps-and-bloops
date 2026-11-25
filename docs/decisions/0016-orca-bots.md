@@ -20,5 +20,5 @@ Orca's "merge only when the owner asks" is a prompt, not a lock. The script is t
 ## Consequences
 
 - `issueCommand` still runs a project that leaves `runtime` unset.
-- Setup for the group is `python3 scripts/bots print`. It does not create the bots. See [bots](../bots.md).
+- Setup for the group starts at [Set up the crew as Orca bots](../bots-setup.md). You create Bleeps in the app, then paste [bots/bootstrap-prompt.md](../../bots/bootstrap-prompt.md). `python3 scripts/bots print` shows the commands and does not create the bots. See [bots](../bots.md).
 - **Revisit if:** Orca enforces the merge prompt, or a bot can run with no machine you keep awake.

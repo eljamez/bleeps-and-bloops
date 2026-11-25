@@ -145,7 +145,23 @@ cp /path/to/bleeps-and-bloops/examples/orca.project.yaml orca.project.yaml`}</co
         </div>
       </Section>
 
-      <Section id="next" index="03" title="Once setup is done">
+      <Section id="bots" index="03" title="Optional: the crew as bots">
+        <div className="stack">
+          <p>
+            <code>runtime</code> defaults to {system.defaults.runtime}. Leave it
+            there and Orca starts the crew from <code>issueCommand</code> when
+            a workspace launches from a GitHub issue. Set{" "}
+            <code>runtime: bots</code> only after the group exists.
+          </p>
+          <p>
+            Create the Bleeps bot in Orca, then paste one prompt that proposes
+            the rest of the crew. The steps and the prompt are on{" "}
+            <a href="/start/bots">Set up the bots</a>.
+          </p>
+        </div>
+      </Section>
+
+      <Section id="next" index="04" title="Once setup is done">
         <div className="stack">
           <p>
             The day-to-day line is the same as on a new project: an issue, a

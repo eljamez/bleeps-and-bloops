@@ -31,6 +31,10 @@ A feature pull request targets `develop` and waits for you. The [chore lane](dec
 
 One shared [`orca.yaml`](../orca.yaml) is the factory config. `issueCommand` is the kick-off. `scripts.setup` installs dependencies when Orca creates a worktree. Orca does not merge a second yaml. Your repository symlinks `orca.yaml` and commits `orca.project.yaml` for install, test, typecheck, `host`, and `runtime`. `runtime` defaults to `issue-command`. `bots` is optional and runs the crew as Orca bots in one group. Copy [examples/orca.project.yaml](../examples/orca.project.yaml). See [0001](decisions/0001-shared-factory-config.md), [0007](decisions/0007-bleeps-is-built-for-orca.md), [0016](decisions/0016-orca-bots.md), and [where it runs](where-it-runs.md).
 
+### Crew as bots
+
+Do this only when you want the crew standing in one Orca group. The steps are [Set up the crew as Orca bots](bots-setup.md): create Bleeps in the app, paste [bots/bootstrap-prompt.md](../bots/bootstrap-prompt.md) into its chat, then finish the lane settings in [chore lane setup](chore-lane-setup.md). [Run the crew as Orca bots](bots.md) is the command list. `python3 scripts/bots print` prints it and does not run it. Leave `runtime` at `issue-command` until that group exists.
+
 The 2026-11-11 Claude plugins stay reference. `/bb:kick-off` is now `issueCommand`. `/bb:sdd-init` is the setup hook. The spec, task, and verify stages are steps in that prompt. The pack's ship step never merged; merge policy is [0003](decisions/0003-gitflow-auto-merge-to-develop.md), and `scripts/ship-pr` is still a stub. The full map is in [0007](decisions/0007-bleeps-is-built-for-orca.md).
 
 Blip owns tests. Read [agents/blip/ROLE.md](../agents/blip/ROLE.md). Put `test`, or `test_unit`, `test_integration`, and `test_e2e`, in `orca.project.yaml`. A missing test command fails `bleeps test`. A red suite runs `scripts/fix-loop` in the same run. `fix_rounds` defaults to 2. Nothing merges while the suite is red. See [0009](decisions/0009-testing-is-a-gate-blip-owns-tests.md) and [0012](decisions/0012-red-suite-loops.md).
@@ -126,6 +130,7 @@ These wait on the roadmap.
 
 - [ ] Install Orca, log in an agent, and confirm one worktree on a throwaway repo. See [where it runs](where-it-runs.md). Set `host` if the machine is not the computer in front of you.
 - [ ] Symlink the shared `orca.yaml` and commit `orca.project.yaml`.
+- [ ] Optional: set up the crew as Orca bots. Create Bleeps, then paste the prompt. See [Set up the crew as Orca bots](bots-setup.md).
 - [ ] Install CodeRabbit. Add Devin only after its noise is calibrated.
 - [ ] Enable auto-merge on `develop` with the required checks.
 - [ ] Run kick-off on a real issue, then ship-pr, then `bleeps health` after the merge.
